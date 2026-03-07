@@ -26,9 +26,9 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>{{ '계정 수정' if user else '계정 추가' }}</h1>
-        <a href="/admin/users">← 계정 목록</a>
+    <div class="header" style="background:#1a1a2e;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;">
+        <h1 style="font-size:1.2rem;color:#00d4ff;">{{ '계정 수정' if user else '계정 추가' }}</h1>
+        {% include 'nav.html' %}
     </div>
 
     <div class="form-container">

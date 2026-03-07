@@ -104,7 +104,11 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;display:fle
 <div id="add-widget-btn" onclick="showAddModal()">+ 커스텀 위젯 추가</div>
 </div>
 
-<div id="toolbar">
+<div style="position:fixed;top:0;left:0;right:0;z-index:2000;background:#111130;padding:6px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:40px;">
+    <span style="font-size:1rem;font-weight:bold;color:#00d4ff">BSEYE Editor</span>
+    {% include 'nav.html' %}
+</div>
+<div id="toolbar" style="margin-top:40px">
 <button onclick="saveLayout()" class="btn-save">저장</button>
 <button onclick="previewLayout()" class="btn-preview">미리보기</button>
 <button onclick="clearCanvas()">추천 레이아웃</button>
