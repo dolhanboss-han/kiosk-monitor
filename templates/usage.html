@@ -108,16 +108,8 @@ tr:hover{background:#1a1a3a}
 <body>
 <div class="hdr">
     <span class="logo">BSEYE Monitor</span>
-    <div class="nav">
-        <a href="/">대시보드</a>
-        <a href="/monitoring">모니터링</a>
-        <a href="/usage" class="active">행동분석</a>
-        <a href="/maintenance" style="background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7">유지보수</a>
-        <a href="/executive">경영진</a>
-        <a href="/hospital-view">병원뷰</a>
-    </div>
+    {% include 'nav.html' %}
 </div>
-
 <div class="kpi-row">
     <div class="kpi c1"><div class="val" id="k-kiosk">-</div><div class="label">활성 키오스크</div></div>
     <div class="kpi c2"><div class="val" id="k-entry">-</div><div class="label">오늘 진입</div></div>

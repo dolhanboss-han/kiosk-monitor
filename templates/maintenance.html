@@ -156,15 +156,9 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 <!-- 헤더 -->
 <div class="header">
     <h1>BSEYE Kiosk Maintenance</h1>
-    <div class="nav">
-        <a href="/monitoring">모니터링</a>
-        <a href="/maintenance" class="active">유지보수</a>
-        <a href="/usage">행동분석</a>
-        <a href="/executive">경영현황</a>
-    </div>
+    {% include 'nav.html' %}
     <div class="time" id="clock"></div>
 </div>
-
 <!-- 탭 -->
 <div class="tabs">
     <div class="tab active" onclick="showTab(0)">소모품 현황</div>

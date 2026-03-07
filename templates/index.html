@@ -60,25 +60,12 @@ td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
 
 <div class="header">
     <span class="logo">BSEYE Monitor</span>
-    <div class="nav">
-        <a href="/" class="active">대시보드</a>
-        <a href="/monitoring">모니터링</a>
-        <a href="/hospitals">병원</a>
-        <a href="/alarms">알람</a>
-        <a href="/tickets">티켓</a>
-        <a href="/editor">에디터</a>
-        <a href="/executive">경영진</a>
-        <a href="/hospital-view">병원뷰</a>
-        {% if session.get('org_type') == 'hq' %}
-        <a href="/admin/users">관리</a>
-        {% endif %}
-    </div>
+    {% include 'nav.html' %}
     <div class="right">
         <span class="user">{{ session.get('user_name', '') }} ({{ session.get('user_role', '') }})</span>
         <span class="user"><a href="/change-password">비밀번호</a> <a href="/logout">로그아웃</a></span>
     </div>
 </div>
-
 <div id="canvas"></div>
 
 <script>

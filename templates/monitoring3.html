@@ -75,17 +75,8 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
 <body>
 <div class="hdr">
  <span class="logo">BSEYE Monitor</span>
- <div class="nav">
-  <a href="/">대시보드</a>
-  <a href="/monitoring">타일뷰</a>
-  <a href="/monitoring3" class="active">스크롤</a>
-  <a href="/hospitals">병원</a>
-  <a href="/maintenance" style="background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7">유지보수</a>
-  <a href="/usage">행동분석</a>
-        <a href="/executive">경영진</a>
- </div>
+ {% include 'nav.html' %}
 </div>
-<div class="stats">
  <div class="st"><div class="n c1" id="o-h">-</div><div class="l">병원</div></div>
  <div class="st"><div class="n c1" id="o-k">-</div><div class="l">키오스크</div></div>
  <div class="st"><div class="n c2" id="o-on">-</div><div class="l">온라인</div></div>
