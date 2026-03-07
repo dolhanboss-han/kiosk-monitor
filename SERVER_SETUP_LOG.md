@@ -353,3 +353,105 @@
 - 키오스크 원격 관리 시스템 마크다운 (사용자 제공)
 - 파일: snmp_utils.py, printer_manager.py, pc_manager.py, smart_plug.py, agent.py, monitor.py
 - config.json 구조 확정
+
+---
+
+## Phase 4 (2026-03-07)
+
+### 1. GitHub 이력 관리 체계 구축
+- [x] Git 초기화 + .gitignore 생성 (DB, 캐시, 로그 제외)
+- [x] GitHub private 저장소 생성: https://github.com/dolhanboss-han/kiosk-monitor
+- [x] 초기 백업 커밋 + push 완료 (commit c03a808)
+- [x] 모든 작업 단위별 커밋/푸시 규칙 적용
+
+### 2. 사용현황 분석 (usage.html) 기능 구현
+- [x] /usage 페이지 전체 탭 구현 (KPI, 키오스크별, 시간대별, 일별추이, 완료율)
+- [x] /usage-verify 현장 검증 페이지 배포
+- [x] 퍼널 분석 탭 기본 구현 (메뉴별/단계별 드롭오프)
+- [x] usage_event_log 18,407건, usage_daily_summary 43건 데이터 확인
+
+### 3. 설치 마법사 (setup_monitor.html) 수정
+- [x] downloadInstaller() 함수 누락 → 추가 (PowerShell 명령어 생성 방식)
+- [x] checkInstall() 함수 누락 → 추가 (에이전트 연결 확인)
+- [x] bat 다운로드 → 복사/붙여넣기 방식으로 전환 (Windows Defender 차단 우회)
+- [x] /api/setup/install-bat 라우트 경로 확인 (app.py line 990)
+- [x] install.bat 내 C:\bseye-agent 경로 백슬래시 이스케이프 수정
+
+### 4. 공통 네비게이션 통합 (nav.html)
+- [x] templates/nav.html 신규 생성 — 권한별 메뉴 동적 표시
+- [x] 역할 분기: hq(전체), hosp(제한), isv(제한)
+- [x] 22개 HTML 파일에 {% include 'nav.html' %} 적용 완료
+- [x] 적용 제외 5개: login.html, nav.html, index_old.html, dashboard_preview.html, kiosk_preview.html
+- [x] 메뉴 중앙정렬 통일 (justify-content:center)
+- [x] usage_verify.html 중앙정렬 별도 수정
+- [x] 에디터 링크를 hq_admin 관리 영역으로 이동 (일반 메뉴에서 분리)
+- [x] 관리 영역 구분선(|) 추가, "관리" → "사용자관리" 라벨 변경
+
+### 5. UI 레이아웃 수정
+- [x] alarms.html stat-card 가로배치 수정 (div.stats 래핑 추가)
+- [x] tickets.html stat-card 가로배치 수정 (div.stats 래핑 추가)
+- [x] editor.html 캔버스 왼쪽 빈공간 제거 (margin-left:260px 삭제)
+- [x] maintenance.html 모바일 최적화 (헤더 한줄, 세로 알림 행)
+
+### 6. 문서 생성
+- [x] PROJECT_STATUS.md 자동 생성 (파일구조, 템플릿 현황, 라우트, DB 테이블, 권한 매트릭스, 사용자 목록)
+- [x] SERVER_SETUP_LOG.md Phase 4 업데이트
+
+### 7. 권한별 메뉴 접근 매트릭스 (nav.html 기준)
+
+| 메뉴 | 경로 | hq_admin | hosp_admin | isv_admin |
+|------|------|:--------:|:----------:|:---------:|
+| 대시보드 | / | ✅ | ✅ | ✅ |
+| 모니터링 | /monitoring | ✅ | ✅ | ✅ |
+| 병원 | /hospitals | ✅ | ❌ | ❌ |
+| 행동분석 | /usage | ✅ | ✅ | ✅ |
+| 유지보수 | /maintenance | ✅ | ❌ | ✅ |
+| 알람 | /alarms | ✅ | ✅ | ✅ |
+| 티켓 | /tickets | ✅ | ✅ | ✅ |
+| 경영진 | /executive | ✅ | ❌ | ❌ |
+| 병원뷰 | /hospital-view | ✅ | ❌ | ❌ |
+| 검증 | /usage-verify | ✅ | ❌ | ✅ |
+| 설치 | /setup-monitor | ✅ | ❌ | ✅ |
+| 에디터 | /editor | ✅ (관리) | ❌ | ❌ |
+| 사용자관리 | /admin/users | ✅ (관리) | ❌ | ❌ |
+
+### 8. 프로젝트 구조 업데이트
+- templates/ 26개 HTML (기존 19개 → 7개 추가)
+  - 추가: executive.html, hospital_view.html, monitoring3.html, setup_monitor.html, usage.html, usage_verify.html, nav.html
+- Git 커밋 이력 관리 시작 (GitHub private repo)
+- PROJECT_STATUS.md 자동 생성 스크립트
+
+---
+
+## 13. 다음 작업 (업데이트)
+
+### 긴급
+- [ ] setup-monitor: saveInfo/downloadInstaller 버튼 동작 최종 확인 (스크린샷 필요)
+- [ ] 퍼널 분석 탭 스크린샷 검증 (메뉴별/단계별 드롭오프)
+- [ ] maintenance.html JavaScript 오류 수정 ('현장출동' 정의, showTab 누락)
+- [ ] f-string 문법 오류 잔여건 확인
+
+### 보류 (기존 유지)
+- [ ] 데이터 정합성 체크: 이번달 사용량 월초 -81% 표시 원인
+- [ ] 데이터 정합성 체크: 병원 규모별 4대+ 그룹 이상치
+- [ ] 데이터 정합성 체크: 요일별 히트맵 DATEPART(WEEKDAY) 매칭
+- [ ] 데이터 정합성 체크: 활성화율 분모 시점 기준 보정
+- [ ] kiosk_editor.html 이벤트 리스너 중복 완전 정리
+
+### 예정 (기존 유지 + 추가)
+- [ ] 권한별 백엔드 필터링 강화 (app.py 라우트별 hosp_cd 필터)
+- [ ] hosp_admin / isv_admin 전용 대시보드 레이아웃
+- [ ] executive.html, hospital_view.html 모바일 반응형 CSS (@media queries)
+- [ ] Supabase 마스터 DB 연동 + 병원코드 마이그레이션
+- [ ] 에이전트 MSSQL 데이터 수집 확장 (진입탈 상세정보)
+- [ ] 카카오 알림톡 연동
+- [ ] 에이전트 자동업데이트 / Windows 서비스 등록
+- [ ] DB 백업 자동화, 보안 강화
+- [ ] 에디터 독립 모듈 분리 (관리 전용)
+
+---
+
+## 14. 다음 세션
+1. SERVER_SETUP_LOG.md 로컬 백업
+2. 다음 대화 시 이 파일 첨부
+3. "첨부 파일 읽고 계속 진행" 전송
