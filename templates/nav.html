@@ -32,8 +32,7 @@
     {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" style="{{ nav_style }}" data-nav="/usage-verify">검증</a>
     <a href="/setup-monitor" style="{{ nav_style }}" data-nav="/setup-monitor">설치</a>{% endif %}
     {% if role == 'hq_admin' %}<span style="color:#444;margin:0 2px">|</span>
-    <a href="/editor" style="{{ nav_style }}" data-nav="/editor">에디터</a>
-    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">사용자관리</a>{% endif %}
+    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">관리</a>{% endif %}
 </div>
 
 <!-- 모바일: 햄버거 -->
@@ -53,8 +52,7 @@
     <a href="/tickets" data-nav="/tickets">티켓</a>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/setup-monitor" data-nav="/setup-monitor">설치 마법사</a>{% endif %}
     {% if role == 'hq_admin' %}
-    <a href="/editor" data-nav="/editor">에디터</a>
-    <a href="/admin/users" data-nav="/admin/users">사용자관리</a>
+    <a href="/admin/users" data-nav="/admin/users">관리</a>
     {% endif %}
     <a href="/change-password">비밀번호 변경</a>
     <a href="/logout" style="color:#ff6b6b">로그아웃</a>
