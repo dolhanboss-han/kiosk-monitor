@@ -3,45 +3,75 @@
 {% set ot = session.get('org_type', '') %}
 {% set nav_style = "color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" %}
 
-<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;flex:1">
+<style>
+#nav-links{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;flex:1}
+#nav-hamburger{display:none;background:none;border:1px solid #555;color:#ccc;font-size:1.4rem;padding:4px 10px;border-radius:6px;cursor:pointer}
+#nav-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9998}
+#nav-mobile{display:none;position:fixed;top:0;right:0;width:220px;height:100%;background:#12122a;border-left:1px solid #333;z-index:9999;padding:16px 0;overflow-y:auto}
+#nav-mobile a{display:block;color:#999;text-decoration:none;font-size:0.88rem;padding:12px 20px;border-bottom:1px solid #222}
+#nav-mobile a:hover,#nav-mobile a.active{color:#00d4ff;background:#1a1a3e}
+#nav-mobile .nav-close{text-align:right;padding:8px 16px;color:#888;font-size:1.2rem;cursor:pointer}
+#nav-mobile .nav-section{color:#555;font-size:0.7rem;padding:8px 20px 4px;text-transform:uppercase;letter-spacing:1px}
+@media(max-width:768px){
+    #nav-links{display:none}
+    #nav-hamburger{display:block}
+}
+</style>
+
+<!-- PC: 기존 가로 메뉴 -->
+<div id="nav-links">
     <a href="/" style="{{ nav_style }}" data-nav="/">대시보드</a>
     <a href="/monitoring" style="{{ nav_style }}" data-nav="/monitoring">모니터링</a>
-
-    {% if ot == 'hq' %}
-    <a href="/hospitals" style="{{ nav_style }}" data-nav="/hospitals">병원</a>
-    {% endif %}
-
+    {% if ot == 'hq' %}<a href="/hospitals" style="{{ nav_style }}" data-nav="/hospitals">병원</a>{% endif %}
     <a href="/usage" style="{{ nav_style }}" data-nav="/usage">행동분석</a>
-
-    {% if ot == 'hq' or ot == 'isv' %}
-    <a href="/maintenance" style="{{ nav_style }}" data-nav="/maintenance">유지보수</a>
-    {% endif %}
-
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/maintenance" style="{{ nav_style }}" data-nav="/maintenance">유지보수</a>{% endif %}
     <a href="/alarms" style="{{ nav_style }}" data-nav="/alarms">알람</a>
     <a href="/tickets" style="{{ nav_style }}" data-nav="/tickets">티켓</a>
-
-    {% if ot == 'hq' %}
-    <a href="/executive" style="{{ nav_style }}" data-nav="/executive">경영진</a>
-    <a href="/hospital-view" style="{{ nav_style }}" data-nav="/hospital-view">병원뷰</a>
-    {% endif %}
-
-    {% if ot == 'hq' or ot == 'isv' %}
-    <a href="/usage-verify" style="{{ nav_style }}" data-nav="/usage-verify">검증</a>
-    <a href="/setup-monitor" style="{{ nav_style }}" data-nav="/setup-monitor">설치</a>
-    {% endif %}
-
-    {% if role == 'hq_admin' %}
-    <span style="color:#444;margin:0 2px">|</span>
+    {% if ot == 'hq' %}<a href="/executive" style="{{ nav_style }}" data-nav="/executive">경영진</a>
+    <a href="/hospital-view" style="{{ nav_style }}" data-nav="/hospital-view">병원뷰</a>{% endif %}
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" style="{{ nav_style }}" data-nav="/usage-verify">검증</a>
+    <a href="/setup-monitor" style="{{ nav_style }}" data-nav="/setup-monitor">설치</a>{% endif %}
+    {% if role == 'hq_admin' %}<span style="color:#444;margin:0 2px">|</span>
     <a href="/editor" style="{{ nav_style }}" data-nav="/editor">에디터</a>
-    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">사용자관리</a>
-    {% endif %}
+    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">사용자관리</a>{% endif %}
 </div>
+
+<!-- 모바일: 햄버거 -->
+<button id="nav-hamburger" onclick="document.getElementById('nav-overlay').style.display='block';document.getElementById('nav-mobile').style.display='block'">☰</button>
+<div id="nav-overlay" onclick="this.style.display='none';document.getElementById('nav-mobile').style.display='none'"></div>
+<div id="nav-mobile">
+    <div class="nav-close" onclick="document.getElementById('nav-overlay').style.display='none';document.getElementById('nav-mobile').style.display='none'">✕</div>
+    <div class="nav-section">모니터링</div>
+    <a href="/" data-nav="/">대시보드</a>
+    <a href="/monitoring" data-nav="/monitoring">모니터링</a>
+    {% if ot == 'hq' %}<a href="/hospitals" data-nav="/hospitals">병원</a>{% endif %}
+    <div class="nav-section">분석</div>
+    <a href="/usage" data-nav="/usage">행동분석</a>
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" data-nav="/usage-verify">현장검증</a>{% endif %}
+    {% if ot == 'hq' %}<a href="/executive" data-nav="/executive">경영진 대시보드</a>
+    <a href="/hospital-view" data-nav="/hospital-view">병원뷰 대시보드</a>{% endif %}
+    <div class="nav-section">운영</div>
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/maintenance" data-nav="/maintenance">유지보수</a>{% endif %}
+    <a href="/alarms" data-nav="/alarms">알람</a>
+    <a href="/tickets" data-nav="/tickets">티켓</a>
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/setup-monitor" data-nav="/setup-monitor">설치 마법사</a>{% endif %}
+    {% if role == 'hq_admin' %}
+    <div class="nav-section">관리</div>
+    <a href="/editor" data-nav="/editor">에디터</a>
+    <a href="/admin/users" data-nav="/admin/users">사용자관리</a>
+    {% endif %}
+    <div class="nav-section">계정</div>
+    <a href="/change-password">비밀번호 변경</a>
+    <a href="/logout" style="color:#ff6b6b">로그아웃</a>
+</div>
+
 <script>
 (function(){
     var p=location.pathname;
     document.querySelectorAll('[data-nav]').forEach(function(a){
         if(p===a.dataset.nav||(a.dataset.nav!=='/'&&p.startsWith(a.dataset.nav))){
             a.style.color='#00d4ff';a.style.borderColor='#00d4ff';
+            a.classList.add('active');
         }
     });
 })();
