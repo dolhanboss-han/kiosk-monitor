@@ -39,6 +39,21 @@ td a:hover{text-decoration:underline}
 .badge.medium{background:#ffaa0033;color:#ffaa00}
 .badge.low{background:#00d4ff33;color:#00d4ff}
 .empty{text-align:center;padding:40px;color:#555;font-size:0.9rem}
+@media(max-width:768px){
+    .container{padding:0 8px;margin-top:56px}
+    .stats{flex-direction:column;gap:8px}
+    .stat-card{padding:10px 16px}
+    .stat-card .num{font-size:1.4rem}
+    .top-bar{flex-direction:column;gap:8px}
+    .filters{flex-wrap:wrap;gap:6px}
+    .filters a{padding:4px 10px;font-size:0.75rem}
+    .btn-new{width:100%;text-align:center}
+    table,thead,tbody,th,td,tr{display:block}
+    thead{display:none}
+    tr{margin-bottom:10px;border:1px solid #333;border-radius:8px;padding:10px;background:#12122a}
+    td{padding:4px 8px;font-size:0.8rem;border:none;display:flex;justify-content:space-between;align-items:center}
+    td::before{content:attr(data-label);color:#888;font-size:0.7rem;font-weight:bold;margin-right:8px;white-space:nowrap}
+}
 </style>
 </head>
 <body style="padding-top:60px">
