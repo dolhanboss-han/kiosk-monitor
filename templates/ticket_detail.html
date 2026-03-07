@@ -42,27 +42,14 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif}
 <body style="padding-top:60px">
 <div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
     <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
-        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
-        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
-        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
-        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
-        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
-        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
-    </div>
+    {% include 'nav.html' %}
     <div style="display:flex;gap:10px;align-items:center">
         <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
         <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
         <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
     </div>
 </div>
-<script>
-(function(){
-    var path=location.pathname;
-    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
-    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
-})();
-</script>
+
 
 <div class="info-item"><div class="label">키오스크</div><div class="value">{{ ticket[2] or '-' }}</div></div>
 <div class="info-item"><div class="label">분류</div><div class="value">{{ ticket[9] or '-' }}</div></div>
