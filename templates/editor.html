@@ -93,17 +93,6 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;display:fle
 </style>
 </head>
 <body>
-<div id="hmb-btn" onclick="document.getElementById('hmb-menu').style.display='flex'" style="position:fixed;top:8px;right:12px;z-index:3000;cursor:pointer;background:#111130;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:1.2rem;color:#00d4ff;line-height:1">☰</div>
-<div id="hmb-menu" onclick="this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2999;background:rgba(0,0,0,0.7);justify-content:center;align-items:flex-start;padding-top:50px">
-    <div onclick="event.stopPropagation()" style="background:#111130;border:1px solid #333;border-radius:10px;padding:20px;min-width:280px">
-        <div style="font-size:1rem;font-weight:bold;color:#00d4ff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #333">BSEYE 메뉴</div>
-        {% include 'nav.html' %}
-        <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;display:flex;gap:8px">
-            <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.75rem">비밀번호</a>
-            <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.75rem">로그아웃</a>
-        </div>
-    </div>
-</div>
 
 <div id="palette">
 <div id="palette-header">
