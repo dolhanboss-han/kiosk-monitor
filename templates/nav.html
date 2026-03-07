@@ -23,7 +23,6 @@
     {% if ot == 'hq' %}
     <a href="/executive" style="{{ nav_style }}" data-nav="/executive">경영진</a>
     <a href="/hospital-view" style="{{ nav_style }}" data-nav="/hospital-view">병원뷰</a>
-    <a href="/editor" style="{{ nav_style }}" data-nav="/editor">에디터</a>
     {% endif %}
 
     {% if ot == 'hq' or ot == 'isv' %}
@@ -32,7 +31,9 @@
     {% endif %}
 
     {% if role == 'hq_admin' %}
-    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">관리</a>
+    <span style="color:#444;margin:0 2px">|</span>
+    <a href="/editor" style="{{ nav_style }}" data-nav="/editor">에디터</a>
+    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">사용자관리</a>
     {% endif %}
 </div>
 <script>
