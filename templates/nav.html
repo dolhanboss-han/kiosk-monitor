@@ -41,26 +41,21 @@
 <div id="nav-overlay" onclick="this.style.display='none';document.getElementById('nav-mobile').style.display='none'"></div>
 <div id="nav-mobile">
     <div class="nav-close" onclick="document.getElementById('nav-overlay').style.display='none';document.getElementById('nav-mobile').style.display='none'">✕</div>
-    <div class="nav-section">모니터링</div>
     <a href="/" data-nav="/">대시보드</a>
     <a href="/monitoring" data-nav="/monitoring">모니터링</a>
     {% if ot == 'hq' %}<a href="/hospitals" data-nav="/hospitals">병원</a>{% endif %}
-    <div class="nav-section">분석</div>
     <a href="/usage" data-nav="/usage">행동분석</a>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" data-nav="/usage-verify">현장검증</a>{% endif %}
     {% if ot == 'hq' %}<a href="/executive" data-nav="/executive">경영진 대시보드</a>
     <a href="/hospital-view" data-nav="/hospital-view">병원뷰 대시보드</a>{% endif %}
-    <div class="nav-section">운영</div>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/maintenance" data-nav="/maintenance">유지보수</a>{% endif %}
     <a href="/alarms" data-nav="/alarms">알람</a>
     <a href="/tickets" data-nav="/tickets">티켓</a>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/setup-monitor" data-nav="/setup-monitor">설치 마법사</a>{% endif %}
     {% if role == 'hq_admin' %}
-    <div class="nav-section">관리</div>
     <a href="/editor" data-nav="/editor">에디터</a>
     <a href="/admin/users" data-nav="/admin/users">사용자관리</a>
     {% endif %}
-    <div class="nav-section">계정</div>
     <a href="/change-password">비밀번호 변경</a>
     <a href="/logout" style="color:#ff6b6b">로그아웃</a>
 </div>
