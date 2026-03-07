@@ -5,7 +5,7 @@
 
 <style>
 #nav-links{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;flex:1}
-#nav-hamburger{display:none;position:fixed;left:10px;top:8px;z-index:9997;background:none;border:1px solid #555;color:#ccc;font-size:1.4rem;padding:4px 10px;border-radius:6px;cursor:pointer}
+#nav-hamburger{display:none;background:none;margin-right:auto;border:1px solid #555;color:#ccc;font-size:1.4rem;padding:4px 10px;border-radius:6px;cursor:pointer}
 #nav-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9998}
 #nav-mobile{display:none;position:fixed;top:0;left:0;width:220px;height:100%;background:#12122a;border-right:1px solid #333;z-index:9999;padding:16px 0;overflow-y:auto}
 #nav-mobile a{display:block;color:#999;text-decoration:none;font-size:0.88rem;padding:12px 20px;border-bottom:1px solid #222}
@@ -15,9 +15,6 @@
 @media(max-width:768px){
     #nav-links{display:none}
     #nav-hamburger{display:block}
-    .logo,.header .logo,.hdr .logo,
-    .header>span:first-child,.hdr>span:first-child{display:none!important}
-    .header,.hdr,[class*="header"]{padding-left:50px!important}
 }
 </style>
 
