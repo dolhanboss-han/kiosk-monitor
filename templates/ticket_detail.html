@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>티켓 #{{ ticket[0] }} - BSEYE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif}
+.header{background:#12122a;padding:10px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #333}
+.header .title{color:#00d4ff;font-weight:bold;font-size:1.1rem}
+.header a{color:#888;text-decoration:none;font-size:0.85rem}
+.header a:hover{color:#00d4ff}
+.container{max-width:800px;margin:20px auto;padding:0 16px}
+.info-card{background:#12122a;border:1px solid #333;border-radius:8px;padding:20px;margin-bottom:16px}
+.info-card h2{color:#00d4ff;font-size:1rem;margin-bottom:16px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.info-item .label{color:#888;font-size:0.7rem}
+.info-item .value{color:#eee;font-size:0.9rem;margin-top:2px}
+.description{background:#1a1a3e;border-radius:6px;padding:12px;margin-top:12px;font-size:0.85rem;color:#ccc;line-height:1.6}
+.badge{padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:bold}
+.badge.open{background:#ff444433;color:#ff4444}
+.badge.in_progress{background:#ffaa0033;color:#ffaa00}
+.badge.closed{background:#00ff8833;color:#00ff88}
+.badge.high{background:#ff444433;color:#ff4444}
+.badge.medium{background:#ffaa0033;color:#ffaa00}
+.badge.low{background:#00d4ff33;color:#00d4ff}
+.status-form{display:flex;gap:8px;margin-top:12px}
+.status-form select{padding:6px;background:#1a1a3e;border:1px solid #444;border-radius:4px;color:#eee;font-size:0.8rem}
+.status-form button{padding:6px 12px;background:#00d4ff;color:#000;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;font-weight:bold}
+.comments{margin-top:16px}
+.comments h3{color:#00d4ff;font-size:0.9rem;margin-bottom:12px}
+.comment{background:#12122a;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:8px}
+.comment .meta{font-size:0.7rem;color:#888;margin-bottom:6px}
+.comment .text{font-size:0.85rem;color:#ccc;line-height:1.5}
+.comment-form{margin-top:16px}
+.comment-form textarea{width:100%;padding:10px;background:#1a1a3e;border:1px solid #444;border-radius:6px;color:#eee;font-size:0.85rem;height:80px;resize:vertical}
+.comment-form textarea:focus{border-color:#00d4ff;outline:none}
+.comment-form button{margin-top:8px;padding:8px 16px;background:#00d4ff;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:0.85rem}
+</style>
+</head>
+<body style="padding-top:60px">
+<div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
+    <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
+        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
+        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
+        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
+        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
+        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
+        <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
+        <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
+    </div>
+</div>
+<script>
+(function(){
+    var path=location.pathname;
+    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
+    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
+})();
+</script>
+
+<div class="info-item"><div class="label">키오스크</div><div class="value">{{ ticket[2] or '-' }}</div></div>
+<div class="info-item"><div class="label">분류</div><div class="value">{{ ticket[9] or '-' }}</div></div>
+<div class="info-item"><div class="label">우선순위</div><div class="value"><span class="badge {{ ticket[6] }}">{{ ticket[6] }}</span></div></div>
+<div class="info-item"><div class="label">상태</div><div class="value"><span class="badge {{ ticket[7] }}">{{ ticket[7] }}</span></div></div>
+<div class="info-item"><div class="label">담당자</div><div class="value">{{ ticket[8] or '미배정' }}</div></div>
+<div class="info-item"><div class="label">등록자</div><div class="value">{{ ticket[11] or '-' }}</div></div>
+<div class="info-item"><div class="label">등록일</div><div class="value">{{ ticket[12][:16] if ticket[12] else '-' }}</div></div>
+<div class="info-item"><div class="label">완료일</div><div class="value">{{ ticket[14][:16] if ticket[14] else '-' }}</div></div>
+</div>
+{% if ticket[5] %}
+<div class="description">{{ ticket[5] }}</div>
+{% endif %}
+<form method="post" action="/ticket/{{ ticket[0] }}/status" class="status-form">
+<select name="status">
+<option value="open" {{ 'selected' if ticket[7]=='open' }}>접수</option>
+<option value="in_progress" {{ 'selected' if ticket[7]=='in_progress' }}>처리중</option>
+<option value="closed" {{ 'selected' if ticket[7]=='closed' }}>완료</option>
+</select>
+<button type="submit">상태 변경</button>
+</form>
+</div>
+<div class="comments">
+<h3>처리 이력 ({{ comments|length }})</h3>
+{% for c in comments %}
+<div class="comment">
+<div class="meta">{{ c[2] }} &middot; {{ c[4][:16] if c[4] else '' }}</div>
+<div class="text">{{ c[3] }}</div>
+</div>
+{% endfor %}
+<form method="post" action="/ticket/{{ ticket[0] }}/comment" class="comment-form">
+<textarea name="comment" placeholder="처리 내용을 입력하세요" required></textarea>
+<button type="submit">코멘트 등록</button>
+</form>
+</div>
+</div>
+</body>
+</html>

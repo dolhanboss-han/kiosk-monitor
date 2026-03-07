@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BSEYE 키오스크 설치</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-size:13px}
+.hd{background:linear-gradient(135deg,#0d1b2a,#1b2d4f);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #4fc3f7}
+.hd h1{font-size:1.1rem;color:#4fc3f7}
+.hd .links{display:flex;gap:10px}
+.hd .links a{color:#4fc3f7;text-decoration:none;font-size:0.8rem}
+.gs{padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600}
+.gs-ready{background:#6b728033;color:#6b7280}
+.gs-progress{background:#f59e0b33;color:#f59e0b}
+.gs-done{background:#10b98133;color:#10b981}
+
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+
+/* 스텝 탭 */
+.steps{display:flex;gap:2px;margin-bottom:16px;overflow-x:auto}
+.stp{padding:8px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-size:0.78rem;border:1px solid #1a2340;border-bottom:none;background:#0d1220;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:all .2s}
+.stp.active{background:#111827;border-color:#4fc3f7;color:#4fc3f7}
+.stp.done{color:#10b981;border-color:#10b98155}
+.stp.err{color:#ef4444;border-color:#ef444455}
+.stp .dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;background:#1a2340;flex-shrink:0}
+.stp.done .dot{background:#10b981;color:#fff}
+.stp.err .dot{background:#ef4444;color:#fff}
+.stp.active .dot{background:#4fc3f7;color:#0a0e1a}
+
+.pbar{height:5px;background:#1a2340;border-radius:3px;margin-bottom:16px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,#4fc3f7,#10b981);border-radius:3px;transition:width .5s}
+
+/* 패널 */
+.pnl{display:none;background:#111827;border:1px solid #1a2340;border-radius:0 8px 8px 8px;padding:20px}
+.pnl.active{display:block}
+.pnl h2{font-size:0.95rem;color:#4fc3f7;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #1a2340;display:flex;align-items:center;gap:8px}
+
+/* 폼 */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fi{display:flex;flex-direction:column;gap:4px}
+.fi label{font-size:0.72rem;color:#8b9dc3}
+.fi input,.fi select{background:#0d1220;border:1px solid #2a3a5f;color:#c8d6e5;padding:8px 12px;border-radius:4px;font-size:0.82rem}
+.fi input:focus{border-color:#4fc3f7;outline:none}
+.fi.full{grid-column:1/-1}
+
+/* 버튼 */
+.br{display:flex;gap:10px;margin-top:16px;justify-content:space-between}
+.btn{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all .2s}
+.btn-p{background:#0d47a1;color:#fff}.btn-p:hover{background:#1565c0}
+.btn-g{background:#10b981;color:#fff}.btn-g:hover{background:#059669}
+.btn-c{background:#4fc3f7;color:#0a0e1a;font-weight:700}.btn-c:hover{background:#29b6f6}
+.btn-o{background:transparent;border:1px solid #2a3a5f;color:#c8d6e5}.btn-o:hover{background:#1a2340}
+.btn-d{background:#ef4444;color:#fff}.btn-d:hover{background:#dc2626}
+
+/* 체크 아이템 */
+.ci{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1220;border-radius:6px;margin-bottom:6px;border-left:3px solid #1a2340;transition:all .3s}
+.ci.ok{border-left-color:#10b981;background:#10b98108}
+.ci.error{border-left-color:#ef4444;background:#ef444408}
+.ci.warn{border-left-color:#f59e0b;background:#f59e0b08}
+.ci.running{border-left-color:#4fc3f7;background:#4fc3f708}
+.ci.pending{border-left-color:#374151}
+.cic{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0}
+.cic-ok{background:#10b98133;color:#10b981}
+.cic-err{background:#ef444433;color:#ef4444}
+.cic-warn{background:#f59e0b33;color:#f59e0b}
+.cic-wait{background:#37415133;color:#9ca3af}
+.cic-spin{background:#4fc3f733;color:#4fc3f7;animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.cif{flex:1}
+.cin{font-size:0.82rem;font-weight:500}
+.civ{font-size:0.74rem;margin-top:2px}
+.civ.ok{color:#10b981}.civ.err{color:#ef4444}.civ.warn{color:#f59e0b}
+.cid{font-size:0.68rem;color:#556;margin-top:3px}
+.cit{font-size:0.66rem;color:#667;background:#0a0e1a;padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block}
+.cia{display:flex;gap:6px;flex-shrink:0}
+.cia button{padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.7rem;font-weight:600;transition:all .2s}
+.cia .bok{background:transparent;border:1px solid #10b981;color:#10b981}
+.cia .bok:hover{background:#10b98122}
+.cia .bng{background:transparent;border:1px solid #ef4444;color:#ef4444}
+.cia .bng:hover{background:#ef444422}
+.cia .bwn{background:transparent;border:1px solid #f59e0b;color:#f59e0b}
+.cia .bwn:hover{background:#f59e0b22}
+
+/* config 표시 */
+.cfg{background:#0d1220;border:1px solid #2a3a5f;border-radius:6px;padding:12px;font-family:monospace;font-size:0.78rem;white-space:pre-wrap;color:#10b981;margin:10px 0;max-height:200px;overflow-y:auto}
+
+/* 요약 */
+.sumg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.sumc{background:#0d1220;border-radius:6px;padding:12px;text-align:center}
+.sumc .v{font-size:1.3rem;font-weight:700}
+.sumc .v.g{color:#10b981}.sumc .v.r{color:#ef4444}.sumc .v.y{color:#f59e0b}.sumc .v.b{color:#4fc3f7}
+.sumc .l{font-size:0.68rem;color:#556;margin-top:3px}
+
+/* 실시간 로그 */
+.lbox{background:#0d1220;border:1px solid #1a2340;border-radius:6px;padding:10px;max-height:280px;overflow-y:auto}
+.lrow{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #111827;font-size:0.73rem}
+.lt{color:#556;width:58px;flex-shrink:0}
+.ls{width:44px;flex-shrink:0}
+.lw{flex:1}.le{width:40px;text-align:right;color:#667;flex-shrink:0}
+.tag{padding:1px 6px;border-radius:8px;font-size:0.66rem;font-weight:600}
+.tag-start{background:#4fc3f722;color:#4fc3f7}
+.tag-end{background:#8b5cf622;color:#8b5cf6}
+.tag-change{background:#f59e0b22;color:#f59e0b}
+
+.note{font-size:0.78rem;color:#8b9dc3;background:#0d122066;padding:10px;border-radius:6px;margin-bottom:12px;border-left:3px solid #4fc3f7}
+
+.connected{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#10b98112;border:1px solid #10b98133;border-radius:6px;margin-bottom:12px}
+.connected .pulse{width:10px;height:10px;border-radius:50%;background:#10b981;animation:pulse2 2s infinite}
+@keyframes pulse2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.2)}}
+.disconnected{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#ef444412;border:1px solid #ef444433;border-radius:6px;margin-bottom:12px}
+
+@media(max-width:768px){
+    .fg{grid-template-columns:1fr}
+    .sumg{grid-template-columns:repeat(2,1fr)}
+    .steps{gap:1px}
+    .stp{padding:6px 10px;font-size:0.7rem}
+}
+</style>
+</head>
+<body>
+<div class="hd">
+    <h1>🔧 키오스크 설치 마법사</h1>
+    <div class="links">
+        <span class="gs gs-ready" id="gSt">준비</span>
+        <a href="/usage-verify">검증</a>
+        <a href="/monitoring">모니터링</a>
+    </div>
+</div>
+<div class="wrap">
+    <div class="steps" id="stpTabs">
+        <div class="stp active" onclick="go(0)"><span class="dot">1</span>기본정보</div>
+        <div class="stp" onclick="go(1)"><span class="dot">2</span>에이전트설치</div>
+        <div class="stp" onclick="go(2)"><span class="dot">3</span>PC점검</div>
+        <div class="stp" onclick="go(3)"><span class="dot">4</span>프린터</div>
+        <div class="stp" onclick="go(4)"><span class="dot">5</span>주변장치</div>
+        <div class="stp" onclick="go(5)"><span class="dot">6</span>네트워크</div>
+        <div class="stp" onclick="go(6)"><span class="dot">7</span>프로그램</div>
+        <div class="stp" onclick="go(7)"><span class="dot">8</span>완료</div>
+    </div>
+    <div class="pbar"><div class="pfill" id="pf" style="width:0%"></div></div>
+
+    <!-- ① 기본정보 -->
+    <div class="pnl active" id="p0">
+        <h2>📝 ① 기본정보 입력</h2>
+        <div class="note">키오스크에 설치할 기본 정보를 입력하세요. 저장하면 config.ini 내용이 생성됩니다.</div>
+        <div class="fg">
+            <div class="fi"><label>병원코드 *</label><input id="f_hcd" placeholder="예: 002"></div>
+            <div class="fi"><label>병원명 *</label><input id="f_hnm" placeholder="예: 강남세브란스"></div>
+            <div class="fi"><label>키오스크ID *</label><input id="f_kid" placeholder="예: KIOSK01"></div>
+            <div class="fi"><label>설치위치</label><input id="f_loc" placeholder="예: 1층 로비"></div>
+            <div class="fi"><label>설치자명</label><input id="f_ins" placeholder="예: 한주형"></div>
+            <div class="fi full"><label>대상프로세스 (쉼표로 복수 입력 가능)</label><input id="f_proc" value="hospital_kiosk_app.exe" placeholder="예: kiosk.exe, reception.exe, checkin.exe"><div style="font-size:0.68rem;color:#556;margin-top:3px">키오스크에 설치된 프로그램 이름을 쉼표로 구분하여 입력하세요. 모르면 비워두고 현장에서 확인 후 수정 가능합니다.</div></div>
+            <div class="fi full"><label>서버URL</label><input id="f_url" value="https://monitor.blueswell.co.kr/api/kiosk-usage/receive"></div>
+        </div>
+        <div class="br"><span></span><button class="btn btn-p" onclick="saveInfo()">저장 & config.ini 생성 →</button></div>
+        <div class="cfg" id="cfgPreview" style="display:none"></div>
+    </div>
+
+    <!-- ② 에이전트 설치 -->
+    <div class="pnl" id="p1">
+        <h2>📦 ② 에이전트 설치</h2>
+        <div class="note">아래 <b>"에이전트 설치 시작"</b> 버튼을 클릭하면 설치 파일이 다운로드됩니다.<br>다운로드된 파일을 <b>"열기"</b>하면 자동으로 설치+실행됩니다.</div>
+
+        <div style="text-align:center;padding:20px">
+            <button class="btn btn-c" onclick="downloadInstaller()" style="font-size:1.1rem;padding:14px 40px;border-radius:10px">
+                ⚡ 설치 명령어 생성
+            </button>
+            <div style="font-size:0.72rem;color:#556;margin-top:8px">클릭 → 명령어 복사 → 키오스크 PC PowerShell에 붙여넣기</div>
+            <div id="installCmdBox" style="display:none;margin-top:15px;text-align:left">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                    <span style="color:#aaa;font-size:0.8rem">PowerShell 관리자 모드에서 붙여넣기:</span>
+                    <button id="copyBtn" class="btn btn-o" onclick="copyInstallCmd()" style="padding:6px 16px;font-size:0.85rem">📋 명령어 복사</button>
+                </div>
+                <pre id="installCmdText" style="background:#0a0e1a;border:1px solid #2a3a5a;border-radius:8px;padding:12px;font-size:0.75rem;color:#7bed9f;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto"></pre>
+            </div>
+        </div>
+
+        <div class="ci pending" style="margin-top:16px">
+            <div class="cic cic-wait">1</div>
+            <div class="cif">
+                <div class="cin">설치 파일 다운로드</div>
+                <div class="civ">위 버튼을 클릭하면 <code>bseye-install-키오스크ID.bat</code> 파일이 다운로드됩니다</div>
+            </div>
+        </div>
+        <div class="ci pending">
+            <div class="cic cic-wait">2</div>
+            <div class="cif">
+                <div class="cin">설치 파일 실행</div>
+                <div class="civ">브라우저 하단의 다운로드 파일을 <b>"열기"</b> 또는 더블클릭하세요</div>
+                <div class="cid">Windows 보안 경고가 나오면 "추가 정보" → "실행"을 클릭하세요</div>
+            </div>
+        </div>
+        <div class="ci pending">
+            <div class="cic cic-wait">3</div>
+            <div class="cif">
+                <div class="cin">자동 설치 진행</div>
+                <div class="civ">CMD 창이 열리며 자동으로 진행됩니다:</div>
+                <div class="cid">폴더 생성 → 에이전트 다운로드 → 압축해제 → config.ini 생성 → 패키지 설치 → 에이전트 실행</div>
+            </div>
+        </div>
+        <div class="ci pending" id="installCheck">
+            <div class="cic cic-wait">4</div>
+            <div class="cif">
+                <div class="cin">설치 확인</div>
+                <div class="civ" id="installMsg">CMD 창에 "설치 완료!" 메시지가 나오면 다음 단계로 진행하세요</div>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;padding:12px;background:#0d1220;border-radius:6px;border:1px solid #2a3a5f">
+            <div style="font-size:0.78rem;color:#8b9dc3;margin-bottom:6px">💡 설치 경로</div>
+            <div style="font-size:0.82rem;font-family:monospace;color:#10b981">C:\bseye-agent\</div>
+            <div style="font-size:0.72rem;color:#556;margin-top:4px">config.ini, main.py, hook_monitor.py, web_server.py, device_checker.py, data_sender.py, db_manager.py</div>
+        </div>
+
+        <details style="margin-top:12px">
+            <summary style="cursor:pointer;color:#4fc3f7;font-size:0.8rem">config.ini 미리보기</summary>
+            <div class="cfg" id="cfgPreview2">기본정보를 먼저 입력하세요</div>
+        </details>
+
+        <div class="br">
+            <button class="btn btn-o" onclick="go(0)">← 이전</button>
+            <button class="btn btn-p" onclick="checkInstall()">설치 확인 & 다음 →</button>
+        </div>
+    </div>
+
+    <!-- ③ PC점검 -->
+    <div class="pnl" id="p2">
+        <h2>💻 ③ PC 점검</h2>
+        <div id="conn2"></div>
+        <div class="br" style="margin-top:0;margin-bottom:12px">
+            <button class="btn btn-c" onclick="runRemoteCheck('pc')">🔍 PC 자동점검</button>
+            <button class="btn btn-o" onclick="go(3)">다음 →</button>
+        </div>
+        <div id="chk_pc"></div>
+    </div>
+
+    <!-- ④ 프린터 -->
+    <div class="pnl" id="p3">
+        <h2>🖨️ ④ 프린터 점검</h2>
+        <div id="conn3"></div>
+        <div class="br" style="margin-top:0;margin-bottom:12px">
+            <button class="btn btn-c" onclick="runRemoteCheck('printer')">🔍 프린터 자동점검</button>
+            <button class="btn btn-o" onclick="go(4)">다음 →</button>
+        </div>
+        <div id="chk_printer"></div>
+        <h3 style="font-size:0.82rem;color:#8b9dc3;margin:12px 0 8px">수동 확인</h3>
+        <div class="ci pending" id="m_thermal"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">🧾 영수증프린터 테스트출력</div><div class="civ">테스트 출력 후 확인</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_thermal','ok','정상출력')">✓ 정상</button><button class="bng" onclick="manual('m_thermal','error','출력불가')">✗ 불량</button></div></div>
+        <div class="ci pending" id="m_toner"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">🖨️ A4 토너 잔량</div><div class="civ">육안 확인</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_toner','ok','충분')">✓ 충분</button><button class="bwn" onclick="manual('m_toner','warn','부족')">⚠ 부족</button><button class="bng" onclick="manual('m_toner','error','없음')">✗ 없음</button></div></div>
+        <div class="ci pending" id="m_paper"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">📄 A4 용지</div><div class="civ">육안 확인</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_paper','ok','충분')">✓ 충분</button><button class="bwn" onclick="manual('m_paper','warn','부족')">⚠ 부족</button><button class="bng" onclick="manual('m_paper','error','없음')">✗ 없음</button></div></div>
+    </div>
+
+    <!-- ⑤ 주변장치 -->
+    <div class="pnl" id="p4">
+        <h2>🔌 ⑤ 주변장치 점검</h2>
+        <div id="conn4"></div>
+        <div class="br" style="margin-top:0;margin-bottom:12px">
+            <button class="btn btn-c" onclick="runRemoteCheck('usb')">🔍 USB장치 자동탐지</button>
+            <button class="btn btn-o" onclick="go(5)">다음 →</button>
+        </div>
+        <div id="chk_usb"></div>
+        <h3 style="font-size:0.82rem;color:#8b9dc3;margin:12px 0 8px">수동 확인</h3>
+        <div class="ci pending" id="m_monitor"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">🖥️ 모니터 출력</div><div class="civ">화면 표시 상태</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_monitor','ok','정상')">✓ 정상</button><button class="bng" onclick="manual('m_monitor','error','불량')">✗ 불량</button></div></div>
+        <div class="ci pending" id="m_barcode"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">📱 바코드리더기 스캔</div><div class="civ">바코드 스캔 테스트</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_barcode','ok','정상')">✓ 정상</button><button class="bng" onclick="manual('m_barcode','error','불량')">✗ 불량</button></div></div>
+        <div class="ci pending" id="m_card"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">💳 카드리더기</div><div class="civ">카드 삽입 테스트</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_card','ok','정상')">✓ 정상</button><button class="bng" onclick="manual('m_card','error','불량')">✗ 불량</button></div></div>
+        <div class="ci pending" id="m_plug"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">🔌 스마트플러그</div><div class="civ">전원 제어 확인</div></div>
+            <div class="cia"><button class="bok" onclick="manual('m_plug','ok','연결됨')">✓ 정상</button><button class="bwn" onclick="manual('m_plug','warn','미사용')">- 미사용</button></div></div>
+    </div>
+
+    <!-- ⑥ 네트워크 -->
+    <div class="pnl" id="p5">
+        <h2>🌐 ⑥ 네트워크 & 서버 연결</h2>
+        <div id="conn5"></div>
+        <div class="br" style="margin-top:0;margin-bottom:12px">
+            <button class="btn btn-c" onclick="runRemoteCheck('network');runRemoteCheck('server')">🔍 연결 테스트</button>
+            <button class="btn btn-o" onclick="go(6)">다음 →</button>
+        </div>
+        <div id="chk_network"></div>
+        <div id="chk_server"></div>
+    </div>
+
+    <!-- ⑦ 프로그램 연동 -->
+    <div class="pnl" id="p6">
+        <h2>⚙️ ⑦ 키오스크 프로그램 연동</h2>
+        <div id="conn6"></div>
+        <div class="br" style="margin-top:0;margin-bottom:12px">
+            <button class="btn btn-c" onclick="runRemoteCheck('process');runRemoteCheck('monitor')">🔍 프로세스 점검</button>
+            <button class="btn btn-o" onclick="go(7)">다음 →</button>
+        </div>
+        <div id="chk_process"></div>
+        <div id="chk_monitor"></div>
+        <h3 style="font-size:0.82rem;color:#8b9dc3;margin:12px 0 8px">메뉴 감지 테스트</h3>
+        <div class="note">키오스크에서 메뉴를 하나씩 실행하고, 아래 실시간 로그에서 이벤트가 잡히는지 확인하세요.</div>
+        <div class="lbox" id="liveLog"><div style="padding:20px;text-align:center;color:#556">에이전트 연결 후 로그가 표시됩니다</div></div>
+        <div style="margin-top:10px">
+            <div class="ci pending" id="m_entry"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">메뉴 진입 감지 (START)</div></div>
+                <div class="cia"><button class="bok" onclick="manual('m_entry','ok','감지됨')">✓ 감지됨</button><button class="bng" onclick="manual('m_entry','error','미감지')">✗ 미감지</button></div></div>
+            <div class="ci pending" id="m_complete"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">메뉴 완료 감지 (END)</div></div>
+                <div class="cia"><button class="bok" onclick="manual('m_complete','ok','감지됨')">✓ 감지됨</button><button class="bng" onclick="manual('m_complete','error','미감지')">✗ 미감지</button></div></div>
+            <div class="ci pending" id="m_cancel"><div class="cic cic-wait">?</div><div class="cif"><div class="cin">메뉴 이탈 감지</div></div>
+                <div class="cia"><button class="bok" onclick="manual('m_cancel','ok','감지됨')">✓ 감지됨</button><button class="bng" onclick="manual('m_cancel','error','미감지')">✗ 미감지</button></div></div>
+        </div>
+    </div>
+
+    <!-- ⑧ 완료 -->
+    <div class="pnl" id="p7">
+        <h2>✅ ⑧ 설치 검증 결과</h2>
+        <div class="sumg">
+            <div class="sumc"><div class="v g" id="s_ok">0</div><div class="l">정상</div></div>
+            <div class="sumc"><div class="v y" id="s_warn">0</div><div class="l">주의</div></div>
+            <div class="sumc"><div class="v r" id="s_err">0</div><div class="l">오류</div></div>
+            <div class="sumc"><div class="v b" id="s_pend">0</div><div class="l">미점검</div></div>
+        </div>
+        <div id="sumList"></div>
+        <div class="br">
+            <button class="btn btn-c" onclick="runAllChecks()">🔍 전체 재점검</button>
+            <button class="btn btn-g" onclick="completeSetup()">✅ 설치 완료 보고</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+var sid=null;
+var configText='';
+var agentUrl='';
+
+function downloadInstaller(){
+    var hcd=document.getElementById('f_hcd').value.trim();
+    var hnm=document.getElementById('f_hnm').value.trim();
+    var kid=document.getElementById('f_kid').value.trim();
+    var loc=document.getElementById('f_loc').value.trim()||'';
+    var ins=document.getElementById('f_ins').value.trim()||'';
+    var proc=document.getElementById('f_proc').value.trim()||'hospital_kiosk_app.exe';
+    var url=document.getElementById('f_url').value.trim()||'https://monitor.blueswell.co.kr/api/kiosk-usage/receive';
+    if(!hcd||!hnm||!kid){alert('먼저 1단계에서 기본정보를 입력하세요');return}
+
+    var cfg='[MONITOR]\nweb_port = 8080\nrefresh_interval = 5\nretention_days = 30\ntarget_process = '+proc+'\nexclude_process =\nexclude_title =\n\n[SERVER]\nserver_url = '+url+'\nkiosk_id = '+kid+'\nkiosk_name = '+hnm+'_'+kid+'\nlocation = '+loc+'\nhosp_cd = '+hcd+'\nhosp_name = '+hnm+'\ninstaller = '+ins+'\nsend_time = 08:00\nretry_interval = 300';
+
+    var cmd='mkdir \"C:\\bseye-agent\" -Force; cd \"C:\\bseye-agent\"; '+
+        'Invoke-WebRequest -Uri \"https://monitor.blueswell.co.kr/static/agent/bseye-agent.zip\" -OutFile agent.zip; '+
+        'Expand-Archive agent.zip -DestinationPath . -Force; '+
+        'if(Test-Path bseye-agent){Copy-Item \"bseye-agent\\*\" . -Recurse -Force; Remove-Item bseye-agent -Recurse -Force}; '+
+        'Remove-Item agent.zip -Force -ErrorAction SilentlyContinue; '+
+        'Set-Content -Path config.ini -Value \"'+cfg.replace(/"/g,'`\"')+'\"; '+
+        'pip install psutil requests uvicorn fastapi -q; '+
+        'Start-Process python -ArgumentList main.py';
+
+    document.getElementById('installCmdBox').style.display='block';
+    document.getElementById('installCmdText').textContent=cmd;
+    document.getElementById('installMsg').innerHTML='<span style="color:#0f0">&#10003; 설치 명령어가 생성되었습니다. 아래 복사 버튼을 클릭하세요.</span>';
+}
+
+function copyInstallCmd(){
+    var t=document.getElementById('installCmdText').textContent;
+    navigator.clipboard.writeText(t).then(function(){
+        document.getElementById('copyBtn').textContent='✓ 복사완료!';
+        document.getElementById('copyBtn').style.background='#27ae60';
+        setTimeout(function(){document.getElementById('copyBtn').textContent='📋 명령어 복사';document.getElementById('copyBtn').style.background='';},2000);
+    });
+}
+
+var cur=0, sid=null, agentUrl='', checks={}, configText='';
+
+function go(n){
+    cur=n;
+    document.querySelectorAll('.pnl').forEach(function(p,i){p.classList.toggle('active',i===n)});
+    document.querySelectorAll('.stp').forEach(function(t,i){t.classList.toggle('active',i===n)});
+    document.getElementById('pf').style.width=Math.round(n/7*100)+'%';
+    if(n===7) updateSummary();
+    if(n>=2) checkConnection();
+}
+
+
+function checkInstall(){
+    var kid=document.getElementById('f_kid').value.trim();
+    if(!kid){alert('키오스크ID를 먼저 입력하세요');return}
+    document.getElementById('installMsg').innerHTML='<span style="color:#ff0">⏳ 에이전트 연결 확인중...</span>';
+    fetch('/api/verify/send-status')
+    .then(function(r){return r.json()})
+    .then(function(d){
+        var found=false;
+        if(d.data){
+            for(var i=0;i<d.data.length;i++){
+                if(d.data[i].kiosk_id && d.data[i].kiosk_id.toUpperCase()===kid.toUpperCase()){
+                    found=true;break;
+                }
+            }
+        }
+        if(found){
+            document.getElementById('installMsg').innerHTML='<span style="color:#0f0">✓ 에이전트 연결 확인! 데이터 수신중입니다.</span>';
+            document.querySelectorAll('.stp')[1].classList.add('done');
+            go(2);
+        } else {
+            document.getElementById('installMsg').innerHTML='<span style="color:#f80">⚠ 아직 에이전트 데이터가 수신되지 않았습니다.<br>키오스크 PC에서 에이전트가 실행중인지 확인하세요.<br>수동으로 다음 단계로 이동하려면 "다음→" 버튼을 사용하세요.</span>';
+        }
+    }).catch(function(e){
+        document.getElementById('installMsg').innerHTML='<span style="color:#f00">✗ 확인 실패: '+e.message+'</span>';
+    });
+}
+
+function saveInfo(){
+    var hcd=document.getElementById('f_hcd').value.trim();
+    var hnm=document.getElementById('f_hnm').value.trim();
+    var kid=document.getElementById('f_kid').value.trim();
+    if(!hcd||!hnm||!kid){alert('병원코드, 병원명, 키오스크ID는 필수입니다');return}
+    var loc=document.getElementById('f_loc').value.trim();
+    var ins=document.getElementById('f_ins').value.trim();
+    var proc=document.getElementById('f_proc').value.trim();
+    var url=document.getElementById('f_url').value.trim();
+
+    configText='[MONITOR]\nweb_port = 8080\nrefresh_interval = 5\nretention_days = 30\ntarget_process = '+proc+'\nexclude_process =\nexclude_title =\n\n[SERVER]\nserver_url = '+url+'\nkiosk_id = '+kid+'\nkiosk_name = '+hnm+'_'+kid+'\nlocation = '+loc+'\nhosp_cd = '+hcd+'\nhosp_name = '+hnm+'\ninstaller = '+ins+'\nsend_time = 08:00\nretry_interval = 300';
+
+    document.getElementById('cfgPreview').style.display='block';
+    document.getElementById('cfgPreview').textContent=configText.replace(/\\n/g,'\n');
+    var p2=document.getElementById('cfgPreview2');
+    if(p2) p2.textContent=configText.replace(/\\n/g,'\n');
+
+    fetch('/api/setup/start',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({kiosk_id:kid,hosp_cd:hcd,hosp_name:hnm,location:loc,installer:ins})
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.session_id) sid=d.session_id;
+    });
+
+    document.querySelectorAll('.stp')[0].classList.add('done');
+    document.getElementById('gSt').textContent='설치중';
+    document.getElementById('gSt').className='gs gs-progress';
+    agentUrl='http://'+kid.toLowerCase()+':8080';
+    go(1);
+}
+
+function copyConfig(){
+    navigator.clipboard.writeText(configText).then(function(){alert('config.ini 내용이 복사되었습니다')});
+}
+function copyInstall(){
+    navigator.clipboard.writeText(configText).then(function(){alert('복사되었습니다')});
+}
+
+// 에이전트 연결 상태 확인 (서버 경유)
+async function checkConnection(){
+    var kid=document.getElementById('f_kid').value.trim();
+    if(!kid) return;
+    try{
+        var r=await fetch('/api/verify/send-status');
+        var d=await r.json();
+        var found=(d.kiosks||[]).find(function(k){return k.kiosk_id.indexOf(kid)>=0});
+        for(var i=2;i<=6;i++){
+            var el=document.getElementById('conn'+i);
+            if(el){
+                if(found&&found.hours_ago<24){
+                    el.innerHTML='<div class="connected"><span class="pulse"></span> <span style="font-size:0.78rem;color:#10b981">에이전트 연결됨 — '+found.kiosk_id+' (마지막 수신: '+found.last_received_dt+')</span></div>';
+                }else{
+                    el.innerHTML='<div class="disconnected"><span style="color:#ef4444;font-size:1rem">⊘</span> <span style="font-size:0.78rem;color:#ef4444">에이전트 미연결 — 키오스크 PC에서 에이전트를 실행하세요</span></div>';
+                }
+            }
+        }
+    }catch(e){}
+}
+
+// 원격 점검 (에이전트 API 호출)
+async function runRemoteCheck(cat){
+    var container=document.getElementById('chk_'+cat);
+    if(!container) return;
+    container.innerHTML='<div class="ci running"><div class="cic cic-spin">↻</div><div class="cif"><div class="cin">점검 중...</div></div></div>';
+    
+    var kid=document.getElementById('f_kid').value.trim();
+    // 서버 API로 에이전트 데이터 가져오기
+    try{
+        var r=await fetch('/api/setup/check?kiosk_id='+kid+'&category='+cat);
+        var d=await r.json();
+        container.innerHTML='';
+        (d.results||[]).forEach(function(item){
+            checks[item.item]=item;
+            container.innerHTML+=renderCI(item);
+            // 서버에 결과 보고
+            if(sid) reportItem(item);
+        });
+    }catch(e){
+        container.innerHTML='<div class="ci error"><div class="cic cic-err">✗</div><div class="cif"><div class="cin">점검 실패</div><div class="civ err">에이전트가 실행 중인지 확인하세요</div></div></div>';
+    }
+}
+
+function renderCI(item){
+    var ic=item.status==='ok'?'cic-ok':item.status==='error'?'cic-err':item.status==='warn'?'cic-warn':'cic-wait';
+    var sym=item.status==='ok'?'✓':item.status==='error'?'✗':item.status==='warn'?'!':'?';
+    var vc=item.status==='ok'?'ok':item.status==='error'?'err':item.status==='warn'?'warn':'';
+    var h='<div class="ci '+item.status+'"><div class="cic '+ic+'">'+sym+'</div><div class="cif">';
+    h+='<div class="cin">'+item.item+'</div>';
+    h+='<div class="civ '+vc+'">'+item.value+'</div>';
+    if(item.detail){
+        var dd=[];
+        Object.keys(item.detail).forEach(function(k){if(k!=='threshold')dd.push(k+': '+item.detail[k])});
+        if(dd.length) h+='<div class="cid">'+dd.join(' · ')+'</div>';
+        if(item.detail.threshold) h+='<div class="cit">기준: '+item.detail.threshold+'</div>';
+    }
+    h+='</div></div>';
+    return h;
+}
+
+function manual(id,st,val){
+    var el=document.getElementById(id);
+    el.className='ci '+st;
+    var ic=el.querySelector('.cic');
+    ic.className='cic '+(st==='ok'?'cic-ok':st==='error'?'cic-err':'cic-warn');
+    ic.textContent=st==='ok'?'✓':st==='error'?'✗':'!';
+    el.querySelector('.civ').textContent=val;
+    el.querySelector('.civ').className='civ '+(st==='ok'?'ok':st==='error'?'err':'warn');
+    checks[id]={item:id,status:st,value:val};
+    if(sid) reportItem({item:id,status:st,value:val});
+}
+
+function reportItem(item){
+    fetch('/api/setup/update',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({session_id:sid,item:item.item,status:item.status,value:item.value})
+    }).catch(function(){});
+}
+
+async function runAllChecks(){
+    await runRemoteCheck('pc');
+    await runRemoteCheck('printer');
+    await runRemoteCheck('usb');
+    await runRemoteCheck('network');
+    await runRemoteCheck('server');
+    await runRemoteCheck('process');
+    await runRemoteCheck('monitor');
+    updateSummary();
+}
+
+function updateSummary(){
+    var ok=0,warn=0,err=0,pend=0;
+    document.querySelectorAll('.ci').forEach(function(el){
+        if(el.classList.contains('running'))return;
+        if(el.classList.contains('ok'))ok++;
+        else if(el.classList.contains('error'))err++;
+        else if(el.classList.contains('warn'))warn++;
+        else if(el.classList.contains('pending'))pend++;
+    });
+    document.getElementById('s_ok').textContent=ok;
+    document.getElementById('s_warn').textContent=warn;
+    document.getElementById('s_err').textContent=err;
+    document.getElementById('s_pend').textContent=pend;
+    var list=document.getElementById('sumList');
+    var h='';
+    Object.values(checks).forEach(function(r){h+=renderCI(r)});
+    list.innerHTML=h||'<div style="padding:20px;text-align:center;color:#556">각 단계에서 점검을 실행하세요</div>';
+}
+
+async function completeSetup(){
+    if(sid){
+        // 모든 체크 결과를 서버에 보고
+        var items=Object.values(checks);
+        for(var i=0;i<items.length;i++){
+            await fetch('/api/setup/update',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({session_id:sid,item:items[i].item,status:items[i].status,value:items[i].value})
+            });
+        }
+    }
+    document.getElementById('gSt').textContent='설치완료';
+    document.getElementById('gSt').className='gs gs-done';
+    document.querySelectorAll('.stp').forEach(function(t){t.classList.add('done')});
+    alert('설치 완료! 서버에 결과가 보고되었습니다.\n\n모니터링 페이지에서 이 키오스크를 확인할 수 있습니다.');
+}
+
+// 실시간 로그 폴링
+setInterval(function(){
+    if(cur!==6) return;
+    var kid=document.getElementById('f_kid').value.trim();
+    if(!kid) return;
+    var today=new Date().toISOString().slice(0,10);
+    fetch('/api/kiosk-usage/detail?kiosk_id='+kid+'&work_date='+today)
+    .then(function(r){return r.json()})
+    .then(function(d){
+        var logs=d.logs||[];
+        if(!logs.length) return;
+        var box=document.getElementById('liveLog');
+        var h='';
+        logs.slice(0,30).forEach(function(l){
+            var t=(l.log_dt||'').substring(11,19);
+            var tc=l.status==='START'?'tag-start':l.status==='END'?'tag-end':'tag-change';
+            h+='<div class="lrow"><span class="lt">'+t+'</span><span class="ls"><span class="tag '+tc+'">'+l.status+'</span></span><span class="lw">'+(l.window_title||'')+'</span><span class="le">'+(l.elapsed_sec?l.elapsed_sec+'s':'')+'</span></div>';
+        });
+        box.innerHTML=h;
+    }).catch(function(){});
+}, 5000);
+
+// 연결 상태 폴링
+setInterval(function(){if(cur>=2) checkConnection()}, 15000);
+</script>
+</body>
+</html>

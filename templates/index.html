@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BSEYE Kiosk Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow:auto}
+
+/* 고정 헤더 */
+.header{
+    position:fixed;top:0;left:0;right:0;z-index:1000;
+    background:#111130;padding:8px 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid #333;height:48px;
+}
+.header .logo{font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap}
+.header .nav{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+.header .nav a{
+    color:#999;text-decoration:none;font-size:0.78rem;
+    padding:4px 10px;border:1px solid #333;border-radius:6px;
+    white-space:nowrap;transition:all 0.2s;
+}
+.header .nav a:hover,.header .nav a.active{color:#00d4ff;border-color:#00d4ff}
+.header .right{display:flex;gap:10px;align-items:center}
+.header .user{color:#aaa;font-size:0.78rem;white-space:nowrap}
+.header .user a{color:#ff6b6b;text-decoration:none;margin-left:8px;font-size:0.75rem}
+
+/* 캔버스 */
+#canvas{
+    width:1400px;min-height:calc(100vh - 60px);
+    position:relative;margin:60px auto 16px auto;
+    background:#0f0f2a;border-radius:8px;
+}
+
+/* 위젯 */
+.widget{position:absolute;background:linear-gradient(135deg,#1a1a3e,#16163a);border:1px solid #2a2a5a;border-radius:8px;overflow:hidden}
+.widget .w-header{background:#222250;padding:4px 8px;font-size:0.7rem;color:#00d4ff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.widget .w-body{padding:4px 6px;font-size:0.75rem;overflow:auto;height:calc(100% - 24px)}
+.widget .w-body::-webkit-scrollbar{width:4px}
+.widget .w-body::-webkit-scrollbar-track{background:#111}
+.widget .w-body::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.widget .w-body::-webkit-scrollbar-thumb:hover{background:#555}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:#4ecdc4;border-bottom:1px solid #444;padding:1px 4px;font-size:0.7em}
+td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
+
+/* 모바일 */
+@media(max-width:768px){
+    .header{padding:6px 10px;height:auto;flex-wrap:wrap;gap:6px}
+    .header .nav{overflow-x:auto;flex-wrap:nowrap;gap:4px}
+    .header .nav a{font-size:0.7rem;padding:3px 6px}
+    #canvas{width:100%;margin-top:80px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <span class="logo">BSEYE Monitor</span>
+    <div class="nav">
+        <a href="/" class="active">대시보드</a>
+        <a href="/monitoring">모니터링</a>
+        <a href="/hospitals">병원</a>
+        <a href="/alarms">알람</a>
+        <a href="/tickets">티켓</a>
+        <a href="/editor">에디터</a>
+        <a href="/executive">경영진</a>
+        <a href="/hospital-view">병원뷰</a>
+        {% if session.get('org_type') == 'hq' %}
+        <a href="/admin/users">관리</a>
+        {% endif %}
+    </div>
+    <div class="right">
+        <span class="user">{{ session.get('user_name', '') }} ({{ session.get('user_role', '') }})</span>
+        <span class="user"><a href="/change-password">비밀번호</a> <a href="/logout">로그아웃</a></span>
+    </div>
+</div>
+
+<div id="canvas"></div>
+
+<script>
+const LABELS={
+    'kpi_total_hosp':'전체 병원','kpi_active_hosp':'가동 병원','kpi_total_kiosk':'전체 키오스크',
+    'kpi_today_count':'오늘 이용건수','kpi_today_hosp':'오늘 가동병원','kpi_today_kiosk':'오늘 가동키오스크',
+    'kpi_online_agent':'온라인 에이전트','kpi_error_agent':'장애 에이전트','kpi_open_alarms':'미처리 알람',
+    'kpi_open_tickets':'미처리 티켓','kpi_total_agent':'전체 에이전트','kpi_offline_agent':'오프라인 에이전트',
+    'kpi_today_alarm':'오늘 장애건수','kpi_avg_response':'평균 응답시간','kpi_month_count':'이번달 누적',
+    'isv_list':'ISV 파트너','recent_usage':'최근 사용현황','alarm_list':'최근 알람',
+    'ticket_list':'최근 티켓','agent_status':'에이전트 상태','weekly_chart':'주간 이용 추이',
+    'isv_chart':'ISV 분포','chart_monthly':'월별 이용 추이','chart_hourly':'시간대별 이용현황',
+    'chart_isv_today':'ISV별 오늘 이용','table_error_kiosks':'장애 키오스크',
+    'table_no_heartbeat':'미응답 키오스크','table_top10_today':'오늘 이용 TOP10',
+    'clock':'시계','text_block':'텍스트'
+};
+
+function applyFontScale(el) {
+    let w = el.offsetWidth, h = el.offsetHeight;
+    let baseW = 160, baseH = 100;
+    let scale = Math.min(w / baseW, h / baseH);
+    scale = Math.max(0.6, Math.min(scale, 3));
+    
+    // KPI 값
+    let valEl = el.querySelector('.w-body div div');
+    if(valEl && valEl.style) {
+        let origSize = parseFloat(valEl.style.fontSize) || 2;
+        valEl.style.fontSize = (origSize * Math.min(scale, 2)) + 'em';
+    }
+    
+    // 테이블
+    el.querySelectorAll('th').forEach(th => {
+        th.style.padding = Math.max(1, 2 * scale) + 'px ' + Math.max(2, 4 * scale) + 'px';
+        th.style.fontSize = Math.max(0.55, 0.7 * scale) + 'em';
+    });
+    el.querySelectorAll('td').forEach(td => {
+        td.style.padding = Math.max(1, 2 * scale) + 'px ' + Math.max(2, 4 * scale) + 'px';
+        td.style.fontSize = Math.max(0.55, 0.7 * scale) + 'em';
+    });
+}
+
+function renderWidget(el, type){
+    let header = el.querySelector('.w-header');
+    let body = el.querySelector('.w-body');
+    if(!header||!body) return;
+    header.textContent = LABELS[type] || type;
+
+    // ===== KPI: 기본 6종 =====
+    if(type==='kpi_total_hosp'||type==='kpi_active_hosp'||type==='kpi_total_kiosk'){
+        fetch('/api/widget-data/kpi_summary').then(r=>r.json()).then(d=>{
+            let val=type==='kpi_total_hosp'?d.total_hosp:type==='kpi_active_hosp'?d.active_hosp:d.total_kiosk;
+            let color=type==='kpi_total_hosp'?'#4ecdc4':type==='kpi_active_hosp'?'#45b7d1':'#96ceb4';
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+val+'</div><div style="color:#aaa;font-size:0.75em">'+(LABELS[type])+'</div></div>';
+        });
+    } else if(type==='kpi_today_count'||type==='kpi_today_hosp'||type==='kpi_today_kiosk'){
+        fetch('/api/widget-data/today_usage').then(r=>r.json()).then(d=>{
+            let val=type==='kpi_today_count'?d.total_count:type==='kpi_today_hosp'?d.hosp_count:d.kiosk_count;
+            let color=type==='kpi_today_count'?'#feca57':type==='kpi_today_hosp'?'#ff9ff3':'#54a0ff';
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+Number(val).toLocaleString()+'</div><div style="color:#aaa;font-size:0.75em">'+LABELS[type]+'</div></div>';
+        });
+
+    // ===== KPI: 에이전트 =====
+    } else if(type==='kpi_online_agent'||type==='kpi_error_agent'||type==='kpi_total_agent'||type==='kpi_offline_agent'){
+        fetch('/api/widget-data/agent_summary').then(r=>r.json()).then(d=>{
+            let val,color;
+            if(type==='kpi_online_agent'){val=d.online;color='#2ed573';}
+            else if(type==='kpi_error_agent'){val=d.error;color='#ff4757';}
+            else if(type==='kpi_total_agent'){val=d.total;color='#4ecdc4';}
+            else{val=d.offline;color='#999';}
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+val+'</div><div style="color:#aaa;font-size:0.75em">'+LABELS[type]+'</div></div>';
+        });
+
+    // ===== KPI: 알람/티켓 =====
+    } else if(type==='kpi_open_alarms'){
+        fetch('/api/widget-data/alarm_summary').then(r=>r.json()).then(d=>{
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#ff6b6b">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 알람</div></div>';
+        });
+    } else if(type==='kpi_open_tickets'){
+        fetch('/api/widget-data/ticket_summary').then(r=>r.json()).then(d=>{
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#feca57">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 티켓</div></div>';
+        });
+
+    // ===== KPI: 신규 3종 =====
+    } else if(type==='kpi_today_alarm'){
+        fetch('/api/widget-data/today_alarm').then(r=>r.json()).then(d=>{
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#ff6b6b">'+d.count+'</div><div style="color:#aaa;font-size:0.75em">오늘 장애건수</div></div>';
+        });
+    } else if(type==='kpi_avg_response'){
+        fetch('/api/widget-data/avg_response').then(r=>r.json()).then(d=>{
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#4ecdc4">'+d.avg_ms+'</div><div style="color:#aaa;font-size:0.75em">평균 응답(ms)</div></div>';
+        });
+    } else if(type==='kpi_month_count'){
+        fetch('/api/widget-data/month_count').then(r=>r.json()).then(d=>{
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#45b7d1">'+Number(d.count).toLocaleString()+'</div><div style="color:#aaa;font-size:0.75em">이번달 누적</div></div>';
+        });
+
+    // ===== 테이블: ISV 목록 =====
+    } else if(type==='isv_list'){
+        fetch('/api/widget-data/isv_list').then(r=>r.json()).then(d=>{
+            let h='<table><tr><th>ISV</th><th style="text-align:right">키오스크</th></tr>';
+            (d.isv||d.items||[]).forEach(i=>{h+='<tr><td>'+i.name+'</td><td style="text-align:right;color:#4ecdc4">'+(i.count||i.kiosk_count)+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 최근 사용 =====
+    } else if(type==='recent_usage'){
+        fetch('/api/widget-data/recent_usage').then(r=>r.json()).then(d=>{
+            let h='<table><tr><th>병원</th><th>키오스크</th><th>날짜</th><th style="text-align:right">건수</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{h+='<tr><td>'+i.name+'</td><td>'+(i.kiosk||i.kiosk_id)+'</td><td>'+i.date+'</td><td style="text-align:right;color:#4ecdc4">'+(i.count||i.total)+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 알람 목록 =====
+    } else if(type==='alarm_list'){
+        fetch('/api/widget-data/alarm_list').then(r=>r.json()).then(d=>{
+            let h='<table><tr><th>시간</th><th>병원</th><th>유형</th><th>심각도</th><th>상태</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{
+                let sc=i.severity==='critical'?'#ff4757':'#feca57';
+                h+='<tr><td>'+(i.time||'').substring(5,16)+'</td><td>'+(i.hosp||i.hosp_cd)+'</td><td>'+i.type+'</td><td style="color:'+sc+'">'+i.severity+'</td><td>'+i.status+'</td></tr>';
+            });
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 티켓 목록 =====
+    } else if(type==='ticket_list'){
+        fetch('/api/widget-data/ticket_list').then(r=>r.json()).then(d=>{
+            let h='<table><tr><th>제목</th><th>우선순위</th><th>상태</th><th>생성일</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{
+                let pc=i.priority==='high'?'#ff4757':i.priority==='medium'?'#feca57':'#999';
+                h+='<tr><td>'+i.title+'</td><td style="color:'+pc+'">'+i.priority+'</td><td>'+i.status+'</td><td>'+(i.time||'').substring(5,16)+'</td></tr>';
+            });
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 에이전트 상태 =====
+    } else if(type==='agent_status'){
+        fetch('/api/widget-data/agent_status').then(r=>r.json()).then(d=>{
+            let h='<table><tr><th>병원</th><th>키오스크</th><th>상태</th><th>CPU</th><th>MEM</th><th>최종</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{
+                let sc=i.status==='online'?'#2ed573':i.status==='error'?'#ff4757':'#999';
+                h+='<tr><td>'+(i.hosp||i.hosp_cd)+'</td><td>'+(i.kiosk||i.kiosk_id)+'</td><td style="color:'+sc+'">'+i.status+'</td><td>'+i.cpu+'%</td><td>'+(i.mem||i.memory)+'%</td><td>'+(i.time||'').substring(11,16)+'</td></tr>';
+            });
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 장애 키오스크 =====
+    } else if(type==='table_error_kiosks'){
+        fetch('/api/widget-data/error_kiosks').then(r=>r.json()).then(d=>{
+            if((!d.data||d.data.length===0)&&(!d.items||d.items.length===0)){body.innerHTML='<div style="text-align:center;padding:20px;color:#666">장애 키오스크 없음</div>';return;}
+            let h='<table><tr><th>병원</th><th>키오스크</th><th>CPU</th><th>MEM</th><th>프린터</th><th>EMR</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{h+='<tr><td>'+(i.hosp||i.hosp_cd)+'</td><td>'+(i.kiosk||i.kiosk_id)+'</td><td>'+i.cpu+'%</td><td>'+(i.mem||i.memory)+'%</td><td style="color:'+(i.printer==='error'||i.printer_a4==='error'?'#ff4757':'#2ed573')+'">'+(i.printer||i.printer_a4)+'</td><td style="color:'+(i.emr==='error'||i.emr_connection==='error'?'#ff4757':'#2ed573')+'">'+(i.emr||i.emr_connection)+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 미응답 키오스크 =====
+    } else if(type==='table_no_heartbeat'){
+        fetch('/api/widget-data/no_heartbeat').then(r=>r.json()).then(d=>{
+            if((!d.data||d.data.length===0)&&(!d.items||d.items.length===0)){body.innerHTML='<div style="text-align:center;padding:20px;color:#666">미응답 키오스크 없음</div>';return;}
+            let h='<table><tr><th>병원</th><th>키오스크</th><th>마지막 응답</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{h+='<tr><td>'+(i.hosp||i.hosp_cd)+'</td><td>'+(i.kiosk||i.kiosk_id)+'</td><td style="color:#feca57">'+(i.time||i.last_heartbeat)+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 테이블: 오늘 TOP10 =====
+    } else if(type==='table_top10_today'){
+        fetch('/api/widget-data/top10_today').then(r=>r.json()).then(d=>{
+            if((!d.data||d.data.length===0)&&(!d.items||d.items.length===0)){body.innerHTML='<div style="text-align:center;padding:20px;color:#666">오늘 이용 데이터 없음</div>';return;}
+            let h='<table><tr><th>#</th><th>병원</th><th style="text-align:right">건수</th></tr>';
+            (d.data||d.items||[]).forEach((i,idx)=>{h+='<tr><td>'+(idx+1)+'</td><td>'+i.name+'</td><td style="text-align:right;color:#4ecdc4;font-weight:bold">'+Number(i.count).toLocaleString()+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+    // ===== 차트: 주간 추이 =====
+    } else if(type==='weekly_chart'){
+        fetch('/api/widget-data/weekly_trend').then(r=>r.json()).then(d=>{
+            let items=d.data||[];let labels=items.map(i=>i.date);let counts=items.map(i=>i.count);
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            new Chart(cvs,{type:'line',data:{labels:labels,datasets:[{label:'이용건수',data:counts,borderColor:'#4ecdc4',backgroundColor:'rgba(78,205,196,0.1)',fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
+        });
+
+    // ===== 차트: ISV 도넛 =====
+    } else if(type==='isv_chart'){
+        fetch('/api/widget-data/isv_list').then(r=>r.json()).then(d=>{
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            let colors=['#4ecdc4','#ff6b6b','#45b7d1','#96ceb4','#feca57','#ff9ff3','#54a0ff','#5f27cd','#01a3a4','#f368e0','#ee5a24','#009432','#0652DD','#9980FA'];
+            let items2=d.isv||d.items||[];let labels=items2.map(i=>i.name);let vals=items2.map(i=>i.count||i.kiosk_count);
+            new Chart(cvs,{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:colors.slice(0,labels.length)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#ccc',font:{size:9}}}}}});
+        });
+
+    // ===== 차트: 월별 추이 =====
+    } else if(type==='chart_monthly'){
+        fetch('/api/widget-data/monthly_trend').then(r=>r.json()).then(d=>{
+            let items=d.data||[];let labels=items.map(i=>i.month);let counts=items.map(i=>i.count);
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            new Chart(cvs,{type:'bar',data:{labels:labels,datasets:[{label:'이용건수',data:counts,backgroundColor:'rgba(78,205,196,0.7)',borderColor:'#4ecdc4',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'월별 이용 추이',color:'#ccc',font:{size:11}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
+        });
+
+    // ===== 차트: 시간대별 =====
+    } else if(type==='chart_hourly'){
+        fetch('/api/widget-data/hourly_usage').then(r=>r.json()).then(d=>{
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            new Chart(cvs,{type:'line',data:{labels:d.labels||[],datasets:[{label:'이용건수',data:d.data||d.counts||[],borderColor:'#ff6b6b',backgroundColor:'rgba(255,107,107,0.1)',fill:true,tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'시간대별 이용현황',color:'#ccc',font:{size:11}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
+        });
+
+    // ===== 차트: ISV 오늘 =====
+    } else if(type==='chart_isv_today'){
+        fetch('/api/widget-data/isv_today').then(r=>r.json()).then(d=>{
+            let items=d.data||[];let labels=items.map(i=>i.isv);let counts=items.map(i=>i.count);
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            let colors=['#4ecdc4','#ff6b6b','#45b7d1','#96ceb4','#feca57','#ff9ff3','#54a0ff','#5f27cd','#01a3a4','#f368e0'];
+            new Chart(cvs,{type:'bar',data:{labels:labels,datasets:[{label:'오늘 이용',data:counts,backgroundColor:colors.slice(0,labels.length)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},title:{display:true,text:'ISV별 오늘 이용',color:'#ccc',font:{size:11}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
+        });
+
+    // ===== 시계 =====
+    } else if(type==='clock'){
+        function updateClock(){
+            let now=new Date();
+            let y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),dd=String(now.getDate()).padStart(2,'0');
+            let hh=String(now.getHours()).padStart(2,'0'),mm=String(now.getMinutes()).padStart(2,'0'),ss=String(now.getSeconds()).padStart(2,'0');
+            let days=['일','월','화','수','목','금','토'];
+            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:1.8em;font-weight:bold;color:#4ecdc4">'+hh+':'+mm+':'+ss+'</div><div style="color:#aaa;font-size:0.8em;margin-top:4px">'+y+'.'+m+'.'+dd+' ('+days[now.getDay()]+')</div></div>';
+        }
+        updateClock();setInterval(updateClock,1000);
+
+    // ===== 텍스트 =====
+
+    } else if(type==='chart_daily_trend'){
+        fetch('/api/widget-data/daily_trend').then(r=>r.json()).then(d=>{
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            new Chart(cvs,{type:'bar',data:{labels:d.labels,datasets:[{label:'이용건수',data:d.counts,backgroundColor:'rgba(0,212,255,0.4)',borderColor:'#00d4ff',borderWidth:1},{label:'가동병원',data:d.hospitals,type:'line',borderColor:'#00ff88',yAxisID:'y1',tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888',font:{size:9}}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y1:{position:'right',ticks:{color:'#00ff88',font:{size:9}},grid:{display:false}}}}});
+        });
+    } else if(type==='chart_daily_hosp'){
+        fetch('/api/widget-data/daily_hospital_trend').then(r=>r.json()).then(d=>{
+            let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
+            new Chart(cvs,{type:'line',data:{labels:d.labels,datasets:[{label:'전체병원',data:d.total,borderColor:'#4ecdc4',tension:0.3},{label:'가동병원',data:d.active,borderColor:'#00ff88',tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888',font:{size:9}}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
+        });
+    } else if(type==='table_snapshot_top'){
+        fetch('/api/widget-data/snapshot_detail').then(r=>r.json()).then(d=>{
+            if(!d.items||d.items.length===0){body.innerHTML='<div style="text-align:center;padding:20px;color:#666">스냅샷 데이터 없음</div>';return;}
+            let h='<table><tr><th>#</th><th>병원</th><th>키오스크</th><th style="text-align:right">건수</th></tr>';
+            d.items.forEach((i,idx)=>{h+='<tr><td>'+(idx+1)+'</td><td>'+i.name+'</td><td>'+i.kiosks+'대</td><td style="text-align:right;color:#4ecdc4;font-weight:bold">'+Number(i.count).toLocaleString()+'</td></tr>';});
+            h+='</table>';body.innerHTML=h;
+        });
+
+        } else if(type==='text_block'){
+        body.innerHTML='<div style="padding:8px;color:#ccc">텍스트 블록</div>';
+
+    // ===== 커스텀/알수없는 위젯 =====
+    } else {
+        body.innerHTML='<div style="color:#666;text-align:center;margin-top:10px">'+type+'</div>';
+    }
+}
+
+// 레이아웃 로드 및 렌더링
+fetch('/api/layout').then(r=>r.json()).then(layout=>{
+    const canvas=document.getElementById('canvas');
+    if(!layout||layout.length===0){
+        canvas.innerHTML='<div style="text-align:center;padding:60px;color:#666;font-size:1.2em">저장된 레이아웃이 없습니다. 에디터에서 위젯을 배치하고 저장하세요.</div>';
+        return;
+    }
+    let items=Array.isArray(layout)?layout:(layout.layout||[]);
+    items.forEach(w=>{
+        let div=document.createElement('div');
+        div.className='widget';
+        div.style.left=w.x+'px';div.style.top=w.y+'px';div.style.width=w.w+'px';div.style.height=w.h+'px';
+        div.setAttribute('data-type',w.type);
+        div.innerHTML='<div class="w-header"></div><div class="w-body"></div>';
+        canvas.appendChild(div);
+        renderWidget(div, w.type);
+        applyFontScale(div);
+    });
+});
+
+// 1분마다 자동 새로고침
+setInterval(()=>{
+    document.querySelectorAll('.widget').forEach(el=>{
+        let header=el.querySelector('.w-header');
+        if(header){
+            let type=el.getAttribute('data-type')||header.textContent;
+            renderWidget(el, type);
+        }
+    });
+}, 60000);
+
+</script>
+</body>
+</html>

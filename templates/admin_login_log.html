@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 이력 - BSEYE</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#eee;}
+        .header{background:#1a1a2e;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;flex-wrap:wrap;gap:8px;}
+        .header h1{font-size:1.4rem;color:#00d4ff;}
+        .header .nav{display:flex;gap:10px;}
+        .header a{color:#888;text-decoration:none;font-size:0.85rem;padding:5px 10px;border:1px solid #333;border-radius:6px;}
+        .header a:hover{color:#00d4ff;border-color:#00d4ff;}
+        .section{padding:20px;}
+        .stat{color:#888;font-size:0.85rem;margin-bottom:15px;}
+        table{width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;}
+        th{background:#252540;padding:10px 12px;text-align:left;color:#aaa;font-size:0.8rem;}
+        td{padding:8px 12px;border-bottom:1px solid #252540;font-size:0.85rem;}
+        tr:hover{background:#252540;}
+        .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;}
+        .badge.ok{background:#00ff8822;color:#00ff88;}
+        .badge.fail{background:#ff444422;color:#ff4444;}
+        @media(max-width:600px){
+            .header h1{font-size:1.1rem;}
+            .section{padding:15px;}
+            th{padding:6px 8px;font-size:0.7rem;}
+            td{padding:6px 8px;font-size:0.75rem;}
+        }
+    </style>
+</head>
+<body style="padding-top:60px">
+<div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
+    <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
+        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
+        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
+        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
+        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
+        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
+        <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
+        <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
+    </div>
+</div>
+<script>
+(function(){
+    var path=location.pathname;
+    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
+    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
+})();
+</script>
+    
+    <div class="section">
+        <div class="stat">최근 100건</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>시간</th>
+                    <th>아이디</th>
+                    <th>결과</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log['created_at'] }}</td>
+                    <td>{{ log['username'] }}</td>
+                    <td><span class="badge {{ 'ok' if log['success'] else 'fail' }}">{{ '성공' if log['success'] else '실패' }}</span></td>
+                    <td>{{ log['ip_address'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

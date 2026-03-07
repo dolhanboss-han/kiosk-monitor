@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BSEYE 현장 검증</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-size:13px}
+.hd{background:linear-gradient(135deg,#0d1b2a,#1b2d4f);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e3a5f}
+.hd h1{font-size:1rem;color:#4fc3f7}
+.hd .lnk{color:#4fc3f7;text-decoration:none;font-size:0.8rem}
+.ctrl{padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #151a2e}
+.ctrl select,.ctrl input,.ctrl button{background:#111827;color:#c8d6e5;border:1px solid #2a3a5f;padding:6px 10px;border-radius:4px;font-size:0.8rem}
+.ctrl button{background:#0d47a1;color:#fff;cursor:pointer;border:none}
+.ctrl button:hover{background:#1565c0}
+.ctrl .ri{font-size:0.7rem;color:#556}
+
+/* 체크리스트 카드 */
+.sec{padding:10px 20px}
+.sec-title{font-size:0.9rem;color:#4fc3f7;padding:8px 0;border-bottom:1px solid #1e3a5f;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-title .cnt{font-size:0.7rem;padding:2px 10px;border-radius:10px}
+.cnt-ok{background:#10b98133;color:#10b981}
+.cnt-err{background:#ef444433;color:#ef4444}
+.cnt-wait{background:#6b728033;color:#6b7280}
+
+.chk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin-bottom:20px}
+.chk-card{background:#111827;border:1px solid #1a2340;border-radius:8px;overflow:hidden}
+.chk-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1a2340}
+.chk-head .dev-name{font-weight:600;font-size:0.85rem}
+.chk-head .dev-icon{font-size:1.2rem}
+.chk-body{padding:8px 14px}
+.chk-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #0d1220}
+.chk-row:last-child{border-bottom:none}
+.chk-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0}
+.ci-ok{background:#10b981;color:#fff}
+.ci-err{background:#ef4444;color:#fff}
+.ci-warn{background:#f59e0b;color:#fff}
+.ci-wait{background:#374151;color:#9ca3af}
+.ci-na{background:#1f2937;color:#4b5563}
+.chk-label{flex:1;font-size:0.78rem}
+.chk-val{font-size:0.78rem;color:#8b9dc3;text-align:right;min-width:80px}
+.chk-val.ok{color:#10b981}
+.chk-val.err{color:#ef4444}
+.chk-val.warn{color:#f59e0b}
+
+/* 메뉴 테스트 */
+.menu-test{background:#111827;border:1px solid #1a2340;border-radius:8px;margin-bottom:10px;overflow:hidden}
+.menu-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-bottom:1px solid #1a2340}
+.menu-head:hover{background:#ffffff08}
+.menu-name{font-weight:600;font-size:0.85rem;display:flex;align-items:center;gap:8px}
+.menu-stats{display:flex;gap:12px;font-size:0.75rem}
+.menu-stats .in{color:#4fc3f7}
+.menu-stats .ok{color:#10b981}
+.menu-stats .fail{color:#ef4444}
+.menu-body{padding:10px 14px;display:none}
+.menu-body.open{display:block}
+.step-timeline{position:relative;padding-left:24px}
+.step-item{position:relative;padding:8px 0 8px 16px;border-left:2px solid #2a3a5f}
+.step-item:last-child{border-left-color:transparent}
+.step-item::before{content:'';position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;border:2px solid #2a3a5f;background:#0a0e1a}
+.step-item.s-ok::before{background:#10b981;border-color:#10b981}
+.step-item.s-err::before{background:#ef4444;border-color:#ef4444}
+.step-item.s-cur::before{background:#4fc3f7;border-color:#4fc3f7;animation:pulse 1.5s infinite}
+.step-info{display:flex;justify-content:space-between;align-items:center}
+.step-name{font-size:0.8rem}
+.step-detail{font-size:0.7rem;color:#556;display:flex;gap:12px}
+.step-detail span{display:flex;align-items:center;gap:3px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* 실시간 로그 */
+.live-log{background:#111827;border:1px solid #1a2340;border-radius:8px;padding:14px}
+.log-scroll{max-height:300px;overflow-y:auto}
+.lr{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #0d1220;font-size:0.74rem;align-items:center}
+.lr-t{color:#556;width:60px;flex-shrink:0}
+.lr-k{color:#8b5cf6;width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis}
+.lr-s{width:44px;flex-shrink:0}
+.lr-w{flex:1;color:#c8d6e5}
+.lr-e{width:45px;text-align:right;color:#667;flex-shrink:0}
+.st{display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.68rem;font-weight:600}
+.st-on{background:#10b98122;color:#10b981}
+.st-start{background:#4fc3f722;color:#4fc3f7}
+.st-end{background:#8b5cf622;color:#8b5cf6}
+.st-change{background:#f59e0b22;color:#f59e0b}
+.st-err{background:#ef444422;color:#ef4444}
+.st-off{background:#6b728022;color:#6b7280}
+
+/* 전송 상태 */
+.send-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.send-card{background:#111827;border:1px solid #1a2340;border-radius:8px;padding:14px}
+.send-kid{font-weight:600;color:#4fc3f7;margin-bottom:6px}
+.send-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.78rem}
+.send-row .lbl{color:#556}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:10px 20px}
+.kpi{background:#111827;border:1px solid #1a2340;border-radius:8px;padding:10px;text-align:center}
+.kpi .v{font-size:1.4rem;font-weight:700;color:#4fc3f7}
+.kpi .v.g{color:#10b981}.kpi .v.r{color:#ef4444}.kpi .v.y{color:#f59e0b}
+.kpi .l{font-size:0.68rem;color:#556;margin-top:2px}
+
+@media(max-width:768px){
+    .kpi-row{grid-template-columns:repeat(3,1fr)}
+    .chk-grid{grid-template-columns:1fr}
+    .send-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="hd">
+    <h1>🔍 BSEYE 현장 검증 대시보드</h1>
+    <div><a class="lnk" href="/usage">행동분석</a> &nbsp; <a class="lnk" href="/monitoring">모니터링</a> &nbsp; <span id="clk" style="color:#556;font-size:0.75rem"></span></div>
+</div>
+<div class="ctrl">
+    <label>날짜 <input type="date" id="dt"></label>
+    <label>키오스크 <select id="kid"><option value="all">전체</option></select></label>
+    <button onclick="loadAll()">조회</button>
+    <label><input type="checkbox" id="ar" checked> 자동새로고침(30s)</label>
+    <span class="ri" id="ri"></span>
+</div>
+
+<div class="kpi-row">
+    <div class="kpi"><div class="v" id="k1">-</div><div class="l">등록 장비</div></div>
+    <div class="kpi"><div class="v g" id="k2">-</div><div class="l">정상</div></div>
+    <div class="kpi"><div class="v r" id="k3">-</div><div class="l">이상</div></div>
+    <div class="kpi"><div class="v" id="k4">-</div><div class="l">진입</div></div>
+    <div class="kpi"><div class="v g" id="k5">-</div><div class="l">완료</div></div>
+    <div class="kpi"><div class="v r" id="k6">-</div><div class="l">이탈</div></div>
+</div>
+
+<!-- ① 장비 체크리스트 -->
+<div class="sec">
+    <div class="sec-title">① 장비별 체크리스트 <span class="cnt cnt-wait" id="devCnt">로딩중...</span></div>
+    <div class="chk-grid" id="devGrid"></div>
+</div>
+
+<!-- ② 메뉴별 진입/이탈 테스트 -->
+<div class="sec">
+    <div class="sec-title">② 메뉴별 진입·이탈 검증 <span class="cnt cnt-wait" id="menuCnt">로딩중...</span></div>
+    <div id="menuList"></div>
+</div>
+
+<!-- ③ 실시간 이벤트 로그 -->
+<div class="sec">
+    <div class="sec-title">③ 실시간 이벤트 로그 <span class="cnt cnt-wait" id="logCnt">로딩중...</span></div>
+    <div class="live-log">
+        <div class="log-scroll" id="logBox"></div>
+    </div>
+</div>
+
+<!-- ④ 에이전트 전송 상태 -->
+<div class="sec">
+    <div class="sec-title">④ 에이전트 전송 상태 <span class="cnt cnt-wait" id="sendCnt">로딩중...</span></div>
+    <div class="send-grid" id="sendGrid"></div>
+</div>
+
+<script>
+var allLogs=[];
+function today(){return new Date().toISOString().slice(0,10)}
+function init(){
+    document.getElementById('dt').value=today();
+    loadAll();
+    setInterval(function(){document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR')},1000);
+    setInterval(function(){
+        if(document.getElementById('ar').checked){loadAll();document.getElementById('ri').textContent='갱신: '+new Date().toLocaleTimeString('ko-KR')}
+    },30000);
+}
+
+function loadAll(){loadDevices();loadUsage();loadLogs();loadSend()}
+
+// ── ① 장비 체크리스트 ──
+async function loadDevices(){
+    try{
+        var r=await fetch('/api/verify/devices');
+        var d=await r.json();
+        var grid=document.getElementById('devGrid');
+        grid.innerHTML='';
+        var okCnt=0,errCnt=0;
+        (d.devices||[]).forEach(function(dev){
+            var checks=buildDeviceChecks(dev);
+            var allOk=checks.every(function(c){return c.st==='ok'||c.st==='na'});
+            if(allOk)okCnt++;else errCnt++;
+            var icon=dev.status==='online'?'🟢':dev.status==='error'?'🔴':'⚫';
+            var h='<div class="chk-card"><div class="chk-head">'
+                +'<span class="dev-name">'+icon+' '+dev.hosp_cd+' / '+dev.kiosk_id+'</span>'
+                +'<span style="font-size:0.7rem;color:#556">'+(dev.last_heartbeat||'')+'</span></div>'
+                +'<div class="chk-body">';
+            checks.forEach(function(c){
+                var ci=c.st==='ok'?'ci-ok':c.st==='err'?'ci-err':c.st==='warn'?'ci-warn':c.st==='na'?'ci-na':'ci-wait';
+                var sym=c.st==='ok'?'✓':c.st==='err'?'✗':c.st==='warn'?'!':c.st==='na'?'-':'?';
+                var vc=c.st==='ok'?'ok':c.st==='err'?'err':c.st==='warn'?'warn':'';
+                h+='<div class="chk-row">'
+                    +'<div class="chk-icon '+ci+'">'+sym+'</div>'
+                    +'<div class="chk-label">'+c.label+'</div>'
+                    +'<div class="chk-val '+vc+'">'+c.val+'</div></div>';
+            });
+            h+='</div></div>';
+            grid.innerHTML+=h;
+        });
+        document.getElementById('k1').textContent=d.devices.length;
+        document.getElementById('k2').textContent=okCnt;
+        document.getElementById('k3').textContent=errCnt;
+        var cls=errCnt>0?'cnt-err':'cnt-ok';
+        document.getElementById('devCnt').textContent=okCnt+'/'+d.devices.length+' 정상';
+        document.getElementById('devCnt').className='cnt '+cls;
+    }catch(e){console.error(e)}
+}
+
+function buildDeviceChecks(dev){
+    var checks=[];
+    // PC
+    var cpuSt=dev.cpu_usage<80?'ok':dev.cpu_usage<95?'warn':'err';
+    checks.push({label:'💻 PC — CPU',val:(dev.cpu_usage||0)+'%',st:cpuSt});
+    var memSt=dev.memory_usage<80?'ok':dev.memory_usage<95?'warn':'err';
+    checks.push({label:'💻 PC — 메모리',val:(dev.memory_usage||0)+'%',st:memSt});
+    var dskSt=dev.disk_usage?dev.disk_usage<85?'ok':dev.disk_usage<95?'warn':'err':'na';
+    checks.push({label:'💻 PC — 디스크',val:dev.disk_usage?dev.disk_usage+'%':'미수집',st:dskSt});
+    // Monitor
+    checks.push({label:'🖥️ 모니터',val:dev.status==='online'?'정상':'확인필요',st:dev.status==='online'?'ok':'err'});
+    // Barcode Reader
+    var brSt=dev.barcode_reader==='ok'?'ok':dev.barcode_reader==='error'?'err':'na';
+    checks.push({label:'📱 바코드리더기',val:dev.barcode_reader||'미수집',st:brSt});
+    // Thermal Printer
+    var tpSt=dev.printer_thermal==='ok'?'ok':dev.printer_thermal==='error'?'err':'na';
+    checks.push({label:'🧾 영수증프린터',val:dev.printer_thermal||'미수집',st:tpSt});
+    // A4 Printer
+    var prSt=dev.printer_a4==='ok'?'ok':dev.printer_a4==='error'?'err':'na';
+    checks.push({label:'🖨️ A4프린터',val:dev.printer_a4||'미수집',st:prSt});
+    // Card Reader
+    var crSt=dev.card_reader==='ok'?'ok':dev.card_reader==='error'?'err':'na';
+    checks.push({label:'💳 카드리더기',val:dev.card_reader||'미수집',st:crSt});
+    // Network
+    var netSt=dev.network_speed?dev.network_speed>10?'ok':dev.network_speed>2?'warn':'err':'na';
+    checks.push({label:'🌐 네트워크',val:dev.network_speed?dev.network_speed+'Mbps':'미수집',st:netSt});
+    // EMR
+    var emrSt=dev.emr_connection==='ok'?'ok':dev.emr_connection==='error'?'err':'na';
+    checks.push({label:'🏥 EMR연결',val:dev.emr_connection||'미수집',st:emrSt});
+    // Smart Plug
+    checks.push({label:'🔌 스마트플러그',val:'미연결',st:'na'});
+    return checks;
+}
+
+// ── ② 메뉴별 진입·이탈 ──
+async function loadUsage(){
+    try{
+        var dt=document.getElementById('dt').value;
+        var kid=document.getElementById('kid').value;
+        // 일별 요약
+        var r1=await fetch('/api/kiosk-usage/dashboard?date='+dt);
+        var d1=await r1.json();
+        var totE=0,totC=0,totX=0;
+        var sel=document.getElementById('kid');
+        (d1.summary||[]).forEach(function(s){
+            totE+=s.total_entry;totC+=s.total_complete;totX+=s.total_cancel;
+            if(!sel.querySelector('option[value="'+s.kiosk_id+'"]'))
+                sel.innerHTML+='<option value="'+s.kiosk_id+'">'+s.kiosk_id+'</option>';
+        });
+        document.getElementById('k4').textContent=totE;
+        document.getElementById('k5').textContent=totC;
+        document.getElementById('k6').textContent=totX;
+
+        // 퍼널 데이터
+        var r2=await fetch('/api/kiosk-usage/funnel?date='+dt+'&kiosk_id='+(kid==='all'?'':kid));
+        var d2=await r2.json();
+        var ml=document.getElementById('menuList');
+        ml.innerHTML='';
+        var menus=d2.menus||[];
+        document.getElementById('menuCnt').textContent=menus.length+'개 메뉴';
+        document.getElementById('menuCnt').className='cnt cnt-ok';
+
+        menus.forEach(function(m,idx){
+            var rate=m.total>0?Math.round(m.completed/m.total*100):0;
+            var rateCls=rate>=80?'g':rate>=50?'y':'r';
+            var h='<div class="menu-test"><div class="menu-head" onclick="toggleMenu('+idx+')">'
+                +'<div class="menu-name"><span style="font-size:1.1rem">'
+                +(m.menu==='재진접수'?'🏥':m.menu==='진료예약'?'📋':m.menu==='도착확인'?'✅':m.menu==='진료수납'?'💰':'🎫')
+                +'</span> '+m.menu+'</div>'
+                +'<div class="menu-stats">'
+                +'<span class="in">진입 '+m.total+'</span>'
+                +'<span class="ok">완료 '+m.completed+'</span>'
+                +'<span class="fail">이탈 '+m.cancelled+'</span>'
+                +'<span style="color:var(--c'+rateCls+',#c8d6e5);font-weight:700">'+rate+'%</span>'
+                +'</div></div>';
+            h+='<div class="menu-body" id="mb'+idx+'"><div class="step-timeline">';
+            var funnel=m.funnel||[];
+            var prevCnt=m.total;
+            funnel.forEach(function(f,fi){
+                var drop=prevCnt-f.count;
+                var dropPct=prevCnt>0?Math.round(drop/prevCnt*100):0;
+                var sCls=f.cancel_count>5?'s-err':f.cancel_count>0?'s-ok':'s-ok';
+                h+='<div class="step-item '+sCls+'"><div class="step-info">'
+                    +'<span class="step-name">'+f.step+'</span>'
+                    +'<span class="step-detail">'
+                    +'<span>👥 '+f.count+'명</span>'
+                    +'<span>⏱️ '+f.avg_sec+'초</span>'
+                    +'<span style="color:#ef4444">↓ '+f.cancel_count+'명 이탈'+(f.cancel_count>0?' ('+Math.round(f.cancel_count/m.total*100)+'%)':'')+'</span>'
+                    +'</span></div></div>';
+                prevCnt=f.count;
+            });
+            h+='</div></div></div>';
+            ml.innerHTML+=h;
+        });
+    }catch(e){console.error(e)}
+}
+
+function toggleMenu(idx){
+    var el=document.getElementById('mb'+idx);
+    el.classList.toggle('open');
+}
+
+// ── ③ 실시간 로그 ──
+async function loadLogs(){
+    try{
+        var dt=document.getElementById('dt').value;
+        var kid=document.getElementById('kid').value;
+        var r=await fetch('/api/kiosk-usage/detail?work_date='+dt+'&kiosk_id='+(kid==='all'?'':kid));
+        var d=await r.json();
+        allLogs=d.logs||[];
+        var box=document.getElementById('logBox');
+        var h='';
+        allLogs.slice(0,100).forEach(function(l){
+            var t=(l.log_dt||'').substring(11,19);
+            var sc=l.status==='START'?'st-start':l.status==='END'?'st-end':l.status==='CHANGE'?'st-change':'st-off';
+            h+='<div class="lr">'
+                +'<span class="lr-t">'+t+'</span>'
+                +'<span class="lr-k">'+(l.kiosk_id||'')+'</span>'
+                +'<span class="lr-s"><span class="st '+sc+'">'+l.status+'</span></span>'
+                +'<span class="lr-w">'+(l.window_title||'')+'</span>'
+                +'<span class="lr-e">'+(l.elapsed_sec?l.elapsed_sec+'s':'')+'</span>'
+                +'</div>';
+        });
+        box.innerHTML=h||'<div style="padding:20px;text-align:center;color:#556">로그 없음</div>';
+        document.getElementById('logCnt').textContent=allLogs.length+'건';
+        document.getElementById('logCnt').className='cnt '+(allLogs.length>0?'cnt-ok':'cnt-wait');
+    }catch(e){console.error(e)}
+}
+
+// ── ④ 전송 상태 ──
+async function loadSend(){
+    try{
+        var r=await fetch('/api/verify/send-status');
+        var d=await r.json();
+        var grid=document.getElementById('sendGrid');
+        grid.innerHTML='';
+        (d.kiosks||[]).forEach(function(k){
+            var ago=k.hours_ago;
+            var stTxt=ago<24?'✅ 정상':ago<72?'⚠️ 지연':'❌ 미수신';
+            var stCls=ago<24?'ok':ago<72?'warn':'err';
+            var h='<div class="send-card">'
+                +'<div class="send-kid">'+k.kiosk_id+'</div>'
+                +'<div class="send-row"><span class="lbl">위치</span><span>'+(k.location||'-')+'</span></div>'
+                +'<div class="send-row"><span class="lbl">마지막 수신</span><span>'+k.last_received_dt+'</span></div>'
+                +'<div class="send-row"><span class="lbl">경과</span><span class="'+stCls+'">'+Math.round(ago)+'시간 전</span></div>'
+                +'<div class="send-row"><span class="lbl">상태</span><span class="'+stCls+'">'+stTxt+'</span></div>'
+                +'</div>';
+            grid.innerHTML+=h;
+        });
+        document.getElementById('sendCnt').textContent=d.kiosks.length+'대';
+        document.getElementById('sendCnt').className='cnt cnt-ok';
+    }catch(e){console.error(e)}
+}
+
+init();
+</script>
+</body>
+</html>

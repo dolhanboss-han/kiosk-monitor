@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSEYE Kiosk Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#eee;}
+        .header{background:#1a1a2e;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;flex-wrap:wrap;gap:8px;}
+        .header h1{font-size:1.3rem;color:#00d4ff;white-space:nowrap;}
+        .header .nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+        .header a{color:#888;text-decoration:none;font-size:0.8rem;padding:5px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap;}
+        .header a:hover{color:#00d4ff;border-color:#00d4ff;}
+        .header .user{color:#aaa;font-size:0.8rem;white-space:nowrap;}
+        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:20px;}
+        .card{background:#1a1a2e;border-radius:10px;padding:15px 10px;text-align:center;border:1px solid #333;}
+        .card .num{font-size:1.8rem;font-weight:bold;margin:5px 0;}
+        .card .label{color:#888;font-size:0.75rem;}
+        .card.blue .num{color:#00d4ff;}
+        .card.green .num{color:#00ff88;}
+        .card.yellow .num{color:#ffd700;}
+        .card.purple .num{color:#bf6fff;}
+        .card.orange .num{color:#ff8c00;}
+        .card.cyan .num{color:#00e5ff;}
+        .today-banner{background:linear-gradient(135deg,#1a1a2e,#252540);margin:0 20px 15px;padding:15px 20px;border-radius:10px;border:1px solid #00d4ff33;}
+        .today-banner h2{color:#00d4ff;font-size:1rem;margin-bottom:10px;}
+        .today-banner .today-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+        .today-banner .today-item{text-align:center;}
+        .today-banner .today-item .val{font-size:1.6rem;font-weight:bold;color:#00ff88;}
+        .today-banner .today-item .lbl{color:#888;font-size:0.8rem;margin-top:3px;}
+        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:0 20px 15px;}
+        .chart-box{background:#1a1a2e;border-radius:10px;padding:15px;border:1px solid #333;}
+        .chart-box h2{font-size:0.95rem;color:#00d4ff;margin-bottom:10px;}
+        .chart-wrap{height:250px;position:relative;}
+        .section{padding:0 20px 20px;}
+        .section h2{font-size:1rem;color:#00d4ff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #333;}
+        table{width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;}
+        th{background:#252540;padding:8px 10px;text-align:left;color:#aaa;font-size:0.75rem;}
+        td{padding:7px 10px;border-bottom:1px solid #252540;font-size:0.8rem;}
+        tr:hover{background:#252540;cursor:pointer;}
+        .isv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;}
+        .isv-item{background:#252540;border-radius:8px;padding:10px;text-align:center;}
+        .isv-item .name{color:#00d4ff;font-weight:bold;font-size:0.85rem;}
+        .isv-item .count{color:#aaa;font-size:0.75rem;margin-top:3px;}
+        .isv-item .today-val{color:#00ff88;font-size:0.8rem;margin-top:4px;}
+        .cnt{text-align:right;color:#00ff88;}
+        a.hosp-link{color:#00d4ff;text-decoration:none;}
+        a.hosp-link:hover{text-decoration:underline;}
+        .date-label{color:#888;font-size:0.8rem;padding:8px 20px 5px;}
+
+        /* 모바일 */
+        @media(max-width:600px){
+            .header{padding:10px 15px;}
+            .header h1{font-size:1.1rem;}
+            .header .nav{gap:5px;}
+            .header a{font-size:0.7rem;padding:4px 8px;}
+            .header .user{font-size:0.7rem;}
+            .cards{grid-template-columns:repeat(3,1fr);gap:8px;padding:15px;}
+            .card{padding:12px 5px;border-radius:8px;}
+            .card .num{font-size:1.4rem;}
+            .card .label{font-size:0.65rem;}
+            .today-banner{margin:0 15px 12px;padding:12px 15px;}
+            .today-banner .today-item .val{font-size:1.4rem;}
+            .grid-2{grid-template-columns:1fr;padding:0 15px 12px;}
+            .chart-wrap{height:200px;}
+            .section{padding:0 15px 15px;}
+            .isv-grid{grid-template-columns:repeat(3,1fr);gap:6px;}
+            .isv-item{padding:8px 5px;}
+            .isv-item .name{font-size:0.75rem;}
+            .isv-item .count{font-size:0.65rem;}
+            .isv-item .today-val{font-size:0.7rem;}
+            table{font-size:0.75rem;}
+            th{padding:6px 8px;font-size:0.7rem;}
+            td{padding:6px 8px;font-size:0.75rem;}
+            .date-label{padding:6px 15px 3px;font-size:0.75rem;}
+        }
+
+        /* 태블릿 */
+        @media(min-width:601px) and (max-width:900px){
+            .cards{grid-template-columns:repeat(3,1fr);}
+            .grid-2{grid-template-columns:1fr;}
+        }
+
+        /* 대형 모니터 */
+        @media(min-width:1400px){
+            .cards{grid-template-columns:repeat(6,1fr);}
+            .card .num{font-size:2.5rem;}
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BSEYE Monitor</h1>
+        <div class="nav">
+            <a href="/hospitals">병원</a><a href="/monitoring">모니터링</a><a href="/alarms">알람</a><a href="/tickets">티켓</a><a href="/editor">에디터</a>
+            {% if session.user_role == "hq_admin" %}<a href="/admin/users">계정</a>{% endif %}
+            <span class="user">{{ session.user_name }}</span>
+            <a href="/change-password">비밀번호</a><a href="/logout">로그아웃</a>
+        </div>
+    </div>
+
+    <div class="date-label">{{ today }} 기준 | 마지막 갱신: <span id="lastUpdate"></span> | 다음 갱신: <span id="countdown" style="color:#00d4ff">60</span>초</div>
+
+    <div class="cards">
+        <div class="card blue">
+            <div class="label">전체 병원</div>
+            <div class="num">{{ total_hosp }}</div>
+        </div>
+        <div class="card green">
+            <div class="label">운영 병원</div>
+            <div class="num">{{ active_hosp }}</div>
+        </div>
+        <div class="card yellow">
+            <div class="label">전체 키오스크</div>
+            <div class="num">{{ total_kiosk }}</div>
+        </div>
+        <div class="card purple">
+            <div class="label">ISV 파트너</div>
+            <div class="num">{{ isv_list|length }}</div>
+        </div>
+        <div class="card orange">
+            <div class="label">오늘 이용 병원</div>
+            <div class="num">{{ today_summary[0] or 0 }}</div>
+        </div>
+        <div class="card cyan">
+            <div class="label">오늘 이용 키오스크</div>
+            <div class="num">{{ today_summary[1] or 0 }}</div>
+        </div>
+    </div>
+
+    <div class="today-banner">
+        <h2>오늘 사용 현황</h2>
+        <div class="today-grid">
+            <div class="today-item">
+                <div class="val">{{ "{:,}".format(today_summary[2] or 0) }}</div>
+                <div class="lbl">총 이용 건수</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="chart-box">
+            <h2>최근 7일 이용 추이</h2>
+            <div class="chart-wrap">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-box">
+            <h2>ISV별 오늘 이용 건수</h2>
+            <div class="chart-wrap">
+                <canvas id="isvChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>ISV 파트너 현황</h2>
+        <div class="isv-grid">
+            {% for isv in isv_list %}
+            <div class="isv-item" onclick="location.href='/isv/{{ isv[0] }}'" style="cursor:pointer">
+                <div class="name">{{ isv[0] or 'N/A' }}</div>
+                <div class="count">{{ isv[1] }}개 병원</div>
+                {% for it in isv_today %}
+                {% if it[0] == isv[0] %}
+                <div class="today-val">오늘 {{ it[2] or 0 }}건</div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>최근 사용 현황 (TOP 10)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>병원명</th>
+                    <th>키오스크</th>
+                    <th>날짜</th>
+                    <th style="text-align:right">건수</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recent %}
+                <tr onclick="location.href='/hospital/{{ r[5] }}'">
+                    <td><a class="hosp-link" href="/hospital/{{ r[5] }}">{{ r[0] }}</a></td>
+                    <td>{{ r[1] }}</td>
+                    <td>{{ r[2] }}</td>
+                    <td class="cnt">{{ r[3] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const weeklyData = [
+            {% for w in weekly|reverse %}
+            { date: '{{ w[0] }}', hosp: {{ w[1] or 0 }}, count: {{ w[2] or 0 }} },
+            {% endfor %}
+        ];
+
+        new Chart(document.getElementById('weeklyChart'), {
+            type: 'bar',
+            data: {
+                labels: weeklyData.map(d => d.date.slice(5)),
+                datasets: [{
+                    label: '건수',
+                    data: weeklyData.map(d => d.count),
+                    backgroundColor: '#00d4ff44',
+                    borderColor: '#00d4ff',
+                    borderWidth: 1
+                },{
+                    label: '이용 병원',
+                    data: weeklyData.map(d => d.hosp),
+                    type: 'line',
+                    borderColor: '#00ff88',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#aaa', font:{size:11} } } },
+                scales: {
+                    x: { ticks: { color: '#888', font:{size:10} }, grid: { color: '#333' } },
+                    y: { position: 'left', ticks: { color: '#00d4ff' }, grid: { color: '#333' }, title: { display: true, text: '건수', color: '#00d4ff' } },
+                    y1: { position: 'right', ticks: { color: '#00ff88' }, grid: { display: false }, title: { display: true, text: '병원수', color: '#00ff88' } }
+                }
+            }
+        });
+
+        const isvData = [
+            {% for it in isv_today %}
+            { name: '{{ it[0] or "N/A" }}', count: {{ it[2] or 0 }} },
+            {% endfor %}
+        ];
+
+        const colors = ['#00d4ff','#00ff88','#ffd700','#bf6fff','#ff8c00','#00e5ff','#ff6b6b','#45b7d1','#96ceb4','#ffa07a','#dda0dd','#98fb98','#f0e68c','#87ceeb','#cd853f','#bc8f8f'];
+
+        new Chart(document.getElementById('isvChart'), {
+            type: 'doughnut',
+            data: {
+                labels: isvData.map(d => d.name),
+                datasets: [{
+                    data: isvData.map(d => d.count),
+                    backgroundColor: colors.slice(0, isvData.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#aaa', font: { size: 10 }, padding: 6 } }
+                }
+            }
+        });
+
+        document.getElementById("lastUpdate").textContent=new Date().toLocaleTimeString("ko-KR");let sec=60;const cd=setInterval(()=>{sec--;document.getElementById("countdown").textContent=sec;if(sec<=0){clearInterval(cd);location.reload();}},1000);
+    </script>
+</body>
+</html>

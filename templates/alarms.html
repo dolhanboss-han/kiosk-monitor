@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>알람 관리 - BSEYE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif}
+.header{background:#12122a;padding:10px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #333}
+.header .title{color:#00d4ff;font-weight:bold;font-size:1.1rem}
+.header a{color:#888;text-decoration:none;font-size:0.85rem}
+.header a:hover{color:#00d4ff}
+.container{max-width:1200px;margin:20px auto;padding:0 16px}
+.stats{display:flex;gap:12px;margin-bottom:20px}
+.stat-card{background:#1a1a3e;border:1px solid #333;border-radius:8px;padding:12px 20px;text-align:center;flex:1}
+.stat-card .num{font-size:1.8rem;font-weight:bold;color:#00d4ff}
+.stat-card .label{font-size:0.75rem;color:#888;margin-top:2px}
+.stat-card.critical .num{color:#ff4444}
+.stat-card.warn .num{color:#ffaa00}
+.stat-card.ok .num{color:#00ff88}
+.filters{display:flex;gap:8px;margin-bottom:16px}
+.filters a{padding:6px 14px;border-radius:6px;text-decoration:none;font-size:0.8rem;border:1px solid #444;color:#888}
+.filters a:hover,.filters a.active{border-color:#00d4ff;color:#00d4ff;background:#1a1a3e}
+table{width:100%;border-collapse:collapse;background:#12122a;border-radius:8px;overflow:hidden}
+th{background:#1a1a3e;color:#888;font-size:0.75rem;padding:8px 10px;text-align:left;border-bottom:1px solid #333}
+td{padding:6px 10px;font-size:0.8rem;border-bottom:1px solid #1a1a2e}
+tr:hover{background:#1a1a3e}
+.badge{padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:bold}
+.badge.critical{background:#ff444433;color:#ff4444;border:1px solid #ff4444}
+.badge.warning{background:#ffaa0033;color:#ffaa00;border:1px solid #ffaa00}
+.badge.info{background:#00d4ff33;color:#00d4ff;border:1px solid #00d4ff}
+.badge.open{background:#ff444433;color:#ff4444}
+.badge.acknowledged{background:#ffaa0033;color:#ffaa00}
+.badge.resolved{background:#00ff8833;color:#00ff88}
+.btn{padding:3px 10px;border-radius:4px;border:1px solid #555;background:#1a1a3e;color:#ccc;cursor:pointer;font-size:0.7rem}
+.btn:hover{border-color:#00d4ff;color:#00d4ff}
+.btn-ack{border-color:#ffaa00;color:#ffaa00}
+.btn-resolve{border-color:#00ff88;color:#00ff88}
+.empty{text-align:center;padding:40px;color:#555;font-size:0.9rem}
+</style>
+</head>
+<body style="padding-top:60px">
+<div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
+    <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
+        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
+        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
+        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
+        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
+        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
+        <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
+        <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
+    </div>
+</div>
+<script>
+(function(){
+    var path=location.pathname;
+    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
+    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
+})();
+</script>
+
+<div class="stat-card warn"><div class="num">{{ stats.acknowledged }}</div><div class="label">확인됨</div></div>
+<div class="stat-card ok"><div class="num">{{ stats.resolved }}</div><div class="label">해결됨</div></div>
+<div class="stat-card"><div class="num">{{ stats.total }}</div><div class="label">전체</div></div>
+</div>
+<div class="filters">
+<a href="/alarms?status=all" class="{{ 'active' if current_filter=='all' }}">전체</a>
+<a href="/alarms?status=open" class="{{ 'active' if current_filter=='open' }}">미처리</a>
+<a href="/alarms?status=acknowledged" class="{{ 'active' if current_filter=='acknowledged' }}">확인됨</a>
+<a href="/alarms?status=resolved" class="{{ 'active' if current_filter=='resolved' }}">해결됨</a>
+</div>
+{% if alarms %}
+<table>
+<tr><th>시간</th><th>병원</th><th>키오스크</th><th>유형</th><th>심각도</th><th>제목</th><th>상태</th><th>티켓</th><th>조치</th></tr>
+{% for a in alarms %}
+<tr>
+<td>{{ a[12][:16] if a[12] else '' }}</td>
+<td>{{ a[1] }}</td>
+<td>{{ a[2] or '-' }}</td>
+<td>{{ a[3] }}</td>
+<td><span class="badge {{ a[4] }}">{{ a[4] }}</span></td>
+<td>{{ a[5] }}</td>
+<td><span class="badge {{ a[7] }}">{{ a[7] }}</span></td>
+<td>{{ a[13] if a[13] else 0 }}</td>
+<td>
+{% if a[7] == 'open' %}
+<form method="post" action="/alarm/{{ a[0] }}/acknowledge" style="display:inline">
+<button class="btn btn-ack">확인</button>
+</form>
+{% endif %}
+{% if a[7] != 'resolved' %}
+<form method="post" action="/alarm/{{ a[0] }}/resolve" style="display:inline">
+<button class="btn btn-resolve">해결</button>
+</form>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="empty">알람이 없습니다</div>
+{% endif %}
+</div>
+</body>
+</html>

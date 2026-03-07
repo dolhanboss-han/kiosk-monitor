@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>병원 목록 - BSEYE</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#eee;}
+        
+        
+        
+        .header a:hover{color:#00d4ff;}
+        .controls{padding:20px 30px;display:flex;gap:15px;flex-wrap:wrap;}
+        .controls input,.controls select{background:#1a1a2e;border:1px solid #333;color:#eee;padding:8px 12px;border-radius:6px;font-size:0.9rem;}
+        .controls input{width:250px;}
+        .section{padding:0 30px 30px;}
+        table{width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;}
+        th{background:#252540;padding:12px 15px;text-align:left;color:#aaa;font-size:0.85rem;cursor:pointer;}
+        th:hover{color:#00d4ff;}
+        td{padding:10px 15px;border-bottom:1px solid #252540;font-size:0.9rem;}
+        tr:hover{background:#252540;}
+        a.hosp-link{color:#00d4ff;text-decoration:none;}
+        a.hosp-link:hover{text-decoration:underline;}
+        .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.8rem;}
+        .badge.y{background:#00ff8822;color:#00ff88;}
+        .badge.n{background:#ff444422;color:#ff4444;}
+        .stat{color:#888;font-size:0.9rem;padding:0 30px 15px;}
+            @media(max-width:600px){
+            .header{padding:10px 15px;flex-wrap:wrap;gap:5px;}
+            .header h1{font-size:1.1rem;}
+            .header a{font-size:0.7rem;padding:4px 8px;}
+            .controls{padding:15px;gap:10px;}
+            .controls input{width:100%;}
+            .section{padding:0 15px 15px;}
+            .stat{padding:0 15px 10px;}
+            th:nth-child(7),td:nth-child(7),th:nth-child(8),td:nth-child(8){display:none;}
+            th{padding:6px 6px;font-size:0.7rem;}
+            td{padding:6px 6px;font-size:0.75rem;}
+        }
+    </style>
+</head>
+<body style="padding-top:60px">
+<div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
+    <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
+        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
+        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
+        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
+        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
+        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
+        <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
+        <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
+    </div>
+</div>
+<script>
+(function(){
+    var path=location.pathname;
+    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
+    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
+})();
+</script>
+
+
+    <div class="controls">
+        <input type="text" id="search" placeholder="병원명 검색..." oninput="filterTable()">
+        <select id="isvFilter" onchange="filterTable()">
+            <option value="">전체 ISV</option>
+        </select>
+        <select id="useFilter" onchange="filterTable()">
+            <option value="">전체 상태</option>
+            <option value="Y">운영중</option>
+            <option value="N">미운영</option>
+        </select>
+    </div>
+
+    <div class="stat">
+        총 <strong id="filteredCount">{{ hospitals|length }}</strong>개 병원
+    </div>
+
+    <div class="section">
+        <table id="hospTable">
+            <thead>
+                <tr>
+                    <th>코드</th>
+                    <th>병원명</th>
+                    <th>ISV</th>
+                    <th>키오스크</th>
+                    <th>상태</th>
+                    <th>지역</th>
+                    <th>오픈일</th>
+                    <th>VAN</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in hospitals %}
+                <tr data-isv="{{ h[2] or '' }}" data-use="{{ h[4] or '' }}">
+                    <td>{{ h[0] }}</td>
+                    <td><a class="hosp-link" href="/hospital/{{ h[0] }}">{{ h[1] }}</a></td>
+                    <td>{{ h[2] or '-' }}</td>
+                    <td>{{ h[3] or 0 }}대</td>
+                    <td><span class="badge {{ 'y' if h[4]=='Y' else 'n' }}">{{ '운영' if h[4]=='Y' else '미운영' }}</span></td>
+                    <td>{{ h[5] or '-' }}</td>
+                    <td>{{ h[6] or '-' }}</td>
+                    <td>{{ h[7] or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // ISV 필터 옵션 자동 생성
+        const rows = document.querySelectorAll('#hospTable tbody tr');
+        const isvSet = new Set();
+        rows.forEach(r => { const v = r.dataset.isv; if(v) isvSet.add(v); });
+        const sel = document.getElementById('isvFilter');
+        [...isvSet].sort().forEach(v => { sel.innerHTML += '<option value="'+v+'">'+v+'</option>'; });
+
+        function filterTable(){
+            const keyword = document.getElementById('search').value.toLowerCase();
+            const isv = document.getElementById('isvFilter').value;
+            const use = document.getElementById('useFilter').value;
+            let count = 0;
+            rows.forEach(r => {
+                const name = r.children[1].textContent.toLowerCase();
+                const matchName = !keyword || name.includes(keyword);
+                const matchIsv = !isv || r.dataset.isv === isv;
+                const matchUse = !use || r.dataset.use === use;
+                const show = matchName && matchIsv && matchUse;
+                r.style.display = show ? '' : 'none';
+                if(show) count++;
+            });
+            document.getElementById('filteredCount').textContent = count;
+        }
+    </script>
+</body>
+</html>

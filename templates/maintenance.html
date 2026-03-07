@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BSEYE - 유지보수 운영</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow-x:hidden}
+
+/* 상단 헤더 */
+.header{background:linear-gradient(135deg,#0d1b2a,#1b2d4f);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e3a5f}
+.header h1{font-size:1.1rem;color:#4fc3f7}
+.header .nav{display:flex;gap:8px}
+.header .nav a{color:#88a;text-decoration:none;padding:5px 12px;border-radius:4px;font-size:0.8rem;border:1px solid #334}
+.header .nav a:hover,.header .nav a.active{background:#1e3a5f;color:#4fc3f7;border-color:#4fc3f7}
+.header .time{color:#667;font-size:0.75rem}
+
+/* 탭 네비게이션 */
+.tabs{display:flex;gap:2px;padding:8px 16px;background:#0d0d20;border-bottom:1px solid #1a1a3a}
+.tab{padding:8px 18px;cursor:pointer;color:#667;font-size:0.8rem;border-radius:6px 6px 0 0;border:1px solid transparent;transition:all 0.2s}
+.tab:hover{color:#aab}
+.tab.active{background:#12122a;color:#4fc3f7;border-color:#2a2a4e #2a2a4e #12122a}
+
+/* 메인 컨텐츠 */
+.main{padding:12px 16px;height:calc(100vh - 100px);overflow-y:auto}
+
+/* ─── 탭1: 소모품 현황 ─── */
+.supply-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.supply-card{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:14px}
+.supply-card .hosp{font-size:0.85rem;color:#4fc3f7;font-weight:bold;margin-bottom:8px;display:flex;justify-content:space-between}
+.supply-card .hosp .badge{font-size:0.65rem;padding:2px 6px;border-radius:3px}
+.badge-ok{background:#1b4332;color:#52b788}
+.badge-warn{background:#5c4a00;color:#ffd166}
+.badge-crit{background:#5c1a1a;color:#ff6b6b}
+.supply-item{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:0.75rem}
+.supply-item .label{width:70px;color:#889}
+.supply-bar{flex:1;height:14px;background:#1a1a3a;border-radius:7px;overflow:hidden;position:relative}
+.supply-bar-fill{height:100%;border-radius:7px;transition:width 0.5s}
+.supply-bar .pct-text{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:0.6rem;color:#fff;font-weight:bold}
+.fill-ok{background:linear-gradient(90deg,#52b788,#40916c)}
+.fill-warn{background:linear-gradient(90deg,#ffd166,#e6a817)}
+.fill-crit{background:linear-gradient(90deg,#ff6b6b,#d32f2f)}
+.supply-info{font-size:0.65rem;color:#556;margin-top:6px;display:flex;justify-content:space-between}
+.predict{color:#aa88ff;font-size:0.65rem}
+
+/* ─── 탭2: 알림 센터 ─── */
+.alert-filters{display:flex;gap:6px;margin-bottom:10px}
+.alert-btn{padding:5px 12px;border:1px solid #334;background:transparent;color:#889;border-radius:4px;cursor:pointer;font-size:0.72rem}
+.alert-btn.active{border-color:#ff6b6b;color:#ff6b6b;background:#2a1a1a}
+.alert-btn.warn-active{border-color:#ffd166;color:#ffd166;background:#2a2a1a}
+.alert-btn.info-active{border-color:#4fc3f7;color:#4fc3f7;background:#1a2a3a}
+.alert-list{display:flex;flex-direction:column;gap:4px}
+.alert-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#12122a;border-radius:6px;border-left:3px solid #334;font-size:0.75rem}
+.alert-row.critical{border-left-color:#ff6b6b}
+.alert-row.warning{border-left-color:#ffd166}
+.alert-row.info{border-left-color:#4fc3f7}
+.alert-time{color:#556;width:120px;flex-shrink:0}
+.alert-hosp{color:#4fc3f7;width:100px;flex-shrink:0}
+.alert-msg{flex:1}
+.alert-action{flex-shrink:0}
+.alert-action button{padding:3px 8px;border:1px solid #446;background:#1a1a3a;color:#88aacc;border-radius:3px;cursor:pointer;font-size:0.65rem}
+.alert-action button:hover{background:#2a3a5a;color:#4fc3f7}
+
+/* ─── 탭3: 원격 제어 ─── */
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:10px}
+.ctrl-card{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:14px}
+.ctrl-card .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ctrl-card .title h3{font-size:0.85rem;color:#e0e0e0}
+.ctrl-card .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-on{background:#52b788;box-shadow:0 0 6px #52b788}
+.dot-off{background:#ff6b6b;box-shadow:0 0 6px #ff6b6b}
+.dot-warn{background:#ffd166;box-shadow:0 0 6px #ffd166}
+.ctrl-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ctrl-btn{padding:6px 14px;border:1px solid #334;background:#1a1a3a;color:#aab;border-radius:4px;cursor:pointer;font-size:0.72rem;transition:all 0.2s}
+.ctrl-btn:hover{background:#2a3a5a;color:#4fc3f7;border-color:#4fc3f7}
+.ctrl-btn.danger{border-color:#5c2a2a}
+.ctrl-btn.danger:hover{background:#3a1a1a;color:#ff6b6b;border-color:#ff6b6b}
+.ctrl-device-info{font-size:0.7rem;color:#667;margin:6px 0;line-height:1.6}
+.ctrl-log{margin-top:8px;background:#0a0a15;border-radius:4px;padding:8px;max-height:100px;overflow-y:auto;font-size:0.65rem;color:#556;font-family:monospace}
+
+/* ─── 탭4: 인쇄 통계 ─── */
+.stat-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.stat-box{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:12px;text-align:center}
+.stat-box .num{font-size:1.8rem;font-weight:bold;margin:4px 0}
+.stat-box .label{font-size:0.7rem;color:#667}
+.stat-box.c1 .num{color:#4fc3f7}
+.stat-box.c2 .num{color:#52b788}
+.stat-box.c3 .num{color:#ffd166}
+.stat-box.c4 .num{color:#aa88ff}
+.chart-area{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:14px;margin-bottom:10px}
+.chart-title{font-size:0.8rem;color:#aab;margin-bottom:8px}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:120px;border-bottom:1px solid #2a2a4e;padding-bottom:4px}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1}
+.bar{border-radius:3px 3px 0 0;min-width:16px;transition:height 0.5s}
+.bar-label{font-size:0.55rem;color:#556;margin-top:4px}
+.bar-val{font-size:0.55rem;color:#aab;margin-bottom:2px}
+.hosp-rank{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.rank-item{background:#12122a;border:1px solid #2a2a4e;border-radius:6px;padding:10px;display:flex;justify-content:space-between;align-items:center}
+.rank-item .name{font-size:0.75rem}
+.rank-item .count{font-size:0.9rem;font-weight:bold;color:#4fc3f7}
+
+/* ─── 탭5: 장애 이력 ─── */
+.log-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.log-table{width:100%;border-collapse:collapse;font-size:0.72rem}
+.log-table th{background:#1a1a3a;padding:8px;text-align:left;color:#88a;border-bottom:1px solid #2a2a4e;position:sticky;top:0}
+.log-table td{padding:7px 8px;border-bottom:1px solid #1a1a2e}
+.log-table tr:hover{background:#1a1a2e}
+.sev-crit{color:#ff6b6b;font-weight:bold}
+.sev-warn{color:#ffd166}
+.sev-info{color:#4fc3f7}
+.resolved{color:#52b788}
+.unresolved{color:#ff6b6b}
+
+/* ─── 탭6: 현장 출동 ─── */
+.dispatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+.dispatch-card{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:14px}
+.dispatch-card.urgent{border-color:#ff6b6b;border-width:2px}
+.dispatch-card.pending{border-color:#ffd166}
+.dispatch-card.done{border-color:#52b788;opacity:0.7}
+.dispatch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.dispatch-header h3{font-size:0.85rem}
+.dispatch-status{padding:3px 8px;border-radius:3px;font-size:0.65rem;font-weight:bold}
+.st-urgent{background:#5c1a1a;color:#ff6b6b}
+.st-pending{background:#5c4a00;color:#ffd166}
+.st-dispatched{background:#1a3a5c;color:#4fc3f7}
+.st-done{background:#1b4332;color:#52b788}
+.dispatch-body{font-size:0.72rem;color:#aab;line-height:1.6}
+.dispatch-body .reason{margin:4px 0}
+.dispatch-items{list-style:none;padding:0}
+.dispatch-items li{padding:2px 0;color:#889}
+.dispatch-items li::before{content:"• ";color:#ff6b6b}
+.dispatch-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:0.65rem;color:#556}
+
+/* 모바일 */
+@media(max-width:768px){
+    .header{flex-wrap:wrap;padding:8px 12px}
+    .header h1{font-size:0.75rem;white-space:nowrap}
+    .header .nav{gap:4px}
+    .header .nav a{font-size:0.6rem;padding:3px 6px}
+    .header .time{font-size:0.6rem;width:100%;text-align:right}
+    .supply-grid,.ctrl-grid,.dispatch-grid{grid-template-columns:1fr}
+    .stat-overview{grid-template-columns:repeat(2,1fr)}
+    .tabs{overflow-x:auto;flex-wrap:nowrap}
+    .tab{white-space:nowrap;flex-shrink:0}
+    .alert-row{flex-wrap:wrap;gap:4px 8px;padding:8px 10px;font-size:0.7rem}
+    .alert-time{width:auto;font-size:0.6rem}
+    .alert-hosp{width:auto}
+    .alert-msg{width:100%;order:3}
+    .alert-action{order:4}
+}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+    <h1>BSEYE Kiosk Maintenance</h1>
+    <div class="nav">
+        <a href="/monitoring">모니터링</a>
+        <a href="/maintenance" class="active">유지보수</a>
+        <a href="/usage">행동분석</a>
+        <a href="/executive">경영현황</a>
+    </div>
+    <div class="time" id="clock"></div>
+</div>
+
+<!-- 탭 -->
+<div class="tabs">
+    <div class="tab active" onclick="showTab(0)">소모품 현황</div>
+    <div class="tab" onclick="showTab(1)">알림 센터</div>
+    <div class="tab" onclick="showTab(2)">원격 제어</div>
+    <div class="tab" onclick="showTab(3)">인쇄 통계</div>
+    <div class="tab" onclick="showTab(4)">장애 이력</div>
+    <div class="tab" onclick="showTab(5)">현장 출동</div>
+</div>
+
+<!-- 메인 -->
+<div class="main">
+
+<!-- ═══ 탭0: 소모품 현황 ═══ -->
+<div class="tab-content" id="tab0">
+<div class="supply-grid" id="supply-grid"></div>
+</div>
+
+<!-- ═══ 탭1: 알림 센터 ═══ -->
+<div class="tab-content" id="tab1" style="display:none">
+<div class="alert-filters">
+    <button class="alert-btn active" onclick="filterAlert('all',this)">전체 (12)</button>
+    <button class="alert-btn" onclick="filterAlert('critical',this)">긴급 (3)</button>
+    <button class="alert-btn" onclick="filterAlert('warning',this)">경고 (5)</button>
+    <button class="alert-btn" onclick="filterAlert('info',this)">정보 (4)</button>
+</div>
+<div class="alert-list" id="alert-list"></div>
+</div>
+
+<!-- ═══ 탭2: 원격 제어 ═══ -->
+<div class="tab-content" id="tab2" style="display:none">
+<div class="ctrl-grid" id="ctrl-grid"></div>
+</div>
+
+<!-- ═══ 탭3: 인쇄 통계 ═══ -->
+<div class="tab-content" id="tab3" style="display:none">
+<div class="stat-overview">
+    <div class="stat-box c1"><div class="num" id="st-today">847</div><div class="label">오늘 인쇄</div></div>
+    <div class="stat-box c2"><div class="num" id="st-week">5,234</div><div class="label">이번주</div></div>
+    <div class="stat-box c3"><div class="num" id="st-month">21,456</div><div class="label">이번달</div></div>
+    <div class="stat-box c4"><div class="num" id="st-avg">182</div><div class="label">일평균</div></div>
+</div>
+<div class="chart-area">
+    <div class="chart-title">최근 14일 인쇄량 추이</div>
+    <div class="bar-chart" id="daily-chart"></div>
+</div>
+<div class="chart-area">
+    <div class="chart-title">병원별 인쇄량 (이번달)</div>
+    <div class="hosp-rank" id="hosp-rank"></div>
+</div>
+</div>
+
+<!-- ═══ 탭4: 장애 이력 ═══ -->
+<div class="tab-content" id="tab4" style="display:none">
+<div class="log-filters">
+    <button class="alert-btn active">전체</button>
+    <button class="alert-btn">토너</button>
+    <button class="alert-btn">용지</button>
+    <button class="alert-btn">잼</button>
+    <button class="alert-btn">오프라인</button>
+    <button class="alert-btn">PC</button>
+</div>
+<table class="log-table">
+<thead><tr><th>시간</th><th>병원</th><th>키오스크</th><th>구분</th><th>내용</th><th>심각도</th><th>처리</th></tr></thead>
+<tbody id="log-tbody"></tbody>
+</table>
+</div>
+
+<!-- ═══ 탭5: 현장 출동 ═══ -->
+<div class="tab-content" id="tab5" style="display:none">
+<div class="dispatch-grid" id="dispatch-grid"></div>
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// 시계
+// ═══════════════════════════════════════
+function updateClock(){
+    const now=new Date();
+    document.getElementById('clock').textContent=now.toLocaleString('ko-KR');
+}
+setInterval(updateClock,1000);updateClock();
+
+// ═══════════════════════════════════════
+// 탭 전환
+// ═══════════════════════════════════════
+function showTab(n){
+    document.querySelectorAll('.tab-content').forEach((el,i)=>el.style.display=i===n?'':'none');
+    document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',i===n)});
+}
+
+// ═══════════════════════════════════════
+// 샘플 데이터 (3/9 이후 실제 API로 교체)
+// ═══════════════════════════════════════
+const SAMPLE_HOSPITALS = [
+    {hosp:'서울성모병원',code:'001',kiosks:[
+        {id:'KIOSK01',printer:{model:'ECOSYS P3045dn',serial:'R1C9X08994',toner:49,tray1:0,tray1_max:100,tray2:150,tray2_max:500,tray3:350,tray3_max:500,drum:72,fuser:85,waste:60,pages:1149,daily_avg:45,status:'warning'},pc:{cpu:12,mem:64,disk:72,alive:true}},
+        {id:'KIOSK02',printer:{model:'ECOSYS P3045dn',serial:'R1C9X09102',toner:82,tray1:80,tray1_max:100,tray2:420,tray2_max:500,tray3:380,tray3_max:500,drum:91,fuser:93,waste:25,pages:823,daily_avg:32,status:'ok'},pc:{cpu:8,mem:55,disk:45,alive:true}}
+    ]},
+    {hosp:'강남베드로병원',code:'002',kiosks:[
+        {id:'KIOSK01',printer:{model:'ECOSYS P3045dn',serial:'R1C9X10234',toner:8,tray1:50,tray1_max:100,tray2:30,tray2_max:500,tray3:0,tray3_max:500,drum:45,fuser:60,waste:82,pages:5420,daily_avg:78,status:'critical'},pc:{cpu:45,mem:62,disk:78,alive:true}},
+        {id:'KIOSK02',printer:{model:'ECOSYS P3045dn',serial:'R1C9X10235',toner:15,tray1:0,tray1_max:100,tray2:200,tray2_max:500,tray3:350,tray3_max:500,drum:88,fuser:77,waste:40,pages:3210,daily_avg:55,status:'warning'},pc:{cpu:95,mem:92,disk:55,alive:true}}
+    ]},
+    {hosp:'분당서울대병원',code:'003',kiosks:[
+        {id:'KIOSK01',printer:{model:'ECOSYS P3045dn',serial:'R1C9X11001',toner:71,tray1:60,tray1_max:100,tray2:400,tray2_max:500,tray3:450,tray3_max:500,drum:95,fuser:98,waste:12,pages:450,daily_avg:22,status:'ok'},pc:{cpu:5,mem:42,disk:38,alive:true}}
+    ]},
+    {hosp:'세브란스병원',code:'004',kiosks:[
+        {id:'KIOSK01',printer:{model:'ECOSYS P3045dn',serial:'R1C9X12001',toner:33,tray1:0,tray1_max:100,tray2:100,tray2_max:500,tray3:250,tray3_max:500,drum:67,fuser:71,waste:55,pages:2890,daily_avg:62,status:'warning'},pc:{cpu:22,mem:58,disk:65,alive:true}},
+        {id:'KIOSK02',printer:{model:'ECOSYS P3045dn',serial:'R1C9X12002',toner:0,tray1:0,tray1_max:100,tray2:0,tray2_max:500,tray3:0,tray3_max:500,drum:30,fuser:35,waste:95,pages:8920,daily_avg:120,status:'critical'},pc:{cpu:0,mem:0,disk:0,alive:false}},
+        {id:'KIOSK03',printer:{model:'ECOSYS P3045dn',serial:'R1C9X12003',toner:55,tray1:70,tray1_max:100,tray2:300,tray2_max:500,tray3:280,tray3_max:500,drum:80,fuser:82,waste:30,pages:1560,daily_avg:35,status:'ok'},pc:{cpu:15,mem:50,disk:42,alive:true}}
+    ]},
+    {hosp:'아산병원',code:'005',kiosks:[
+        {id:'KIOSK01',printer:{model:'ECOSYS P3045dn',serial:'R1C9X13001',toner:25,tray1:30,tray1_max:100,tray2:80,tray2_max:500,tray3:150,tray3_max:500,drum:55,fuser:60,waste:70,pages:4100,daily_avg:88,status:'warning'},pc:{cpu:35,mem:70,disk:80,alive:true}}
+    ]}
+];
+
+const SAMPLE_ALERTS = [
+    {time:'03-06 19:45',hosp:'세브란스병원',kiosk:'KIOSK02',level:'critical',msg:'프린터 응답없음 — PC 오프라인, 전원 확인 필요'},
+    {time:'03-06 19:30',hosp:'강남베드로병원',kiosk:'KIOSK01',level:'critical',msg:'토너 잔량 8% — TK-3160 교체 필요'},
+    {time:'03-06 19:20',hosp:'세브란스병원',kiosk:'KIOSK02',level:'critical',msg:'전 트레이 용지 없음 — 즉시 보충 필요'},
+    {time:'03-06 18:55',hosp:'강남베드로병원',kiosk:'KIOSK02',level:'warning',msg:'토너 잔량 15% — 교체 준비 필요'},
+    {time:'03-06 18:40',hosp:'서울성모병원',kiosk:'KIOSK01',level:'warning',msg:'MP트레이 용지 없음 (카세트1,2 정상)'},
+    {time:'03-06 18:20',hosp:'세브란스병원',kiosk:'KIOSK01',level:'warning',msg:'카세트2 용지 20% (100/500)'},
+    {time:'03-06 17:50',hosp:'아산병원',kiosk:'KIOSK01',level:'warning',msg:'토너 잔량 25% — 교체 준비 권장'},
+    {time:'03-06 17:30',hosp:'아산병원',kiosk:'KIOSK01',level:'warning',msg:'폐토너박스 70% — 다음 방문시 교체'},
+    {time:'03-06 16:00',hosp:'분당서울대병원',kiosk:'KIOSK01',level:'info',msg:'일일 인쇄량 22매 — 정상 범위'},
+    {time:'03-06 15:30',hosp:'서울성모병원',kiosk:'KIOSK02',level:'info',msg:'토너 교체 후 정상 (82%)'},
+    {time:'03-06 14:00',hosp:'강남베드로병원',kiosk:'KIOSK01',level:'info',msg:'소프트 리셋 자동 실행 완료'},
+    {time:'03-06 12:00',hosp:'세브란스병원',kiosk:'KIOSK03',level:'info',msg:'에이전트 업데이트 v1.1.0 완료'}
+];
+
+const SAMPLE_LOGS = [
+    {time:'03-06 19:45',hosp:'세브란스병원',kiosk:'KIOSK02',type:'오프라인',msg:'PC+프린터 무응답',sev:'critical',resolved:false},
+    {time:'03-06 19:30',hosp:'강남베드로병원',kiosk:'KIOSK01',type:'토너',msg:'토너 8% (TK-3160)',sev:'critical',resolved:false},
+    {time:'03-06 19:20',hosp:'세브란스병원',kiosk:'KIOSK02',type:'용지',msg:'전 트레이 용지 없음',sev:'critical',resolved:false},
+    {time:'03-06 18:55',hosp:'강남베드로병원',kiosk:'KIOSK02',type:'토너',msg:'토너 15%',sev:'warning',resolved:false},
+    {time:'03-06 18:40',hosp:'서울성모병원',kiosk:'KIOSK01',type:'용지',msg:'MP트레이 용지 없음',sev:'warning',resolved:false},
+    {time:'03-06 14:00',hosp:'강남베드로병원',kiosk:'KIOSK01',type:'오프라인',msg:'프린터 오프라인 → 소프트리셋 자동실행',sev:'info',resolved:true},
+    {time:'03-06 11:30',hosp:'서울성모병원',kiosk:'KIOSK02',type:'토너',msg:'토너 교체 완료 (18%→82%)',sev:'info',resolved:true},
+    {time:'03-05 16:20',hosp:'세브란스병원',kiosk:'KIOSK01',type:'잼',msg:'용지걸림 감지 → 현장 제거 완료',sev:'warning',resolved:true},
+    {time:'03-05 09:00',hosp:'아산병원',kiosk:'KIOSK01',type:'PC',msg:'PC 원격 재부팅 실행',sev:'info',resolved:true}
+];
+
+const SAMPLE_DISPATCHES = [
+    {hosp:'세브란스병원',kiosk:'KIOSK02',status:'urgent',created:'03-06 19:45',items:['PC 전원 확인','프린터 전원 확인','전 트레이 용지 보충','토너 교체 (TK-3160)'],note:'PC와 프린터 모두 무응답. 전원 또는 네트워크 문제 의심.'},
+    {hosp:'강남베드로병원',kiosk:'KIOSK01',status:'pending',created:'03-06 19:30',items:['토너 교체 (TK-3160, 잔량 8%)','카세트3 용지 보충 (0/500)'],note:'토너 모델: TK-3160. 다음 방문시 폐토너박스도 확인.'},
+    {hosp:'강남베드로병원',kiosk:'KIOSK02',status:'pending',created:'03-06 18:55',items:['토너 준비 (잔량 15%)','MP트레이 용지 보충'],note:'긴급은 아니나 1-2일 내 교체 필요.'},
+    {hosp:'서울성모병원',kiosk:'KIOSK01',status:'dispatched',created:'03-06 18:40',items:['MP트레이 A4 용지 보충'],note:'담당자 김기사 출동 중 (18:50 출발)'},
+    {hosp:'세브란스병원',kiosk:'KIOSK01',status:'done',created:'03-05 16:20',items:['용지걸림 제거','급지롤러 청소'],note:'완료 (03-05 17:10). 잼 빈도 증가 추세 — 롤러 교체 검토.'}
+];
+
+const DAILY_DATA = [180,210,195,220,185,0,0,240,215,198,230,205,195,847];
+const DAILY_LABELS = ['2/21','2/22','2/23','2/24','2/25','2/26','2/27','2/28','3/1','3/2','3/3','3/4','3/5','오늘'];
+
+// ═══════════════════════════════════════
+// 렌더링
+// ═══════════════════════════════════════
+
+// 소모품 현황
+function renderSupplies(){
+    const grid=document.getElementById('supply-grid');
+    let h='';
+    SAMPLE_HOSPITALS.forEach(hosp=>{
+        hosp.kiosks.forEach(k=>{
+            const p=k.printer;
+            const badge=p.status==='critical'?'badge-crit':p.status==='warning'?'badge-warn':'badge-ok';
+            const badgeText=p.status==='critical'?'긴급':p.status==='warning'?'주의':'정상';
+            const tonerDays=p.toner>0?Math.floor(p.toner/(p.daily_avg*0.02)||1)+'일':'-';
+
+            h+=`<div class="supply-card">
+                <div class="hosp">${hosp.hosp} — ${k.id} <span class="badge ${badge}">${badgeText}</span></div>
+                ${supplyBar('토너',p.toner)}
+                ${supplyBar('MP트레이',Math.round(p.tray1/p.tray1_max*100))}
+                ${supplyBar('카세트1',Math.round(p.tray2/p.tray2_max*100))}
+                ${supplyBar('카세트2',Math.round(p.tray3/p.tray3_max*100))}
+                ${supplyBar('드럼',p.drum)}
+                ${supplyBar('정착기',p.fuser)}
+                ${supplyBar('폐토너',100-p.waste)}
+                <div class="supply-info">
+                    <span>모델: ${p.model} | S/N: ${p.serial}</span>
+                    <span>누적: ${p.pages.toLocaleString()}매 | 일평균: ${p.daily_avg}매</span>
+                </div>
+                <div class="predict">토너 예상 교체: 약 ${tonerDays} 후</div>
+            </div>`;
+        });
+    });
+    grid.innerHTML=h;
+}
+
+function supplyBar(label,pct){
+    pct=Math.max(0,Math.min(100,pct||0));
+    const cls=pct<=10?'fill-crit':pct<=30?'fill-warn':'fill-ok';
+    return `<div class="supply-item">
+        <span class="label">${label}</span>
+        <div class="supply-bar"><div class="supply-bar-fill ${cls}" style="width:${pct}%"></div><span class="pct-text">${pct}%</span></div>
+    </div>`;
+}
+
+// 알림 센터
+function renderAlerts(){
+    const list=document.getElementById('alert-list');
+    let h='';
+    SAMPLE_ALERTS.forEach(a=>{
+        h+=`<div class="alert-row ${a.level}">
+            <span class="alert-time">${a.time}</span>
+            <span class="alert-hosp">${a.hosp}</span>
+            <span class="alert-msg">${a.msg}</span>
+            <span class="alert-action">${a.level==='critical'?'<button onclick="alert(\"현장출동 등록\")">출동등록</button>':a.level==='warning'?'<button onclick="alert(\"확인 처리\")">확인</button>':''}</span>
+        </div>`;
+    });
+    list.innerHTML=h;
+}
+function filterAlert(type,btn){
+    document.querySelectorAll('.alert-filters .alert-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.alert-row').forEach(r=>{
+        r.style.display=(type==='all'||r.classList.contains(type))?'':'none';
+    });
+}
+
+// 원격 제어
+function renderControls(){
+    const grid=document.getElementById('ctrl-grid');
+    let h='';
+    SAMPLE_HOSPITALS.forEach(hosp=>{
+        hosp.kiosks.forEach(k=>{
+            const pAlive=k.printer.toner>=0;
+            const pcAlive=k.pc.alive;
+            const pDot=pAlive?(k.printer.status==='critical'?'dot-warn':'dot-on'):'dot-off';
+            const pcDot=pcAlive?'dot-on':'dot-off';
+            h+=`<div class="ctrl-card">
+                <div class="title">
+                    <h3>${hosp.hosp} — ${k.id}</h3>
+                    <span><span class="status-dot ${pcDot}" title="PC"></span> <span class="status-dot ${pDot}" title="프린터"></span></span>
+                </div>
+                <div class="ctrl-device-info">
+                    PC: ${k.pc.alive?'온라인':'오프라인'} (CPU ${k.pc.cpu}% / MEM ${k.pc.mem}%)<br>
+                    프린터: ${k.printer.model} / 토너 ${k.printer.toner}% / 상태: ${k.printer.status}
+                </div>
+                <div class="ctrl-btns">
+                    <button class="ctrl-btn" onclick="cmdLog(this,'소프트 리셋 전송...')">프린터 소프트리셋</button>
+                    <button class="ctrl-btn" onclick="cmdLog(this,'전원 리셋 전송...')">프린터 전원리셋</button>
+                    <button class="ctrl-btn" onclick="cmdLog(this,'온라인 전환 전송...')">온라인 전환</button>
+                    <button class="ctrl-btn" onclick="cmdLog(this,'PC 재부팅 명령 전송...')">PC 재부팅</button>
+                    <button class="ctrl-btn danger" onclick="cmdLog(this,'물리적 전원 차단...')">멀티탭 전원리셋</button>
+                    <button class="ctrl-btn danger" onclick="cmdLog(this,'4단계 에스컬레이션 시작...')">자동 에스컬레이션</button>
+                </div>
+                <div class="ctrl-log">대기 중...</div>
+            </div>`;
+        });
+    });
+    grid.innerHTML=h;
+}
+function cmdLog(btn,msg){
+    const card=btn.closest('.ctrl-card');
+    const log=card.querySelector('.ctrl-log');
+    const now=new Date().toLocaleTimeString('ko-KR');
+    log.innerHTML=`[${now}] ${msg}<br>`+log.innerHTML;
+}
+
+// 인쇄 통계
+function renderStats(){
+    const chart=document.getElementById('daily-chart');
+    const mx=Math.max(...DAILY_DATA);
+    let h='';
+    DAILY_DATA.forEach((v,i)=>{
+        const pct=mx>0?Math.round(v/mx*100):0;
+        const color=i===DAILY_DATA.length-1?'#4fc3f7':v===0?'#2a2a4e':'#3a6fa0';
+        h+=`<div class="bar-col"><div class="bar-val">${v}</div><div class="bar" style="height:${pct}%;background:${color};width:100%"></div><div class="bar-label">${DAILY_LABELS[i]}</div></div>`;
+    });
+    chart.innerHTML=h;
+
+    const rank=document.getElementById('hosp-rank');
+    const hospTotals=[
+        {name:'세브란스병원',count:13370},{name:'강남베드로병원',count:8630},
+        {name:'아산병원',count:4100},{name:'서울성모병원',count:1972},{name:'분당서울대병원',count:450}
+    ].sort((a,b)=>b.count-a.count);
+    rank.innerHTML=hospTotals.map((h,i)=>`<div class="rank-item"><span class="name">${i+1}. ${h.name}</span><span class="count">${h.count.toLocaleString()}매</span></div>`).join('');
+}
+
+// 장애 이력
+function renderLogs(){
+    const tbody=document.getElementById('log-tbody');
+    tbody.innerHTML=SAMPLE_LOGS.map(l=>`<tr>
+        <td>${l.time}</td><td>${l.hosp}</td><td>${l.kiosk}</td>
+        <td>${l.type}</td><td>${l.msg}</td>
+        <td class="sev-${l.sev}">${l.sev==='critical'?'긴급':l.sev==='warning'?'경고':'정보'}</td>
+        <td class="${l.resolved?'resolved':'unresolved'}">${l.resolved?'완료':'미처리'}</td>
+    </tr>`).join('');
+}
+
+// 현장 출동
+function renderDispatches(){
+    const grid=document.getElementById('dispatch-grid');
+    grid.innerHTML=SAMPLE_DISPATCHES.map(d=>{
+        const stClass={urgent:'st-urgent',pending:'st-pending',dispatched:'st-dispatched',done:'st-done'}[d.status];
+        const stText={urgent:'긴급출동',pending:'출동대기',dispatched:'출동중',done:'완료'}[d.status];
+        const cardClass=d.status==='urgent'?'urgent':d.status==='done'?'done':'pending';
+        return `<div class="dispatch-card ${cardClass}">
+            <div class="dispatch-header">
+                <h3>${d.hosp} — ${d.kiosk}</h3>
+                <span class="dispatch-status ${stClass}">${stText}</span>
+            </div>
+            <div class="dispatch-body">
+                <div class="reason">등록: ${d.created}</div>
+                <ul class="dispatch-items">${d.items.map(it=>`<li>${it}</li>`).join('')}</ul>
+                <div class="reason" style="color:#778;margin-top:4px">${d.note}</div>
+            </div>
+            <div class="dispatch-footer">
+                ${d.status!=='done'?'<button class="ctrl-btn" onclick="alert(\"상태 변경\")">상태변경</button>':'<span>처리완료</span>'}
+                <span>${d.created}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════
+// 초기 렌더
+// ═══════════════════════════════════════
+renderSupplies();
+renderAlerts();
+renderControls();
+renderStats();
+renderLogs();
+renderDispatches();
+</script>
+
+<script>
+if(window.location.search.indexOf('embed=1')>=0){
+    var hdr=document.querySelector('.header');
+    if(hdr)hdr.style.display='none';
+    var tabs=document.querySelector('.tabs');
+    if(tabs)tabs.style.top='0';
+    var main=document.querySelector('.main');
+    if(main)main.style.height='calc(100vh - 40px)';
+}
+</script>
+</body>
+</html>

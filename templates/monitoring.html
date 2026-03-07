@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>키오스크 모니터링 - BSEYE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+
+/* Header */
+.hdr{position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:42px}
+.hdr .logo{font-size:1.15rem;font-weight:bold;color:#00d4ff}
+.hdr .nav{display:flex;gap:4px}
+.hdr .nav a{color:#888;text-decoration:none;font-size:0.8rem;padding:5px 12px;border-radius:5px;transition:0.2s}
+.hdr .nav a:hover,.hdr .nav a.active{color:#fff;background:#ffffff15}
+
+/* Layout */
+.wrap{height:calc(100vh - 42px);margin-top:42px;display:flex;flex-direction:column;padding:8px 10px}
+
+/* Stats */
+.stats{display:flex;gap:6px;margin-bottom:6px;flex-shrink:0}
+.st{background:#1a1a3e;border:1px solid #2a2a4e;border-radius:6px;padding:4px 12px;text-align:center;flex:1}
+.st .n{font-size:1.5rem;font-weight:bold}
+.st .l{font-size:0.68rem;color:#889}
+.n.c1{color:#00d4ff}.n.c2{color:#00ff88}.n.c3{color:#ff4444}.n.c4{color:#ffaa00}.n.c5{color:#aa88ff}.n.c6{color:#ff88aa}
+
+/* Toolbar */
+.tb{display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-shrink:0}
+.sb{background:#12122a;border:1px solid #444;border-radius:5px;padding:4px 10px;color:#eee;font-size:0.85rem;width:220px;outline:none}
+.sb:focus{border-color:#00d4ff}
+.fb{background:#1a1a3e;border:1px solid #333;border-radius:5px;padding:3px 10px;color:#777;font-size:0.78rem;cursor:pointer}
+.fb:hover,.fb.on{background:#00d4ff22;color:#00d4ff;border-color:#00d4ff55}
+.ri{margin-left:auto;font-size:0.72rem;color:#667}
+
+/* Main Grid - 병원별 */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:4px}
+.hg{display:flex;align-items:flex-start;gap:6px;min-height:0}
+.hg-label{width:110px;min-width:110px;flex-shrink:0;background:#111130;border-radius:5px;padding:4px 6px;border-left:2px solid #00d4ff;height:100%;display:flex;flex-direction:column;justify-content:center}
+.hg-nm{font-size:0.78rem;font-weight:bold;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hg-cd{font-size:0.78rem;color:#778}
+.hg-tiles{display:flex;gap:4px;flex-wrap:wrap;flex:1;min-height:50px;align-content:flex-start}
+
+/* Kiosk Tile */
+.tile{background:#12122a;border:1px solid #2a2a4e;border-radius:6px;padding:6px 8px;width:135px;min-width:135px;max-width:135px;cursor:pointer;transition:0.15s;position:relative}
+.tile:hover{border-color:#00d4ff;transform:scale(1.02);z-index:10}
+.tile.on{border-left:2px solid #00ff88}
+.tile.err{border-left:2px solid #ff4444}
+.tile.off{border-left:2px solid #555;opacity:0.6}
+
+.t-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.t-id{font-size:0.72rem;font-weight:bold;color:#ddd}
+.t-dot{width:8px;height:8px;border-radius:50%}
+.t-dot.on{background:#00ff88}.t-dot.err{background:#ff4444}.t-dot.off{background:#555}
+
+/* Mini meters */
+.t-bars{display:flex;gap:2px;margin-bottom:3px}
+.t-bar{flex:1;height:4px;background:#1a1a2a;border-radius:1px;overflow:hidden}
+.t-fill{height:100%;border-radius:1px}
+
+/* Device dots */
+.t-devs{display:flex;gap:2px;margin-bottom:3px}
+.t-dd{width:7px;height:7px;border-radius:50%}
+.t-dd.ok{background:#00ff88}.t-dd.warn{background:#ffaa00}.t-dd.err{background:#ff4444}.t-dd.unk{background:#444}
+
+/* Printer mini gauge */
+.t-prt{display:flex;gap:2px;align-items:center}
+.t-prt-bar{flex:1;height:5px;background:#1a1a2a;border-radius:2px;overflow:hidden}
+.t-prt-fill{height:100%;border-radius:2px}
+.t-prt-pct{font-size:0.78rem;color:#aaa;width:28px;text-align:right}
+
+.t-ft{font-size:0.58rem;color:#667;margin-top:2px;text-align:right}
+
+/* Tooltip (hover detail) */
+.tooltip{display:none;position:fixed;background:#1a1a3eee;border:1px solid #00d4ff55;border-radius:8px;padding:12px;z-index:9999;width:360px;backdrop-filter:blur(10px);box-shadow:0 8px 30px #00000088}
+.tooltip.show{display:block}
+.tt-head{display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #2a2a4e}
+.tt-id{font-size:0.95rem;font-weight:bold;color:#fff}
+.tt-badge{padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:bold}
+.tt-badge.on{background:#00ff8830;color:#00ff88}
+.tt-badge.err{background:#ff444430;color:#ff4444}
+.tt-badge.off{background:#55555530;color:#888}
+.tt-sec{font-size:0.7rem;color:#667;text-transform:uppercase;letter-spacing:1px;margin:6px 0 4px;padding-left:6px;border-left:2px solid #334}
+.tt-meters{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.tt-m{background:#0a0a1a;border-radius:4px;padding:4px 6px;text-align:center}
+.tt-m-l{font-size:0.68rem;color:#889}
+.tt-m-v{font-size:0.88rem;font-weight:bold}
+.tt-m-bar{height:2px;background:#222;border-radius:1px;overflow:hidden;margin-top:2px}
+.tt-m-fill{height:100%;border-radius:1px}
+.tt-devs{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.tt-dv{text-align:center;background:#0a0a1a;border-radius:4px;padding:3px}
+.tt-dv-ico{font-size:0.78rem}
+.tt-dv-nm{font-size:0.62rem;color:#889}
+.tt-dv-st{font-size:0.6rem;font-weight:bold}
+.tt-dv-st.ok{color:#00ff88}.tt-dv-st.err{color:#ff4444}.tt-dv-st.warn{color:#ffaa00}.tt-dv-st.unk{color:#555}
+.tt-prt{background:#0a0a1a;border-radius:5px;padding:6px 8px;margin-top:4px}
+.tt-prt-head{display:flex;justify-content:space-between;margin-bottom:4px}
+.tt-prt-model{font-size:0.82rem;color:#ddd;font-weight:bold}
+.tt-prt-st{font-size:0.7rem;padding:2px 8px;border-radius:8px}
+.tt-prt-st.idle{background:#00ff8820;color:#00ff88}
+.tt-prt-st.printing{background:#00d4ff20;color:#00d4ff}
+.tt-prt-st.other{background:#ffaa0020;color:#ffaa00}
+.tt-gs{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:4px}
+.tt-g{padding:4px 6px;background:#12122a;border-radius:3px}
+.tt-g-top{display:flex;justify-content:space-between;margin-bottom:2px}
+.tt-g-l{font-size:0.68rem;color:#889}
+.tt-g-p{font-size:0.72rem;font-weight:bold}
+.tt-g-bar{height:5px;background:#1a1a2a;border-radius:2px;overflow:hidden}
+.tt-g-fill{height:100%;border-radius:2px}
+.tt-ft{font-size:0.68rem;color:#778;margin-top:6px;text-align:right}
+
+/* === 모바일 반응형 === */
+@media(max-width:768px){
+    body{overflow:auto!important;height:auto!important}
+    .hdr{height:44px;padding:0 10px}
+    .hdr .logo{font-size:0.95rem}
+    .hdr .nav{gap:2px}
+    .hdr .nav a{font-size:0.6rem;padding:2px 4px}
+    .hdr{flex-wrap:nowrap}
+    .hdr .logo{font-size:0.7rem}
+    .wrap{height:auto;margin-top:44px;padding:6px 8px;overflow:auto}
+    
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:6px}
+    .st{padding:6px 4px}
+    .st .n{font-size:1.2rem}
+    .st .l{font-size:0.62rem}
+    
+    .tb{flex-wrap:wrap;gap:4px}
+    .sb{width:100%;font-size:0.85rem;padding:8px 12px}
+    .fb{padding:5px 10px;font-size:0.72rem}
+    .ri{width:100%;text-align:right;font-size:0.65rem}
+    
+    .main{overflow:visible!important}
+    
+    .hg{flex-direction:column!important;gap:4px}
+    .hg-label{width:100%!important;flex-direction:row!important;align-items:center;padding:6px 10px;gap:8px}
+    .hg-nm{font-size:0.85rem}
+    .hg-cd{font-size:0.65rem}
+    
+    .hg-tiles{flex-direction:column!important;gap:6px}
+    
+    /* 모바일 타일 - 가로 전체폭, 상세정보 표시 */
+    .tile{width:100%!important;padding:10px 12px!important;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:4px 10px}
+    .tile:hover{transform:none}
+    
+    .t-top{grid-column:1/-1;margin-bottom:0}
+    .t-id{font-size:0.85rem!important}
+    .t-dot{width:10px!important;height:10px!important}
+    
+    .t-bars{grid-column:1/-1;gap:4px}
+    .t-bar{height:6px!important}
+    
+    .t-devs{grid-column:1/-1;gap:4px}
+    .t-dd{width:10px!important;height:10px!important}
+    
+    .t-prt{grid-column:1/-1}
+    .t-prt-bar{height:7px!important}
+    .t-prt-pct{font-size:0.75rem!important}
+    
+    .t-ft{grid-column:1/-1;font-size:0.65rem!important}
+    
+    /* 모바일에서 툴팁 대신 인라인 상세 */
+    .tooltip{display:none!important}
+}
+
+@media(max-width:480px){
+    .hdr .nav a{font-size:0.5rem;padding:2px 3px}
+    .hdr .logo{font-size:0.6rem}
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .st .n{font-size:1rem}
+}
+
+/* 인쇄량 패널 */
+.print-panel{background:#111130;border:1px solid #2a2a4e;border-radius:8px;padding:10px 14px;margin-top:8px;flex-shrink:0}
+.pp-title{font-size:0.78rem;font-weight:bold;color:#ff88aa;margin-bottom:8px;border-left:3px solid #ff88aa;padding-left:8px}
+.pp-chart{display:flex;align-items:flex-end;gap:3px;height:50px}
+.pp-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pp-bar{width:100%;background:#1a1a2a;border-radius:2px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.pp-bar-fill{background:#ff88aa;border-radius:2px;min-height:1px;transition:height 0.3s}
+.pp-date{font-size:0.45rem;color:#556}
+.pp-val{font-size:0.45rem;color:#889}
+.pp-empty{text-align:center;font-size:0.68rem;color:#445;padding:10px}
+
+.hl-item{background:#12122a;border:1px solid #2a2a4e;border-radius:6px;padding:8px 10px;cursor:pointer;transition:0.15s}
+.hl-item:hover{border-color:#00d4ff;background:#1a1a3a}
+.hl-item.active{border-color:#00d4ff;background:#0d2a4a;border-left:3px solid #00d4ff}
+.hl-item .hl-name{font-size:0.78rem;color:#e0e0e0;font-weight:bold}
+.hl-item .hl-code{font-size:0.6rem;color:#556}
+.hl-item .hl-stats{display:flex;gap:6px;margin-top:4px;font-size:0.6rem}
+.hl-item .hl-on{color:#00ff88}
+.hl-item .hl-off{color:#ff4444}
+.hl-item .hl-warn{color:#ffd166}
+.detail-title{font-size:1rem;color:#4fc3f7;font-weight:bold;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a4e}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.dk-card{background:#12122a;border:1px solid #2a2a4e;border-radius:8px;padding:12px}
+.dk-card.on{border-left:3px solid #00ff88}
+.dk-card.err{border-left:3px solid #ff4444}
+.dk-card.off{border-left:3px solid #555;opacity:0.7}
+.dk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.dk-id{font-size:0.9rem;font-weight:bold;color:#e0e0e0}
+.dk-status{font-size:0.65rem;padding:2px 8px;border-radius:3px}
+.dk-st-on{background:#1b4332;color:#52b788}
+.dk-st-err{background:#5c1a1a;color:#ff6b6b}
+.dk-st-off{background:#333;color:#888}
+.dk-section{margin:8px 0}
+.dk-section-title{font-size:0.68rem;color:#4fc3f7;margin-bottom:4px}
+.dk-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dk-bar-item{display:flex;align-items:center;gap:4px}
+.dk-bar-label{font-size:0.6rem;color:#889;width:30px}
+.dk-bar{flex:1;height:10px;background:#1a1a3a;border-radius:5px;overflow:hidden}
+.dk-bar-fill{height:100%;border-radius:5px}
+.dk-bar-val{font-size:0.6rem;color:#aab;width:28px;text-align:right}
+.dk-devs{display:flex;gap:8px;flex-wrap:wrap}
+.dk-dev{display:flex;align-items:center;gap:4px;font-size:0.65rem}
+.dk-dev-dot{width:8px;height:8px;border-radius:50%}
+.dk-prt{margin-top:6px;padding:8px;background:#0d0d20;border-radius:6px}
+.dk-prt-title{font-size:0.72rem;color:#aab;margin-bottom:6px}
+.dk-prt-bars{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+.dk-prt-item{display:flex;align-items:center;gap:4px}
+.dk-prt-label{font-size:0.6rem;color:#889;width:50px}
+.dk-prt-bar{flex:1;height:12px;background:#1a1a3a;border-radius:6px;overflow:hidden;position:relative}
+.dk-prt-fill{height:100%;border-radius:6px}
+.dk-prt-pct{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:0.55rem;color:#fff;font-weight:bold}
+.dk-print-stats{display:flex;gap:12px;margin-top:6px;font-size:0.62rem}
+@media(max-width:768px){
+    #split-view{flex-direction:column!important}
+    #hosp-list{width:100%!important;min-width:100%!important;max-height:150px;flex-direction:row!important;flex-wrap:wrap;overflow-x:auto}
+    .hl-item{min-width:120px}
+    .detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="hdr">
+    <span class="logo">BSEYE Monitor</span>
+    <div class="nav">
+        <a href="/">대시보드</a>
+        <a href="/monitoring" class="active">타일뷰</a>
+        <a href="/monitoring3">스크롤</a>
+        <a href="/hospitals">병원</a>
+        <a href="/usage">행동분석</a>
+        <a href="/executive">경영진</a>
+        <a href="/hospital-view">병원뷰</a>
+        <a href="/alarms">알람</a>
+    </div>
+</div>
+<div class="wrap">
+    <div class="stats">
+        <div class="st"><div class="n c1" id="o-h">-</div><div class="l">병원</div></div>
+        <div class="st"><div class="n c1" id="o-k">-</div><div class="l">키오스크</div></div>
+        <div class="st"><div class="n c2" id="o-on">-</div><div class="l">온라인</div></div>
+        <div class="st"><div class="n c3" id="o-off">-</div><div class="l">오프라인</div></div>
+        <div class="st"><div class="n c4" id="o-w">-</div><div class="l">프린터경고</div></div>
+        <div class="st"><div class="n c5" id="o-e">-</div><div class="l">장치오류</div></div>
+    </div>
+    <div class="tb">
+        <input type="text" class="sb" id="sb" placeholder="검색...">
+        <div class="fb on" data-f="all">전체</div>
+        <div class="fb" data-f="online">온라인</div>
+        <div class="fb" data-f="offline">오프라인</div>
+        <div class="fb" data-f="warning">경고</div>
+        <a href="/maintenance" style="background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;margin-left:8px;padding:4px 12px;border-radius:4px;text-decoration:none;font-size:0.75rem">유지보수</a>
+        <div class="ri">30초 갱신 | <span id="ut">-</span></div>
+    </div>
+    <div style="display:flex;gap:8px;flex:1;overflow:hidden" id="split-view">
+<div id="hosp-list" style="width:200px;min-width:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
+<div id="hosp-detail" style="flex:1;overflow-y:auto;padding:4px"></div>
+</div>
+</div>
+<div class="tooltip" id="tip"></div>
+<script>
+let CF='all',AD=null,tipTimer=null;
+document.querySelectorAll('.fb').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.fb').forEach(x=>x.classList.remove('on'));b.classList.add('on');CF=b.dataset.f;if(AD)render(AD)}});
+document.getElementById('sb').oninput=()=>{if(AD)render(AD)};
+
+function mc(v){return v>=90?'#ff4444':v>=70?'#ffaa00':'#00ff88'}
+function gc(p,t){return t==='toner'?(p<=10?'#ff4444':p<=30?'#ffaa00':'#00d4ff'):(p<=0?'#ff4444':p<=20?'#ffaa00':'#00ff88')}
+function pc(p){return p<=10?'#ff4444':p<=30?'#ffaa00':'#ccc'}
+function dd(s){return s==='ok'?'ok':s==='warning'?'warn':s==='error'?'err':'unk'}
+function hasW(k){const d=k.printer_detail;if(!d)return false;if((d.toner_black||{}).pct<=20)return true;for(const t of['tray1_mp','tray2','tray3'])if((d[t]||{}).pct<=0)return true;return false}
+function hasE(k){return['printer_a4','printer_thermal','card_reader','barcode_reader'].some(f=>k[f]==='error')}
+
+function render(data){
+    const sq=document.getElementById('sb').value.toLowerCase();
+    const s=data.stats;
+    document.getElementById('o-h').textContent=s.total_hospitals;
+    document.getElementById('o-k').textContent=s.total_kiosks;
+    document.getElementById('o-on').textContent=s.online;
+    document.getElementById('o-off').textContent=s.offline;
+    document.getElementById('o-w').textContent=s.printer_warnings;
+    let ec=0;(data.hospitals||[]).forEach(h=>h.kiosks.forEach(k=>{if(hasE(k))ec++}));
+    document.getElementById('o-e').textContent=ec;
+    
+    AD=data;
+    const list=document.getElementById('hosp-list');
+    let lhtml='';
+    (data.hospitals||[]).forEach((h,hi)=>{
+        let ks=h.kiosks||[];
+        if(CF==='online')ks=ks.filter(k=>k.status==='online');
+        else if(CF==='offline')ks=ks.filter(k=>k.status!=='online');
+        else if(CF==='warning')ks=ks.filter(k=>hasW(k)||hasE(k));
+        if(sq){const m=(h.hosp_name||'').toLowerCase().includes(sq)||(h.hosp_cd||'').includes(sq);if(!m)return}
+        if(!ks.length)return;
+        
+        const onCnt=ks.filter(k=>k.status==='online').length;
+        const offCnt=ks.filter(k=>k.status!=='online').length;
+        const warnCnt=ks.filter(k=>hasW(k)||hasE(k)).length;
+        const sel=window._selHosp===hi?'active':'';
+        
+        lhtml+='<div class="hl-item '+sel+'" onclick="selectHosp('+hi+')">';
+        lhtml+='<div class="hl-name">'+(h.hosp_name||h.hosp_cd)+'</div>';
+        lhtml+='<div class="hl-code">'+h.hosp_cd+' | '+ks.length+'대</div>';
+        lhtml+='<div class="hl-stats">';
+        if(onCnt)lhtml+='<span class="hl-on">●'+onCnt+'</span>';
+        if(offCnt)lhtml+='<span class="hl-off">●'+offCnt+'</span>';
+        if(warnCnt)lhtml+='<span class="hl-warn">▲'+warnCnt+'</span>';
+        lhtml+='</div></div>';
+    });
+    list.innerHTML=lhtml||'<div style="color:#556;padding:10px;font-size:0.75rem">결과 없음</div>';
+    
+    if(window._selHosp===undefined)window._selHosp=0;
+    renderDetail(data);
+    document.getElementById('ut').textContent=new Date().toLocaleTimeString('ko-KR');
+
+    // Tile hover events
+    document.querySelectorAll('.tile').forEach(tile=>{
+        tile.onmouseenter=e=>{showTip(e,tile)};
+        tile.onmouseleave=()=>{hideTip()};
+    });
+    
+    
+// 모바일 타일 클릭 → 인라인 상세 토글
+if(window.innerWidth <= 768){
+    document.querySelectorAll('.tile').forEach(tile=>{
+        tile.onclick=function(){
+            const existing = this.querySelector('.m-detail');
+            if(existing){existing.remove();return}
+            // 다른 열린 상세 닫기
+            document.querySelectorAll('.m-detail').forEach(x=>x.remove());
+            
+            const hc=this.dataset.h, ki=parseInt(this.dataset.k);
+            const h=(AD.hospitals||[]).find(x=>x.hosp_cd===hc);
+            if(!h)return;
+            const k=h.kiosks[ki];if(!k)return;
+            const p=k.pc||{};
+            const pd=k.printer_detail;
+            
+            let d=document.createElement('div');
+            d.className='m-detail';
+            d.style.cssText='grid-column:1/-1;background:#0a0a1a;border-radius:6px;padding:10px;margin-top:6px';
+            
+            let t='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:6px">';
+            [{l:'CPU',v:p.cpu},{l:'MEM',v:p.memory},{l:'DISK',v:p.disk}].forEach(m=>{
+                const v=m.v||0;const c=v>=90?'#ff4444':v>=70?'#ffaa00':'#00ff88';
+                t+='<div style="text-align:center;background:#12122a;border-radius:4px;padding:4px"><div style="font-size:0.6rem;color:#778">'+m.l+'</div><div style="font-size:0.9rem;font-weight:bold;color:'+c+'">'+v+'%</div></div>';
+            });
+            t+='</div>';
+            
+            // 장치
+            t+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:8px">';
+            [{n:'A4',s:k.printer_a4,i:'🖨'},{n:'영수증',s:k.printer_thermal,i:'🧾'},{n:'카드',s:k.card_reader,i:'💳'},{n:'바코드',s:k.barcode_reader,i:'📷'},{n:'모니터',s:'ok',i:'🖥'}].forEach(dv=>{
+                const c2=dv.s==='ok'?'#00ff88':dv.s==='error'?'#ff4444':dv.s==='warning'?'#ffaa00':'#555';
+                const st2=dv.s==='ok'?'정상':dv.s==='error'?'오류':dv.s==='warning'?'경고':'미확인';
+                t+='<div style="text-align:center;background:#12122a;border-radius:4px;padding:4px"><div style="font-size:0.75rem">'+dv.i+'</div><div style="font-size:0.55rem;color:#889">'+dv.n+'</div><div style="font-size:0.55rem;font-weight:bold;color:'+c2+'">'+st2+'</div></div>';
+            });
+            t+='</div>';
+            
+            // 프린터
+            if(pd){
+                const pst2={idle:'대기',printing:'인쇄중',warmup:'예열',other:'점검'}[pd.status]||pd.status;
+                t+='<div style="font-size:0.72rem;color:#ccc;font-weight:bold;margin-bottom:4px">'+(pd.model||'')+' ['+pst2+']</div>';
+                t+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px">';
+                [{l:'토너',d:pd.toner_black,ty:'toner'},{l:'MP트레이',d:pd.tray1_mp,ty:'paper'},{l:'카세트1',d:pd.tray2,ty:'paper'},{l:'카세트2',d:pd.tray3,ty:'paper'}].forEach(g=>{
+                    const gd=g.d||{};const pct2=gd.pct||0;
+                    const gc2=g.ty==='toner'?(pct2<=10?'#ff4444':pct2<=30?'#ffaa00':'#00d4ff'):(pct2<=0?'#ff4444':pct2<=20?'#ffaa00':'#00ff88');
+                    t+='<div style="background:#12122a;border-radius:3px;padding:4px 6px"><div style="display:flex;justify-content:space-between;font-size:0.6rem"><span style="color:#778">'+g.l+'</span><span style="color:'+(pct2<=10?'#ff4444':pct2<=30?'#ffaa00':'#ccc')+'">'+pct2+'%</span></div>';
+                    t+='<div style="height:5px;background:#1a1a2a;border-radius:2px;overflow:hidden;margin-top:2px"><div style="height:100%;width:'+pct2+'%;background:'+gc2+';border-radius:2px"></div></div></div>';
+                });
+                t+='</div>';
+                t+='<div style="display:flex;justify-content:space-between;font-size:0.6rem;margin-top:4px;padding-top:4px;border-top:1px solid #2a2a4e">';
+                t+='<span style="color:#ff88aa">오늘: '+(k.today_print||0)+'매</span>';
+                t+='<span style="color:#aa88ff">7일avg: '+(k.avg7_print||0)+'매</span>';
+                t+='<span style="color:#778">누적: '+((pd.page_count||0)).toLocaleString()+'매</span>';
+                t+='</div>';
+                t+='<div style="font-size:0.55rem;color:#445;margin-top:2px">S/N: '+(pd.serial||'-')+'</div>';
+            }
+            
+            d.innerHTML=t;
+            this.appendChild(d);
+        };
+    });
+}
+
+}
+
+function showTip(e, tile){
+    const hc=tile.dataset.h, ki=parseInt(tile.dataset.k);
+    const h=(AD.hospitals||[]).find(x=>x.hosp_cd===hc);
+    if(!h)return;
+    const k=h.kiosks[ki];if(!k)return;
+
+    const tip=document.getElementById('tip');
+    const st=k.status||'offline';
+    const stCls=st==='online'?'on':st==='error'?'err':'off';
+    const stTxt=st==='online'?'온라인':st==='error'?'오류':'오프라인';
+    const p=k.pc||{};
+
+    let t='<div class="tt-head"><span class="tt-id">'+(h.hosp_name||h.hosp_cd)+' / '+k.kiosk_id+'</span><span class="tt-badge '+stCls+'">'+stTxt+'</span></div>';
+
+    // PC
+    t+='<div class="tt-sec">PC 시스템</div><div class="tt-meters">';
+    [{l:'CPU',v:p.cpu},{l:'메모리',v:p.memory},{l:'디스크',v:p.disk}].forEach(m=>{
+        const v=m.v||0;const c=mc(v);
+        t+='<div class="tt-m"><div class="tt-m-l">'+m.l+'</div><div class="tt-m-v" style="color:'+c+'">'+v+'%</div><div class="tt-m-bar"><div class="tt-m-fill" style="width:'+v+'%;background:'+c+'"></div></div></div>';
+    });
+    t+='</div>';
+
+    // Devices
+    t+='<div class="tt-sec">내장 장치</div><div class="tt-devs">';
+    [{n:'A4프린터',s:k.printer_a4,i:'🖨'},{n:'영수증',s:k.printer_thermal,i:'🧾'},{n:'카드리더',s:k.card_reader,i:'💳'},{n:'바코드',s:k.barcode_reader,i:'📷'},{n:'모니터',s:'ok',i:'🖥'}].forEach(d=>{
+        const cls2=dd(d.s);const stT={ok:'정상',warning:'경고',error:'오류',unknown:'미확인'}[d.s]||'미확인';
+        t+='<div class="tt-dv"><div class="tt-dv-ico">'+d.i+'</div><div class="tt-dv-nm">'+d.n+'</div><div class="tt-dv-st '+cls2+'">'+stT+'</div></div>';
+    });
+    t+='</div>';
+
+    // Printer SNMP
+    const pd=k.printer_detail;
+    if(pd){
+        const pst={idle:'대기중',printing:'인쇄중',warmup:'예열중',other:'점검필요'}[pd.status]||pd.status;
+        const pstC=pd.status==='idle'?'idle':pd.status==='printing'?'printing':'other';
+        t+='<div class="tt-sec">프린터 상세</div><div class="tt-prt">';
+        t+='<div class="tt-prt-head"><span class="tt-prt-model">'+(pd.model||'')+'</span><span class="tt-prt-st '+pstC+'">'+pst+'</span></div>';
+        t+='<div class="tt-gs">';
+        [{l:'토너(Black)',d:pd.toner_black,ty:'toner'},{l:'MP트레이',d:pd.tray1_mp,ty:'paper'},{l:'카세트1',d:pd.tray2,ty:'paper'},{l:'카세트2',d:pd.tray3,ty:'paper'}].forEach(g=>{
+            const dd2=g.d||{};const pct=dd2.pct||0;const c=gc(pct,g.ty);const p2=pc(pct);
+            t+='<div class="tt-g"><div class="tt-g-top"><span class="tt-g-l">'+g.l+'</span><span class="tt-g-p" style="color:'+p2+'">'+pct+'%</span></div>';
+            t+='<div class="tt-g-bar"><div class="tt-g-fill" style="width:'+pct+'%;background:'+c+'"></div></div></div>';
+        });
+        t+='</div><div style="display:flex;justify-content:space-between;font-size:0.65rem;margin-top:6px;padding-top:4px;border-top:1px solid #2a2a4e">';
+        t+='<span style="color:#ff88aa">오늘: <b>'+(k.today_print||0).toLocaleString()+'</b>매</span>';
+        t+='<span style="color:#aa88ff">7일avg: <b>'+(k.avg7_print||0).toLocaleString()+'</b>매</span>';
+        t+='<span style="color:#778">누적: <b>'+((pd.page_count||0)).toLocaleString()+'</b>매</span>';
+        t+='</div><div style="font-size:0.58rem;color:#556;margin-top:2px">S/N: '+(pd.serial||'-')+'</div></div>';
+    }
+
+    t+='<div class="tt-ft">'+(k.last_heartbeat||'-').substring(0,19)+' | 네트워크: '+(k.network_speed||0)+'ms</div>';
+
+    tip.innerHTML=t;
+    tip.classList.add('show');
+
+    // Position
+    const rect=tile.getBoundingClientRect();
+    let left=rect.right+8;
+    let top=rect.top;
+    if(left+330>window.innerWidth)left=rect.left-330;
+    if(top+tip.offsetHeight>window.innerHeight)top=window.innerHeight-tip.offsetHeight-10;
+    if(top<50)top=50;
+    tip.style.left=left+'px';
+    tip.style.top=top+'px';
+}
+
+function hideTip(){document.getElementById('tip').classList.remove('show')}
+
+
+
+function selectHosp(idx){
+    window._selHosp=idx;
+    if(AD)renderDetail(AD);
+    document.querySelectorAll('.hl-item').forEach((el,i)=>{
+        el.classList.toggle('active',i===idx);
+    });
+}
+
+function renderDetail(data){
+    const detail=document.getElementById('hosp-detail');
+    const hospitals=(data.hospitals||[]).filter(h=>{
+        let ks=h.kiosks||[];
+        if(CF==='online')ks=ks.filter(k=>k.status==='online');
+        else if(CF==='offline')ks=ks.filter(k=>k.status!=='online');
+        else if(CF==='warning')ks=ks.filter(k=>hasW(k)||hasE(k));
+        const sq=document.getElementById('sb').value.toLowerCase();
+        if(sq){const m=(h.hosp_name||'').toLowerCase().includes(sq)||(h.hosp_cd||'').includes(sq);if(!m)return false}
+        return ks.length>0;
+    });
+    
+    const hi=window._selHosp||0;
+    const hosp=hospitals[hi];
+    if(!hosp){detail.innerHTML='<div style="color:#556;padding:20px;text-align:center">병원을 선택하세요</div>';return}
+    
+    let ks=hosp.kiosks||[];
+    if(CF==='online')ks=ks.filter(k=>k.status==='online');
+    else if(CF==='offline')ks=ks.filter(k=>k.status!=='online');
+    else if(CF==='warning')ks=ks.filter(k=>hasW(k)||hasE(k));
+    
+    let dh='<div class="detail-title">'+(hosp.hosp_name||hosp.hosp_cd)+' <span style="color:#556;font-size:0.7rem">'+hosp.hosp_cd+' | '+ks.length+'대</span></div>';
+    dh+='<div class="detail-grid">';
+    
+    ks.forEach(k=>{
+        const st=k.status||'offline';
+        const cls=st==='online'?'on':st==='error'?'err':'off';
+        const stCls=st==='online'?'dk-st-on':st==='error'?'dk-st-err':'dk-st-off';
+        const stTxt=st==='online'?'온라인':st==='error'?'오류':'오프라인';
+        const p=k.pc||{};
+        const pd=k.printer_detail;
+        
+        dh+='<div class="dk-card '+cls+'">';
+        dh+='<div class="dk-header"><span class="dk-id">'+k.kiosk_id+'</span><span class="dk-status '+stCls+'">'+stTxt+'</span></div>';
+        
+        // PC 상태
+        dh+='<div class="dk-section"><div class="dk-section-title">PC 상태</div><div class="dk-bars">';
+        [{l:'CPU',v:p.cpu||0},{l:'MEM',v:p.memory||0},{l:'DISK',v:p.disk||0}].forEach(b=>{
+            dh+='<div class="dk-bar-item"><span class="dk-bar-label">'+b.l+'</span><div class="dk-bar"><div class="dk-bar-fill" style="width:'+b.v+'%;background:'+mc(b.v)+'"></div></div><span class="dk-bar-val">'+Math.round(b.v)+'%</span></div>';
+        });
+        dh+='</div></div>';
+        
+        // 장치 상태
+        dh+='<div class="dk-section"><div class="dk-section-title">장치</div><div class="dk-devs">';
+        [{n:'A4프린터',s:k.printer_a4},{n:'영수증',s:k.printer_thermal},{n:'카드리더',s:k.card_reader},{n:'바코드',s:k.barcode_reader},{n:'터치모니터',s:'ok'}].forEach(d=>{
+            const dc=d.s==='ok'?'#00ff88':d.s==='error'?'#ff4444':'#888';
+            dh+='<div class="dk-dev"><div class="dk-dev-dot" style="background:'+dc+'"></div>'+d.n+'</div>';
+        });
+        dh+='</div></div>';
+        
+        // 프린터 상세
+        if(pd){
+            const tb=pd.toner_black||{};
+            const t1=pd.tray1_mp||{};
+            const t2=pd.tray2||{};
+            const t3=pd.tray3||{};
+            dh+='<div class="dk-prt"><div class="dk-prt-title">'+(pd.model||'프린터')+' <span style="color:#556;font-size:0.6rem">S/N: '+(pd.serial||'-')+'</span></div>';
+            dh+='<div class="dk-prt-bars">';
+            [{l:'토너',p:tb.pct||0,t:'toner'},{l:'MP트레이',p:t1.pct||0,t:'paper'},{l:'카세트1',p:t2.pct||0,t:'paper'},{l:'카세트2',p:t3.pct||0,t:'paper'}].forEach(g=>{
+                dh+='<div class="dk-prt-item"><span class="dk-prt-label">'+g.l+'</span><div class="dk-prt-bar"><div class="dk-prt-fill" style="width:'+g.p+'%;background:'+gc(g.p,g.t)+'"></div><span class="dk-prt-pct">'+g.p+'%</span></div></div>';
+            });
+            dh+='</div>';
+            const pgCnt=pd.page_count||0;
+            const todayP=k.today_print||0;
+            const avg7P=k.avg7_print||0;
+            dh+='<div class="dk-print-stats"><span style="color:#ff88aa">오늘 '+todayP+'매</span><span style="color:#aa88ff">7일avg '+avg7P+'매</span><span style="color:#778">누적 '+pgCnt.toLocaleString()+'매</span></div>';
+            dh+='</div>';
+        }
+        
+        dh+='</div>';
+    });
+    dh+='</div>';
+    detail.innerHTML=dh;
+}
+
+function renderPrintPanel(d){
+    const el=document.getElementById('pp-chart');
+    if(!el)return;
+    const wk=d.weekly||[];
+    if(!wk.length){el.innerHTML='<div class="pp-empty">데이터 수집 중... 에이전트 연결 후 자동 기록됩니다</div>';return}
+    const maxV=Math.max(...wk.map(x=>x.count||0),1);
+    let h='';
+    wk.forEach(w=>{
+        const cnt=w.count||0;
+        const pct=Math.max(cnt/maxV*100,2);
+        const dt=(w.date||'').substring(5);
+        h+='<div class="pp-bar-wrap"><div class="pp-val">'+cnt+'</div><div class="pp-bar" style="height:40px"><div class="pp-bar-fill" style="height:'+pct+'%"></div></div><div class="pp-date">'+dt+'</div></div>';
+    });
+    el.innerHTML='<div class="pp-chart">'+h+'</div>';
+}
+
+function load(){
+    fetch('/api/kiosk-monitor').then(r=>r.json()).then(d=>{AD=d;render(d)}).catch(()=>{document.getElementById('main').innerHTML='<div style="text-align:center;padding:30px;color:#ff4444">로딩 실패</div>'});
+}
+load();setInterval(load,30000);
+
+</script>
+
+</body>
+</html>

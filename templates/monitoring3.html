@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>키오스크 모니터링(스크롤) - BSEYE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#0d0d2b;border-bottom:1px solid #1a1a3a;position:sticky;top:0;z-index:100}
+.hdr .logo{font-size:0.9rem;font-weight:bold;color:#4fc3f7}
+.hdr .nav{display:flex;gap:4px}
+.hdr .nav a{color:#888;text-decoration:none;font-size:0.8rem;padding:5px 12px;border-radius:5px;transition:0.2s}
+.hdr .nav a:hover,.hdr .nav a.active{color:#fff;background:#ffffff15}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:10px 16px}
+.st{background:#12122a;border-radius:6px;padding:8px;text-align:center;border:1px solid #1a1a3e}
+.st .n{font-size:1.2rem;font-weight:bold}.st .l{font-size:0.65rem;color:#889;margin-top:2px}
+.c1{color:#4fc3f7}.c2{color:#00ff88}.c3{color:#ff4444}.c4{color:#ffd166}.c5{color:#ff6b9d}
+.tb{display:flex;gap:8px;padding:8px 16px;align-items:center;flex-wrap:wrap}
+.fb{padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;background:#1a1a3a;color:#889;border:1px solid #2a2a4e;transition:0.2s}
+.fb:hover,.fb.on{background:#0d2a4a;color:#4fc3f7;border-color:#4fc3f7}
+.sb{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:5px 10px;font-size:0.8rem;width:220px}
+.wrap{padding:0 16px 30px}
+.hg{display:flex;align-items:flex-start;border-bottom:1px solid #1a1a3e;padding:10px 0;min-height:90px}
+.hg-label{width:130px;min-width:130px;padding:8px;background:#111130;border-radius:6px;margin-right:10px}
+.hg-nm{font-size:0.8rem;color:#e0e0e0;font-weight:bold;word-break:keep-all}
+.hg-cd{font-size:0.6rem;color:#556;margin-top:2px}
+.hg-stats{display:flex;gap:6px;margin-top:4px;font-size:0.6rem}
+.hg-on{color:#00ff88}.hg-off{color:#ff4444}.hg-warn{color:#ffd166}
+.hg-tiles{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.tile{width:140px;min-width:140px;background:#12122a;border:1px solid #1a1a3e;border-radius:6px;padding:8px;transition:0.3s;cursor:pointer}
+.tile:hover{transform:translateY(-2px);box-shadow:0 4px 15px #00000066}
+.tile.on{border-left:3px solid #00ff88}.tile.off{border-left:3px solid #555;opacity:0.7}.tile.err{border-left:3px solid #ff4444}
+.t-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.t-id{font-size:0.75rem;font-weight:bold;color:#ccc}
+.t-dot{width:8px;height:8px;border-radius:50%}
+.t-dot.on{background:#00ff88}.t-dot.off{background:#555}.t-dot.err{background:#ff4444}
+.t-bars{display:flex;gap:3px;margin:4px 0}
+.t-bar{flex:1;height:6px;background:#1a1a3a;border-radius:3px;overflow:hidden}
+.t-fill{height:100%;border-radius:3px}
+.t-devs{display:flex;gap:3px;margin:4px 0}
+.t-dd{width:7px;height:7px;border-radius:50%}
+.t-dd-ok{background:#00ff88}.t-dd-err{background:#ff4444}.t-dd-na{background:#333}
+.t-prt{display:flex;align-items:center;gap:3px;margin-top:4px}
+.t-prt-bar{flex:1;height:8px;background:#1a1a3a;border-radius:4px;overflow:hidden}
+.t-prt-fill{height:100%;border-radius:4px}
+.t-prt-pct{font-size:0.6rem;color:#aab;width:28px;text-align:right}
+.t-info{display:flex;gap:6px;margin-top:4px;font-size:0.55rem;color:#667}
+.tooltip{display:none;position:fixed;background:#1a1a3eee;border:1px solid #00d4ff55;border-radius:8px;padding:12px;z-index:9999;width:360px;backdrop-filter:blur(10px);box-shadow:0 8px 30px #00000088}
+.tt-title{font-size:0.85rem;color:#4fc3f7;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #2a2a4e}
+.tt-row{display:flex;justify-content:space-between;font-size:0.7rem;padding:2px 0}
+.tt-label{color:#889}.tt-val{color:#e0e0e0}
+.tt-section{margin-top:6px;padding-top:4px;border-top:1px solid #1a1a3e}
+.tt-section-title{font-size:0.7rem;color:#4fc3f7;margin-bottom:4px}
+.tt-meters{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tt-devs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tt-gs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.tt-meter,.tt-dev,.tt-g{text-align:center}
+.tt-meter .l,.tt-dev .l,.tt-g .l{font-size:0.6rem;color:#889}
+.tt-meter .v,.tt-dev .v,.tt-g .v{font-size:0.75rem;font-weight:bold;margin-top:2px}
+.tt-bar{height:6px;background:#1a1a3a;border-radius:3px;overflow:hidden;margin-top:4px}
+.tt-bar-fill{height:100%;border-radius:3px}
+#ts{text-align:right;font-size:0.6rem;color:#445;padding:4px 16px}
+@media(max-width:768px){
+ .stats{grid-template-columns:repeat(3,1fr)}
+ .hdr .nav a{font-size:0.6rem;padding:3px 6px}
+ .sb{width:100%}
+ .hg-label{width:100%;min-width:auto;display:flex;align-items:center;gap:8px;margin-right:0;margin-bottom:6px}
+ .hg{flex-direction:column}
+ .hg-tiles{flex-direction:column}
+ .tile{width:100%;min-width:auto}
+}
+</style>
+</head>
+<body>
+<div class="hdr">
+ <span class="logo">BSEYE Monitor</span>
+ <div class="nav">
+  <a href="/">대시보드</a>
+  <a href="/monitoring">타일뷰</a>
+  <a href="/monitoring3" class="active">스크롤</a>
+  <a href="/hospitals">병원</a>
+  <a href="/maintenance" style="background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7">유지보수</a>
+  <a href="/usage">행동분석</a>
+        <a href="/executive">경영진</a>
+ </div>
+</div>
+<div class="stats">
+ <div class="st"><div class="n c1" id="o-h">-</div><div class="l">병원</div></div>
+ <div class="st"><div class="n c1" id="o-k">-</div><div class="l">키오스크</div></div>
+ <div class="st"><div class="n c2" id="o-on">-</div><div class="l">온라인</div></div>
+ <div class="st"><div class="n c3" id="o-off">-</div><div class="l">오프라인</div></div>
+ <div class="st"><div class="n c4" id="o-w">-</div><div class="l">프린터경고</div></div>
+ <div class="st"><div class="n c5" id="o-e">-</div><div class="l">장치오류</div></div>
+</div>
+<div class="tb">
+ <div class="fb on" data-f="all" onclick="setF(this)">전체</div>
+ <div class="fb" data-f="online" onclick="setF(this)">온라인</div>
+ <div class="fb" data-f="offline" onclick="setF(this)">오프라인</div>
+ <div class="fb" data-f="warning" onclick="setF(this)">경고</div>
+ <input class="sb" id="sb" placeholder="검색..." oninput="render(AD)">
+</div>
+<div class="wrap" id="main"></div>
+<div id="ts"></div>
+<div class="tooltip" id="tip"></div>
+<script>
+var AD=null,CF='all';
+function mc(v){return v>=90?'#ff4444':v>=70?'#ffaa00':'#00ff88'}
+function gc(p,t){return t==='toner'?(p<=10?'#ff4444':p<=30?'#ffaa00':'#00d4ff'):(p<=0?'#ff4444':p<=20?'#ffaa00':'#00ff88')}
+function hasW(k){var d=k.printer_detail;if(!d)return false;if((d.toner_black||{}).pct<=20)return true;var ts=['tray1_mp','tray2','tray3'];for(var i=0;i<ts.length;i++)if((d[ts[i]]||{}).pct<=0)return true;return false}
+function hasE(k){return['printer_a4','printer_thermal','card_reader','barcode_reader'].some(function(f){return k[f]==='error'})}
+function setF(el){document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('on')});el.classList.add('on');CF=el.dataset.f;render(AD)}
+function render(data){
+ if(!data)return;
+ var sq=document.getElementById('sb').value.toLowerCase();
+ var s=data.stats;
+ document.getElementById('o-h').textContent=s.total_hospitals;
+ document.getElementById('o-k').textContent=s.total_kiosks;
+ document.getElementById('o-on').textContent=s.online;
+ document.getElementById('o-off').textContent=s.offline;
+ document.getElementById('o-w').textContent=s.printer_warnings;
+ var ec=0;(data.hospitals||[]).forEach(function(h){h.kiosks.forEach(function(k){if(hasE(k))ec++})});
+ document.getElementById('o-e').textContent=ec;
+
+ var html='';
+ (data.hospitals||[]).forEach(function(h){
+  var ks=h.kiosks||[];
+  if(CF==='online')ks=ks.filter(function(k){return k.status==='online'});
+  else if(CF==='offline')ks=ks.filter(function(k){return k.status!=='online'});
+  else if(CF==='warning')ks=ks.filter(function(k){return hasW(k)||hasE(k)});
+  if(sq){var m=(h.hosp_name||'').toLowerCase().includes(sq)||(h.hosp_cd||'').includes(sq);if(!m)return}
+  if(!ks.length)return;
+
+  var onCnt=ks.filter(function(k){return k.status==='online'}).length;
+  var offCnt=ks.length-onCnt;
+  var warnCnt=ks.filter(function(k){return hasW(k)||hasE(k)}).length;
+
+  html+='<div class="hg"><div class="hg-label"><div class="hg-nm">'+(h.hosp_name||h.hosp_cd)+'</div><div class="hg-cd">'+h.hosp_cd+'</div>';
+  html+='<div class="hg-stats"><span class="hg-on">ON '+onCnt+'</span><span class="hg-off">OFF '+offCnt+'</span>';
+  if(warnCnt)html+='<span class="hg-warn">W '+warnCnt+'</span>';
+  html+='</div></div><div class="hg-tiles">';
+
+  ks.forEach(function(k,ki){
+   var st=k.status||'offline';
+   var cls=st==='online'?'on':st==='error'?'err':'off';
+   var p=k.pc||{};
+   var pd=k.printer_detail;
+   var tPct=pd?(pd.toner_black||{}).pct||0:null;
+   html+='<div class="tile '+cls+'" data-h="'+h.hosp_cd+'" data-k="'+ki+'">';
+   html+='<div class="t-top"><span class="t-id">'+k.kiosk_id+'</span><div class="t-dot '+cls+'"></div></div>';
+   html+='<div class="t-bars">';
+   [p.cpu||0,p.memory||0,p.disk||0].forEach(function(v){
+    html+='<div class="t-bar"><div class="t-fill" style="width:'+v+'%;background:'+mc(v)+'"></div></div>';
+   });
+   html+='</div>';
+   html+='<div class="t-devs">';
+   [k.printer_a4,k.printer_thermal,k.card_reader,k.barcode_reader,'ok'].forEach(function(s2){
+    var c2=s2==='ok'?'t-dd-ok':s2==='error'?'t-dd-err':'t-dd-na';
+    html+='<div class="t-dd '+c2+'"></div>';
+   });
+   html+='</div>';
+   if(tPct!==null){
+    html+='<div class="t-prt"><div class="t-prt-bar"><div class="t-prt-fill" style="width:'+tPct+'%;background:'+gc(tPct,'toner')+'"></div></div><span class="t-prt-pct">'+tPct+'%</span></div>';
+   }
+   var todayP=k.today_pages||0;var avg7P=k.avg7_pages||0;var pgCnt=pd?(pd.page_count||0):0;
+   html+='<div class="t-info"><span>T:'+todayP+'</span><span>A:'+avg7P+'</span><span>C:'+pgCnt.toLocaleString()+'</span></div>';
+   html+='</div>';
+  });
+  html+='</div></div>';
+ });
+ document.getElementById('main').innerHTML=html;
+ document.getElementById('ts').textContent='Updated: '+new Date().toLocaleTimeString();
+ addTileHover();
+}
+function addTileHover(){
+ document.querySelectorAll('.tile').forEach(function(t){
+  t.addEventListener('mouseenter',function(e){showTip(e,this)});
+  t.addEventListener('mouseleave',function(){document.getElementById('tip').style.display='none'});
+  t.addEventListener('mousemove',function(e){
+   var tip=document.getElementById('tip');
+   var x=e.clientX+15,y=e.clientY+10;
+   if(x+370>window.innerWidth)x=e.clientX-380;
+   if(y+300>window.innerHeight)y=e.clientY-310;
+   tip.style.left=x+'px';tip.style.top=y+'px';
+  });
+ });
+}
+function showTip(e,el){
+ if(!AD)return;
+ var hc=el.dataset.h,ki=parseInt(el.dataset.k);
+ var hosp=(AD.hospitals||[]).find(function(h){return h.hosp_cd===hc});
+ if(!hosp)return;
+ var ks=hosp.kiosks||[];
+ if(CF==='online')ks=ks.filter(function(k){return k.status==='online'});
+ else if(CF==='offline')ks=ks.filter(function(k){return k.status!=='online'});
+ else if(CF==='warning')ks=ks.filter(function(k){return hasW(k)||hasE(k)});
+ var k=ks[ki];if(!k)return;
+ var p=k.pc||{};var pd=k.printer_detail;
+ var st=k.status==='online'?'정상':k.status==='error'?'오류':'오프라인';
+ var tip=document.getElementById('tip');
+ var h='<div class="tt-title">'+(hosp.hosp_name||hosp.hosp_cd)+' - '+k.kiosk_id+' ('+st+')</div>';
+ h+='<div class="tt-section"><div class="tt-section-title">PC 리소스</div><div class="tt-meters">';
+ [{l:'CPU',v:p.cpu||0},{l:'MEM',v:p.memory||0},{l:'DISK',v:p.disk||0}].forEach(function(m){
+  h+='<div class="tt-meter"><div class="l">'+m.l+'</div><div class="v" style="color:'+mc(m.v)+'">'+m.v+'%</div><div class="tt-bar"><div class="tt-bar-fill" style="width:'+m.v+'%;background:'+mc(m.v)+'"></div></div></div>';
+ });
+ h+='</div></div>';
+ h+='<div class="tt-section"><div class="tt-section-title">장치 상태</div><div class="tt-devs">';
+ [{l:'A4',s:k.printer_a4},{l:'감열',s:k.printer_thermal},{l:'카드',s:k.card_reader},{l:'바코드',s:k.barcode_reader},{l:'EMR',s:k.emr_connection||'ok'}].forEach(function(d){
+  var c=d.s==='ok'?'#00ff88':d.s==='error'?'#ff4444':'#555';
+  h+='<div class="tt-dev"><div class="l">'+d.l+'</div><div class="v" style="color:'+c+'">'+(d.s==='ok'?'OK':d.s==='error'?'ERR':'-')+'</div></div>';
+ });
+ h+='</div></div>';
+ if(pd){
+  h+='<div class="tt-section"><div class="tt-section-title">프린터 상세</div><div class="tt-gs">';
+  [{l:'토너',v:(pd.toner_black||{}).pct||0},{l:'MP트레이',v:(pd.tray1_mp||{}).pct||0},{l:'카세트1',v:(pd.tray2||{}).pct||0},{l:'카세트2',v:(pd.tray3||{}).pct||0}].forEach(function(g){
+   h+='<div class="tt-g"><div class="l">'+g.l+'</div><div class="v" style="color:'+gc(g.v,'toner')+'">'+g.v+'%</div><div class="tt-bar"><div class="tt-bar-fill" style="width:'+g.v+'%;background:'+gc(g.v,'toner')+'"></div></div></div>';
+  });
+  h+='</div>';
+  if(pd.page_count)h+='<div class="tt-row"><span class="tt-label">누적인쇄</span><span class="tt-val">'+pd.page_count.toLocaleString()+'매</span></div>';
+  if(pd.model)h+='<div class="tt-row"><span class="tt-label">모델</span><span class="tt-val">'+pd.model+'</span></div>';
+  h+='</div>';
+ }
+ tip.innerHTML=h;tip.style.display='block';
+ var x=e.clientX+15,y=e.clientY+10;
+ if(x+370>window.innerWidth)x=e.clientX-380;
+ if(y+300>window.innerHeight)y=e.clientY-310;
+ tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function load(){
+ fetch('/api/kiosk-monitor').then(function(r){return r.json()}).then(function(d){AD=d;render(d)}).catch(function(){document.getElementById('main').innerHTML='<div style="text-align:center;padding:30px;color:#ff4444">로딩 실패</div>'});
+}
+load();setInterval(load,30000);
+</script>
+</body>
+</html>

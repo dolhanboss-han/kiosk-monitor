@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>키오스크 미리보기</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}
+#kiosk{position:relative;width:1080px;height:1920px;background:linear-gradient(180deg,#0a1628,#0d1f3c);overflow:hidden}
+.kiosk-btn{position:absolute;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;transition:transform 0.1s,box-shadow 0.2s}
+.kiosk-btn:hover{transform:scale(1.02);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.kiosk-btn:active{transform:scale(0.98)}
+.kiosk-btn .icon{margin-right:8px}
+</style>
+</head>
+<body>
+<div id="kiosk"></div>
+<script>
+const hospCd='{{ hosp_cd }}';
+fetch('/api/kiosk-design/'+hospCd).then(r=>r.json()).then(d=>{
+    const kiosk=document.getElementById('kiosk');
+    if(!d.design||d.design.length===0){
+        kiosk.innerHTML='<div style="color:#666;text-align:center;padding-top:800px;font-size:24px">디자인이 없습니다</div>';
+        return;
+    }
+    d.design.forEach(item=>{
+        const el=document.createElement('div');
+        el.className='kiosk-btn';
+        el.style.cssText='left:'+item.x+'px;top:'+item.y+'px;width:'+item.w+'px;height:'+item.h+'px;background:'+item.bg+';color:'+item.fg+';font-size:'+item.fontSize+'px;border-radius:'+item.radius+'px';
+        el.innerHTML='<span class="icon">'+item.icon+'</span><span>'+item.text+'</span>';
+        kiosk.appendChild(el);
+    });
+});
+</script>
+</body>
+</html>

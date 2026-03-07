@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사용자 행동 분석 - BSEYE</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#0d0d2b;border-bottom:1px solid #1a1a3a;position:sticky;top:0;z-index:100}
+.hdr .logo{font-size:0.9rem;font-weight:bold;color:#4fc3f7}
+.hdr .nav{display:flex;gap:4px;flex-wrap:wrap}
+.hdr .nav a{color:#888;text-decoration:none;font-size:0.8rem;padding:5px 12px;border-radius:5px;transition:0.2s}
+.hdr .nav a:hover,.hdr .nav a.active{color:#fff;background:#ffffff15}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:12px 16px}
+.kpi{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px;text-align:center}
+.kpi .val{font-size:1.8rem;font-weight:bold;line-height:1.2}
+.kpi .label{font-size:0.7rem;color:#889;margin-top:4px}
+.kpi.c1 .val{color:#4fc3f7}.kpi.c2 .val{color:#00ff88}.kpi.c3 .val{color:#ffd166}.kpi.c4 .val{color:#ff6b6b}.kpi.c5 .val{color:#bb86fc}
+
+.toolbar{display:flex;gap:8px;padding:8px 16px;align-items:center;flex-wrap:wrap}
+.toolbar label{font-size:0.75rem;color:#889}
+.toolbar input[type=date]{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
+.toolbar select{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
+.toolbar button{background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;border-radius:4px;padding:4px 12px;font-size:0.75rem;cursor:pointer}
+.toolbar button:hover{background:#2a4a6f}
+
+.tabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid #1a1a3e}
+.tab{padding:8px 16px;font-size:0.8rem;color:#889;cursor:pointer;border-bottom:2px solid transparent;transition:0.2s}
+.tab:hover{color:#ccc}
+.tab.active{color:#4fc3f7;border-bottom-color:#4fc3f7}
+
+.tab-content{display:none;padding:12px 16px}
+.tab-content.active{display:block}
+
+.content{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px}
+.card-title{font-size:0.85rem;color:#4fc3f7;font-weight:bold;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a1a3e}
+.card-full{grid-column:1/-1}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:0.75rem}
+th{background:#0d0d2b;color:#4fc3f7;padding:8px 6px;text-align:center;border-bottom:2px solid #2a2a4e;white-space:nowrap}
+td{padding:6px;text-align:center;border-bottom:1px solid #1a1a3e}
+tr:hover{background:#1a1a3a}
+
+.chart-wrap{height:250px;position:relative}
+
+.rate-bar{width:80px;height:10px;background:#1a1a3a;border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}
+.rate-fill{height:100%;border-radius:5px}
+.rate-pct{font-size:0.7rem;margin-left:4px}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:0.65rem;font-weight:bold}
+.badge-start{background:#1b4332;color:#52b788}
+.badge-end{background:#1e3a5f;color:#4fc3f7}
+.badge-change{background:#5c4b1a;color:#ffd166}
+
+.log-list{max-height:400px;overflow-y:auto}
+.log-item{display:flex;gap:10px;padding:6px 8px;border-bottom:1px solid #1a1a3e;font-size:0.72rem;align-items:center}
+.log-time{color:#556;width:70px;flex-shrink:0}
+.log-title{flex:1;color:#ccc}
+.log-elapsed{color:#889;width:60px;text-align:right;flex-shrink:0}
+
+/* 퍼널 */
+.funnel-menu-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.fm-tab{padding:5px 12px;font-size:0.75rem;border-radius:4px;cursor:pointer;background:#1a1a3a;color:#889;border:1px solid #2a2a4e}
+.fm-tab.active{background:#1e3a5f;color:#4fc3f7;border-color:#4fc3f7}
+.funnel-bar-wrap{margin:6px 0}
+.funnel-step{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:0.78rem}
+.funnel-label{width:120px;color:#ccc;text-align:right;flex-shrink:0}
+.funnel-bar{flex:1;height:28px;background:#1a1a3a;border-radius:4px;overflow:hidden;position:relative}
+.funnel-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:0.7rem;font-weight:bold;color:#fff;transition:width 0.8s ease}
+.funnel-count{width:50px;text-align:right;color:#aab;font-size:0.75rem;flex-shrink:0}
+.funnel-pct{width:45px;text-align:right;color:#889;font-size:0.7rem;flex-shrink:0}
+.funnel-cancel{font-size:0.65rem;color:#ff6b6b;margin-left:4px}
+.funnel-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.fs-item{background:#0d0d2b;border:1px solid #1a1a3e;border-radius:6px;padding:10px;text-align:center}
+.fs-val{font-size:1.2rem;font-weight:bold}
+.fs-label{font-size:0.65rem;color:#889;margin-top:2px}
+
+/* 히트맵 */
+.heatmap{overflow-x:auto}
+.heatmap table{border-collapse:separate;border-spacing:3px}
+.heatmap th{background:transparent;color:#889;font-size:0.7rem;padding:4px 8px}
+.heatmap td{width:60px;height:36px;border-radius:4px;font-size:0.7rem;font-weight:bold;text-align:center;border:none}
+.heatmap .menu-label{background:transparent;color:#ccc;text-align:right;font-size:0.75rem;width:auto;padding-right:8px}
+
+/* 시간분석 */
+.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.time-card{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px}
+.time-card-title{font-size:0.8rem;color:#4fc3f7;margin-bottom:8px}
+
+@media(max-width:768px){
+    .kpi-row{grid-template-columns:repeat(3,1fr)}
+    .content{grid-template-columns:1fr}
+    .tabs{overflow-x:auto;flex-wrap:nowrap}
+    .tab{white-space:nowrap;flex-shrink:0}
+    .hdr .nav a{font-size:0.65rem;padding:3px 6px}
+    .chart-wrap{height:200px}
+    .funnel-label{width:80px;font-size:0.65rem}
+    .funnel-summary{grid-template-columns:repeat(2,1fr)}
+    .time-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="hdr">
+    <span class="logo">BSEYE Monitor</span>
+    <div class="nav">
+        <a href="/">대시보드</a>
+        <a href="/monitoring">모니터링</a>
+        <a href="/usage" class="active">행동분석</a>
+        <a href="/maintenance" style="background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7">유지보수</a>
+        <a href="/executive">경영진</a>
+        <a href="/hospital-view">병원뷰</a>
+    </div>
+</div>
+
+<div class="kpi-row">
+    <div class="kpi c1"><div class="val" id="k-kiosk">-</div><div class="label">활성 키오스크</div></div>
+    <div class="kpi c2"><div class="val" id="k-entry">-</div><div class="label">오늘 진입</div></div>
+    <div class="kpi c3"><div class="val" id="k-complete">-</div><div class="label">오늘 완료</div></div>
+    <div class="kpi c4"><div class="val" id="k-cancel">-</div><div class="label">오늘 이탈</div></div>
+    <div class="kpi c5"><div class="val" id="k-rate">-</div><div class="label">완료율</div></div>
+</div>
+
+<div class="toolbar">
+    <label>날짜:</label>
+    <input type="date" id="t-date">
+    <label>키오스크:</label>
+    <select id="t-kiosk"><option value="all">전체</option></select>
+    <button onclick="loadAll()">조회</button>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="showTab(0)">현황</div>
+    <div class="tab" onclick="showTab(1)">퍼널 분석</div>
+    <div class="tab" onclick="showTab(2)">이탈 히트맵</div>
+    <div class="tab" onclick="showTab(3)">시간 분석</div>
+    <div class="tab" onclick="showTab(4)">상세 로그</div>
+</div>
+
+<!-- 탭0: 현황 -->
+<div class="tab-content active" id="tc0">
+<div class="content">
+    <div class="card">
+        <div class="card-title">키오스크별 현황</div>
+        <div class="tbl-wrap">
+            <table><thead><tr><th>키오스크</th><th>위치</th><th>첫사용</th><th>마지막</th><th>진입</th><th>완료</th><th>이탈</th><th>완료율</th></tr></thead>
+            <tbody id="tb-summary"></tbody></table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">시간대별 사용 패턴</div>
+        <div class="chart-wrap"><canvas id="ch-hourly"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-title">일별 추이 (최근 14일)</div>
+        <div class="chart-wrap"><canvas id="ch-daily"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-title">완료율 추이</div>
+        <div class="chart-wrap"><canvas id="ch-rate"></canvas></div>
+    </div>
+</div>
+</div>
+
+<!-- 탭1: 퍼널 분석 -->
+<div class="tab-content" id="tc1">
+    <div class="funnel-menu-tabs" id="funnel-tabs"></div>
+    <div class="funnel-summary" id="funnel-summary"></div>
+    <div id="funnel-chart"></div>
+</div>
+
+<!-- 탭2: 이탈 히트맵 -->
+<div class="tab-content" id="tc2">
+    <div class="card card-full">
+        <div class="card-title">메뉴 x 단계 이탈 히트맵 (셀 색상 = 이탈 비율)</div>
+        <div class="heatmap" id="heatmap"></div>
+    </div>
+</div>
+
+<!-- 탭3: 시간 분석 -->
+<div class="tab-content" id="tc3">
+    <div class="time-grid">
+        <div class="time-card">
+            <div class="time-card-title">메뉴별 평균 소요 시간</div>
+            <div class="chart-wrap"><canvas id="ch-menu-time"></canvas></div>
+        </div>
+        <div class="time-card">
+            <div class="time-card-title">단계별 평균 소요 시간 (선택 메뉴)</div>
+            <div class="chart-wrap"><canvas id="ch-step-time"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- 탭4: 상세 로그 -->
+<div class="tab-content" id="tc4">
+    <div class="card card-full">
+        <div class="card-title">이벤트 상세 로그 <span id="log-count" style="color:#889;font-size:0.7rem"></span></div>
+        <div class="log-list" id="log-list">
+            <div style="text-align:center;padding:20px;color:#556">조회 버튼을 클릭하세요</div>
+        </div>
+    </div>
+</div>
+
+<script>
+var chHourly=null,chDaily=null,chRate=null,chMenuTime=null,chStepTime=null;
+var funnelData=null, selectedMenu=null;
+
+function today(){return new Date().toISOString().slice(0,10)}
+document.getElementById('t-date').value=today();
+
+function showTab(n){
+    document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===n)});
+    document.querySelectorAll('.tab-content').forEach(function(t,i){t.classList.toggle('active',i===n)});
+    if(n===1 && funnelData) renderFunnel();
+    if(n===4) loadDetail();
+}
+
+function loadAll(){
+    loadData();
+    loadFunnel();
+}
+
+// ── 탭0: 현황 ──
+async function loadData(){
+    var dt=document.getElementById('t-date').value||today();
+    try{
+        var r=await fetch('/api/kiosk-usage/dashboard?date='+dt);
+        var d=await r.json();
+        document.getElementById('k-kiosk').textContent=d.active_kiosks;
+        document.getElementById('k-entry').textContent=d.total_entry;
+        document.getElementById('k-complete').textContent=d.total_complete;
+        document.getElementById('k-cancel').textContent=d.total_cancel;
+        document.getElementById('k-rate').textContent=d.complete_rate+'%';
+
+        var h='';
+        (d.summary||[]).forEach(function(s){
+            var rc=s.complete_rate||0;
+            var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
+            h+='<tr><td>'+s.kiosk_id+'</td><td>'+(s.location||'-')+'</td><td>'+(s.first_use_time||'-')+'</td><td>'+(s.last_use_time||'-')+'</td>';
+            h+='<td style="color:#00ff88;font-weight:bold">'+s.total_entry+'</td><td style="color:#4fc3f7;font-weight:bold">'+s.total_complete+'</td>';
+            h+='<td style="color:#ff6b6b;font-weight:bold">'+s.total_cancel+'</td>';
+            h+='<td><div class="rate-bar"><div class="rate-fill" style="width:'+rc+'%;background:'+color+'"></div></div><span class="rate-pct" style="color:'+color+'">'+rc+'%</span></td></tr>';
+        });
+        document.getElementById('tb-summary').innerHTML=h||'<tr><td colspan="8" style="color:#556">데이터 없음</td></tr>';
+
+        var sel=document.getElementById('t-kiosk');
+        var cur=sel.value;
+        sel.innerHTML='<option value="all">전체</option>';
+        (d.summary||[]).forEach(function(s){sel.innerHTML+='<option value="'+s.kiosk_id+'">'+s.kiosk_id+'</option>'});
+        sel.value=cur;
+
+        loadHourly(dt);
+        loadDailyTrend();
+    }catch(e){console.error(e)}
+}
+
+async function loadHourly(dt){
+    var kid=document.getElementById('t-kiosk').value;
+    try{
+        var r=await fetch('/api/kiosk-usage/detail?kiosk_id='+(kid==='all'?'':kid)+'&work_date='+dt);
+        var d=await r.json();
+        var hours={};for(var i=6;i<22;i++)hours[i]=0;
+        (d.logs||[]).forEach(function(l){if(l.status==='START'&&l.log_dt){var h=parseInt(l.log_dt.substring(11,13));if(hours[h]!==undefined)hours[h]++}});
+        var labels=[],data=[];for(var i=6;i<22;i++){labels.push(i+':00');data.push(hours[i])}
+        var mx=Math.max.apply(null,data)||1;
+        if(chHourly)chHourly.destroy();
+        chHourly=new Chart(document.getElementById('ch-hourly'),{type:'bar',
+            data:{labels:labels,datasets:[{label:'진입',data:data,backgroundColor:data.map(function(v){return v>=mx*0.8?'#00ff88cc':v>=mx*0.5?'#00ff8888':'#00ff8844'}),borderColor:'#00ff88',borderWidth:1,borderRadius:4,barPercentage:0.7}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
+    }catch(e){console.error(e)}
+}
+
+async function loadDailyTrend(){
+    var end=today();var start=new Date();start.setDate(start.getDate()-13);start=start.toISOString().slice(0,10);
+    var kid=document.getElementById('t-kiosk').value;
+    try{
+        var r=await fetch('/api/kiosk-usage/daily?start_date='+start+'&end_date='+end+'&kiosk_id='+kid);
+        var d=await r.json();
+        var map={};(d.data||[]).forEach(function(row){if(!map[row.work_date])map[row.work_date]={entry:0,complete:0};map[row.work_date].entry+=row.total_entry;map[row.work_date].complete+=row.total_complete});
+        var labels=[],entries=[],completes=[],rates=[];
+        var cur=new Date(start);var endD=new Date(end);
+        while(cur<=endD){var ds=cur.toISOString().slice(0,10);labels.push(ds.slice(5));var m=map[ds]||{entry:0,complete:0};entries.push(m.entry);completes.push(m.complete);rates.push(m.entry>0?Math.round(m.complete/m.entry*100):0);cur.setDate(cur.getDate()+1)}
+
+        if(chDaily)chDaily.destroy();
+        chDaily=new Chart(document.getElementById('ch-daily'),{type:'bar',data:{labels:labels,datasets:[{label:'진입',data:entries,backgroundColor:'#4fc3f766',borderColor:'#4fc3f7',borderWidth:1,borderRadius:3,barPercentage:0.4},{label:'완료',data:completes,backgroundColor:'#00ff8866',borderColor:'#00ff88',borderWidth:1,borderRadius:3,barPercentage:0.4}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
+
+        if(chRate)chRate.destroy();
+        chRate=new Chart(document.getElementById('ch-rate'),{type:'line',data:{labels:labels,datasets:[{label:'완료율(%)',data:rates,borderColor:'#bb86fc',backgroundColor:'#bb86fc22',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#bb86fc',borderWidth:2.5},{label:'80% 기준',data:labels.map(function(){return 80}),borderColor:'#ff6b6b55',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{min:0,max:100,ticks:{color:'#889',font:{size:10},callback:function(v){return v+'%'}},grid:{color:'#1a1a3e'}}}}});
+    }catch(e){console.error(e)}
+}
+
+// ── 탭1: 퍼널 분석 ──
+async function loadFunnel(){
+    var dt=document.getElementById('t-date').value||today();
+    var kid=document.getElementById('t-kiosk').value;
+    try{
+        var r=await fetch('/api/kiosk-usage/funnel?date='+dt+'&kiosk_id='+(kid==='all'?'':kid));
+        funnelData=await r.json();
+        if(funnelData.menus&&funnelData.menus.length>0){selectedMenu=funnelData.menus[0].menu}
+        renderFunnel();
+        renderHeatmap();
+        renderTimeCharts();
+    }catch(e){console.error(e)}
+}
+
+function renderFunnel(){
+    if(!funnelData||!funnelData.menus)return;
+    var tabs='';
+    funnelData.menus.forEach(function(m){
+        var cls=m.menu===selectedMenu?'fm-tab active':'fm-tab';
+        tabs+='<div class="'+cls+'" onclick="selectMenu(\''+m.menu+'\')">'+m.menu+' ('+m.total+')</div>';
+    });
+    document.getElementById('funnel-tabs').innerHTML=tabs;
+
+    var m=funnelData.menus.find(function(x){return x.menu===selectedMenu});
+    if(!m)return;
+
+    var rc=m.rate;var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
+    var sh='<div class="fs-item"><div class="fs-val" style="color:#4fc3f7">'+m.total+'</div><div class="fs-label">총 진입</div></div>';
+    sh+='<div class="fs-item"><div class="fs-val" style="color:#00ff88">'+m.completed+'</div><div class="fs-label">완료</div></div>';
+    sh+='<div class="fs-item"><div class="fs-val" style="color:#ff6b6b">'+m.cancelled+'</div><div class="fs-label">이탈</div></div>';
+    sh+='<div class="fs-item"><div class="fs-val" style="color:'+color+'">'+rc+'%</div><div class="fs-label">완료율</div></div>';
+    document.getElementById('funnel-summary').innerHTML=sh;
+
+    var fh='';
+    var maxCount=m.total;
+    (m.funnel||[]).forEach(function(f,i){
+        var w=maxCount>0?Math.max(f.count/maxCount*100,2):0;
+        var gc=i===m.funnel.length-1&&f.step.indexOf('완료')>=0?'#00ff88':'#4fc3f7';
+        var cancelHtml=f.cancel_count>0?'<span class="funnel-cancel">(-'+f.cancel_count+' 이탈)</span>':'';
+        fh+='<div class="funnel-step">';
+        fh+='<div class="funnel-label">'+f.step+'</div>';
+        fh+='<div class="funnel-bar"><div class="funnel-fill" style="width:'+w+'%;background:'+gc+'88">'+f.count+'</div></div>';
+        fh+='<div class="funnel-pct">'+f.pct+'%</div>';
+        fh+='<div class="funnel-count">'+f.avg_sec+'초'+cancelHtml+'</div>';
+        fh+='</div>';
+    });
+    document.getElementById('funnel-chart').innerHTML=fh;
+}
+
+function selectMenu(menu){selectedMenu=menu;renderFunnel();renderStepTime()}
+
+// ── 탭2: 히트맵 ──
+function renderHeatmap(){
+    if(!funnelData||!funnelData.menus)return;
+    var allSteps=[];
+    funnelData.menus.forEach(function(m){
+        m.funnel.forEach(function(f,i){
+            var label='단계'+(i+1);
+            if(allSteps.indexOf(label)<0)allSteps.push(label);
+        });
+    });
+
+    var h='<table><thead><tr><th></th>';
+    allSteps.forEach(function(s){h+='<th>'+s+'</th>'});
+    h+='<th>완료율</th></tr></thead><tbody>';
+
+    funnelData.menus.forEach(function(m){
+        h+='<tr><td class="menu-label">'+m.menu+'</td>';
+        for(var i=0;i<allSteps.length;i++){
+            if(i<m.funnel.length){
+                var f=m.funnel[i];
+                var dropPct=0;
+                if(i>0){var prev=m.funnel[i-1].count;dropPct=prev>0?Math.round((prev-f.count)/prev*100):0}
+                var bg=dropPct>=20?'#ff6b6b':dropPct>=10?'#ffd166':dropPct>=5?'#4fc3f733':'#00ff8833';
+                var txt=dropPct>=10?'#fff':'#ccc';
+                h+='<td style="background:'+bg+';color:'+txt+'">'+f.count+'<br><span style="font-size:0.55rem">'+dropPct+'%</span></td>';
+            }else{
+                h+='<td style="background:#0a0a1a;color:#333">-</td>';
+            }
+        }
+        var rColor=m.rate>=80?'#00ff88':m.rate>=60?'#ffd166':'#ff6b6b';
+        h+='<td style="color:'+rColor+';font-weight:bold">'+m.rate+'%</td>';
+        h+='</tr>';
+    });
+    h+='</tbody></table>';
+    document.getElementById('heatmap').innerHTML=h;
+}
+
+// ── 탭3: 시간 분석 ──
+function renderTimeCharts(){
+    if(!funnelData||!funnelData.menus)return;
+
+    // 메뉴별 평균 시간
+    var labels=[],data=[],colors=[];
+    var palette=['#4fc3f7','#00ff88','#ffd166','#ff6b6b','#bb86fc','#ff9800','#e91e63'];
+    funnelData.menus.forEach(function(m,i){
+        labels.push(m.menu);
+        var totalSec=0;m.funnel.forEach(function(f){totalSec+=f.avg_sec});
+        data.push(totalSec);
+        colors.push(palette[i%palette.length]);
+    });
+
+    if(chMenuTime)chMenuTime.destroy();
+    chMenuTime=new Chart(document.getElementById('ch-menu-time'),{type:'bar',
+        data:{labels:labels,datasets:[{label:'평균 소요(초)',data:data,backgroundColor:colors.map(function(c){return c+'88'}),borderColor:colors,borderWidth:1,borderRadius:4,barPercentage:0.6}]},
+        options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},
+            scales:{x:{ticks:{color:'#889',font:{size:10},callback:function(v){return v+'초'}},grid:{color:'#1a1a3e'}},y:{ticks:{color:'#ccc',font:{size:11}},grid:{display:false}}}}});
+
+    renderStepTime();
+}
+
+function renderStepTime(){
+    if(!funnelData)return;
+    var m=funnelData.menus.find(function(x){return x.menu===selectedMenu});
+    if(!m)return;
+
+    var labels=[],data=[];
+    m.funnel.forEach(function(f){labels.push(f.step.replace(m.menu+'_',''));data.push(f.avg_sec)});
+
+    if(chStepTime)chStepTime.destroy();
+    chStepTime=new Chart(document.getElementById('ch-step-time'),{type:'bar',
+        data:{labels:labels,datasets:[{label:selectedMenu+' 단계별 소요(초)',data:data,
+            backgroundColor:data.map(function(v){return v>=20?'#ff6b6b88':v>=10?'#ffd16688':'#4fc3f788'}),
+            borderColor:data.map(function(v){return v>=20?'#ff6b6b':v>=10?'#ffd166':'#4fc3f7'}),
+            borderWidth:1,borderRadius:4,barPercentage:0.6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+            scales:{x:{ticks:{color:'#889',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10},callback:function(v){return v+'초'}},grid:{color:'#1a1a3e'}}}}});
+}
+
+// ── 탭4: 상세 로그 ──
+async function loadDetail(){
+    var dt=document.getElementById('t-date').value||today();
+    var kid=document.getElementById('t-kiosk').value;
+    if(kid==='all'){var opts=document.getElementById('t-kiosk').options;if(opts.length>1)kid=opts[1].value;else return}
+    try{
+        var r=await fetch('/api/kiosk-usage/detail?kiosk_id='+kid+'&work_date='+dt);
+        var d=await r.json();
+        document.getElementById('log-count').textContent='('+d.count+'건)';
+        var h='';
+        (d.logs||[]).forEach(function(l){
+            var time=l.log_dt?l.log_dt.substring(11,19):'';
+            var bc=l.status==='START'?'badge-start':l.status==='END'?'badge-end':'badge-change';
+            h+='<div class="log-item"><span class="log-time">'+time+'</span><span class="badge '+bc+'">'+l.status+'</span><span class="log-title">'+(l.window_title||'-')+'</span><span class="log-elapsed">'+(l.elapsed_str||'-')+'</span></div>';
+        });
+        document.getElementById('log-list').innerHTML=h||'<div style="text-align:center;padding:20px;color:#556">로그 없음</div>';
+    }catch(e){console.error(e)}
+}
+
+loadAll();
+</script>
+</body>
+</html>

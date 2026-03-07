@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ '계정 수정' if user else '계정 추가' }} - BSEYE</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#eee;}
+        .header{background:#1a1a2e;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;}
+        .header h1{font-size:1.5rem;color:#00d4ff;}
+        .header a{color:#888;text-decoration:none;font-size:0.85rem;padding:6px 12px;border:1px solid #333;border-radius:6px;}
+        .header a:hover{color:#00d4ff;border-color:#00d4ff;}
+        .form-container{max-width:600px;margin:30px auto;background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:30px;}
+        .form-group{margin-bottom:18px;}
+        .form-group label{display:block;color:#aaa;font-size:0.85rem;margin-bottom:6px;}
+        .form-group input,.form-group select{width:100%;padding:10px 12px;background:#252540;border:1px solid #333;border-radius:6px;color:#eee;font-size:0.95rem;}
+        .form-group input:focus,.form-group select:focus{border-color:#00d4ff;outline:none;}
+        .form-group .hint{color:#666;font-size:0.8rem;margin-top:4px;}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+        .checkbox-group{display:flex;align-items:center;gap:8px;}
+        .checkbox-group input{width:auto;}
+        .btn-submit{width:100%;padding:12px;background:#00d4ff;color:#0f0f1a;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;margin-top:10px;}
+        .btn-submit:hover{background:#00b8e6;}
+        .flash{background:#ff444422;color:#ff4444;padding:10px;border-radius:6px;margin-bottom:15px;font-size:0.9rem;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ '계정 수정' if user else '계정 추가' }}</h1>
+        <a href="/admin/users">← 계정 목록</a>
+    </div>
+
+    <div class="form-container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash">{{ messages[0] }}</div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>아이디 *</label>
+                    <input type="text" name="username" value="{{ user['username'] if user else '' }}" {{ 'readonly' if user else '' }} required>
+                </div>
+                <div class="form-group">
+                    <label>{{ '새 비밀번호 (변경시만)' if user else '비밀번호 *' }}</label>
+                    <input type="password" name="password" {{ '' if user else 'required' }}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>이름 *</label>
+                    <input type="text" name="name" value="{{ user['name'] if user else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>연락처</label>
+                    <input type="text" name="phone" value="{{ user['phone'] if user else '' }}" placeholder="010-0000-0000">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>소속 구분 *</label>
+                    <select name="org_type" id="orgType" onchange="updateOrgCode()">
+                        <option value="hq" {{ 'selected' if user and user['org_type']=='hq' else '' }}>본사 (HQ)</option>
+                        <option value="isv" {{ 'selected' if user and user['org_type']=='isv' else '' }}>ISV 파트너</option>
+                        <option value="hospital" {{ 'selected' if user and user['org_type']=='hospital' else '' }}>의료기관</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>권한 *</label>
+                    <select name="role" id="roleSelect">
+                        <option value="hq_admin" {{ 'selected' if user and user['role']=='hq_admin' else '' }}>HQ 관리자</option>
+                        <option value="hq_monitor" {{ 'selected' if user and user['role']=='hq_monitor' else '' }}>HQ 모니터</option>
+                        <option value="hq_engineer" {{ 'selected' if user and user['role']=='hq_engineer' else '' }}>HQ 엔지니어</option>
+                        <option value="isv_admin" {{ 'selected' if user and user['role']=='isv_admin' else '' }}>ISV 관리자</option>
+                        <option value="isv_tech" {{ 'selected' if user and user['role']=='isv_tech' else '' }}>ISV 기술</option>
+                        <option value="hosp_admin" {{ 'selected' if user and user['role']=='hosp_admin' else '' }}>병원 관리자</option>
+                        <option value="hosp_user" {{ 'selected' if user and user['role']=='hosp_user' else '' }}>병원 사용자</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>소속 코드</label>
+                <select name="org_code" id="orgCode">
+                    <option value="HQ">HQ (본사)</option>
+                    {% for isv in isv_list %}
+                    <option value="{{ isv }}" {{ 'selected' if user and user['org_code']==isv else '' }}>ISV: {{ isv }}</option>
+                    {% endfor %}
+                    {% for h in hosp_list %}
+                    <option value="{{ h[0] }}" {{ 'selected' if user and user['org_code']==h[0] else '' }}>{{ h[0] }} - {{ h[1] }}</option>
+                    {% endfor %}
+                </select>
+                <div class="hint">본사=HQ, ISV=EMR사명, 병원=병원코드</div>
+            </div>
+
+            {% if user %}
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" name="is_active" id="isActive" {{ 'checked' if user['is_active'] else '' }}>
+                    <label for="isActive" style="margin:0;color:#eee;">계정 활성화</label>
+                </div>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn-submit">{{ '수정 저장' if user else '계정 생성' }}</button>
+        </form>
+    </div>
+
+    <script>
+        function updateOrgCode(){
+            const type = document.getElementById('orgType').value;
+            const opts = document.getElementById('orgCode').options;
+            for(let i=0; i<opts.length; i++){
+                const v = opts[i].value;
+                if(type==='hq') opts[i].style.display = (v==='HQ') ? '' : 'none';
+                else if(type==='isv') opts[i].style.display = v.startsWith('ISV:') || opts[i].text.startsWith('ISV:') ? '' : 'none';
+                else opts[i].style.display = '';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ info.HOSP_NM or '병원 상세' }} - BSEYE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#eee;}
+        .header{background:#1a1a2e;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;}
+        .header h1{font-size:1.5rem;color:#00d4ff;}
+        .header .nav{display:flex;gap:15px;}
+        .header a{color:#888;text-decoration:none;font-size:0.9rem;}
+        .header a:hover{color:#00d4ff;}
+        .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;padding:25px 30px;}
+        .info-item{background:#1a1a2e;border-radius:8px;padding:15px;border:1px solid #333;}
+        .info-item .label{color:#888;font-size:0.8rem;margin-bottom:5px;}
+        .info-item .value{color:#eee;font-size:1.1rem;font-weight:bold;}
+        .info-item .value.blue{color:#00d4ff;}
+        .info-item .value.green{color:#00ff88;}
+        .chart-container{padding:0 30px 25px;}
+        .chart-box{background:#1a1a2e;border-radius:12px;padding:20px;border:1px solid #333;}
+        .chart-box h2{font-size:1.1rem;color:#00d4ff;margin-bottom:15px;}
+        .chart-wrap{height:300px;position:relative;}
+        .section{padding:0 30px 30px;}
+        .section h2{font-size:1.1rem;color:#00d4ff;margin-bottom:15px;padding-bottom:8px;border-bottom:1px solid #333;}
+        table{width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;}
+        th{background:#252540;padding:10px 12px;text-align:left;color:#aaa;font-size:0.8rem;}
+        td{padding:8px 12px;border-bottom:1px solid #252540;font-size:0.85rem;}
+        tr:hover{background:#252540;}
+        .amt{text-align:right;color:#ffd700;}
+        .cnt{text-align:right;color:#00ff88;}
+        .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.8rem;}
+        .badge.y{background:#00ff8822;color:#00ff88;}
+        .badge.n{background:#ff444422;color:#ff4444;}
+        .memo{background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:15px;margin:0 30px 25px;color:#aaa;font-size:0.9rem;}
+    
+        @media(max-width:600px){
+            .header{padding:10px 15px;flex-wrap:wrap;gap:5px;}
+            .header h1{font-size:1.1rem;}
+            .header .nav{gap:5px;}
+            .header a{font-size:0.7rem;padding:4px 8px;}
+            .info-grid{grid-template-columns:repeat(2,1fr);gap:8px;padding:15px;}
+            .info-item{padding:10px;}
+            .info-item .label{font-size:0.7rem;}
+            .info-item .value{font-size:0.9rem;}
+            .chart-container{padding:0 15px 15px;}
+            .chart-wrap{height:200px;}
+            .section{padding:0 15px 15px;}
+            .memo{margin:0 15px 15px;padding:10px;font-size:0.8rem;}
+            th{padding:6px 8px;font-size:0.7rem;}
+            td{padding:6px 8px;font-size:0.75rem;}
+        }
+    </style>
+</head>
+<body style="padding-top:60px">
+<div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
+    <span style="font-size:1.1rem;font-weight:bold;color:#00d4ff;white-space:nowrap">BSEYE Monitor</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <a href="/" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_dash">대시보드</a>
+        <a href="/monitoring" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_mon">모니터링</a>
+        <a href="/hospitals" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_hosp">병원</a>
+        <a href="/alarms" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_alarm">알람</a>
+        <a href="/tickets" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_ticket">티켓</a>
+        <a href="/editor" style="color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" id="nav_editor">에디터</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
+        <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
+        <a href="/logout" style="color:#ff6b6b;text-decoration:none;font-size:0.72rem">로그아웃</a>
+    </div>
+</div>
+<script>
+(function(){
+    var path=location.pathname;
+    var map={'/':'nav_dash','/monitoring':'nav_mon','/hospitals':'nav_hosp','/alarms':'nav_alarm','/tickets':'nav_ticket','/editor':'nav_editor'};
+    for(var k in map){if(path===k||path.startsWith(k+'/')){var el=document.getElementById(map[k]);if(el){el.style.color='#00d4ff';el.style.borderColor='#00d4ff';}break;}}
+})();
+</script>
+<div style="max-width:1400px;margin:0 auto;padding:10px 16px 0">
+    <a href="/hospitals" style="display:inline-block;color:#00d4ff;text-decoration:none;font-size:0.8rem;padding:5px 12px;border:1px solid #00d4ff;border-radius:6px;margin-bottom:10px">← 병원목록으로</a>
+</div>
+    
+
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="label">병원코드</div>
+            <div class="value">{{ info.HOSP_CD or '-' }}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">ISV (EMR)</div>
+            <div class="value blue">{{ info.EMR_COMPANY or '-' }}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">키오스크 수</div>
+            <div class="value green">{{ info.KIOSK_CNT or 0 }}대</div>
+        </div>
+        <div class="info-item">
+            <div class="label">운영 상태</div>
+            <div class="value"><span class="badge {{ 'y' if info.USER_YN=='Y' else 'n' }}">{{ '운영중' if info.USER_YN=='Y' else '미운영' }}</span></div>
+        </div>
+        <div class="info-item">
+            <div class="label">지역</div>
+            <div class="value">{{ info.ADDR1 or '-' }} {{ info.ADDR2 or '' }}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">오픈일</div>
+            <div class="value">{{ info.OPEN_DATE or '-' }}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">납품일</div>
+            <div class="value">{{ info.IPGO_DATE or '-' }}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">VAN사</div>
+            <div class="value">{{ info.CARD_VAN or '-' }}</div>
+        </div>
+    </div>
+
+    {% if info.KIOSK_MEMO %}
+    <div class="memo">메모: {{ info.KIOSK_MEMO }}</div>
+    {% endif %}
+
+    <div class="chart-container">
+        <div class="chart-box">
+            <h2>일별 사용량 추이 (최근 30일)</h2>
+            <div class="chart-wrap">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>일별 집계</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th style="text-align:right">총 건수</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in daily[:30] %}
+                <tr>
+                    <td>{{ d[0] }}</td>
+                    <td class="cnt">{{ d[1] }}</td>
+                    
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>키오스크별 최근 사용 내역</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>키오스크</th>
+                    <th>날짜</th>
+                    <th style="text-align:right">총건수</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in counts[:50] %}
+                <tr>
+                    <td>{{ c[0] }}</td>
+                    <td>{{ c[1] }}</td>
+                    <td class="cnt">{{ c[2] }}</td>
+                    
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const dailyData = [
+            {% for d in daily[:30]|reverse %}
+            { date: '{{ d[0] }}', count: {{ d[1] or 0 }}, amt: {{ d[2] or 0 }} },
+            {% endfor %}
+        ];
+
+        new Chart(document.getElementById('dailyChart'), {
+            type: 'bar',
+            data: {
+                labels: dailyData.map(d => d.date.slice(5)),
+                datasets: [{
+                    label: '건수',
+                    data: dailyData.map(d => d.count),
+                    backgroundColor: '#00d4ff44',
+                    borderColor: '#00d4ff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#aaa' } } },
+                scales: {
+                    x: { ticks: { color: '#888' }, grid: { color: '#333' } },
+                    y: { ticks: { color: '#00d4ff' }, grid: { color: '#333' }, title: { display: true, text: '건수', color: '#00d4ff' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
