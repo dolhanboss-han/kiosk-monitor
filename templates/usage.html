@@ -93,13 +93,25 @@ tr:hover{background:#1a1a3a}
 .time-card-title{font-size:0.8rem;color:#4fc3f7;margin-bottom:8px}
 
 @media(max-width:768px){
-    .kpi-row{grid-template-columns:repeat(3,1fr)}
+    .kpi-row{grid-template-columns:repeat(2,1fr);gap:6px;padding:8px}
+    .kpi{padding:10px}
+    .kpi .val{font-size:1.3rem}
+    .kpi .label{font-size:0.65rem}
     .hdr .logo{font-size:0.95rem}
     .content{grid-template-columns:1fr}
-    .tabs{overflow-x:auto;flex-wrap:nowrap}
-    .tab{white-space:nowrap;flex-shrink:0}
+    .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;gap:2px}
+    .tab{white-space:nowrap;flex-shrink:0;font-size:0.72rem;padding:7px 10px}
+    .toolbar{flex-wrap:wrap;gap:6px;padding:6px 8px}
+    .toolbar input[type=date],.toolbar select{font-size:0.75rem;padding:6px}
     .hdr .nav a{font-size:0.65rem;padding:3px 6px}
     .chart-wrap{height:200px}
+    .chart-wrap canvas{max-width:100%!important}
+    table thead{display:none!important}
+    table tbody{display:block!important}
+    table tr{display:block!important;margin-bottom:8px;border:1px solid #1a1a3e;border-radius:8px;padding:10px;background:#12122a}
+    table td{display:flex!important;justify-content:space-between;align-items:center;padding:4px 8px;font-size:0.78rem;border:none!important;border-bottom:1px solid #1a1a3e!important}
+    table td:last-child{border-bottom:none!important}
+    table td::before{content:attr(data-label);color:#889;font-size:0.68rem;font-weight:bold;margin-right:8px;white-space:nowrap;min-width:45px}
     .funnel-label{width:80px;font-size:0.65rem}
     .funnel-summary{grid-template-columns:repeat(2,1fr)}
     .time-grid{grid-template-columns:1fr}
@@ -234,10 +246,10 @@ async function loadData(){
         (d.summary||[]).forEach(function(s){
             var rc=s.complete_rate||0;
             var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
-            h+='<tr><td>'+s.kiosk_id+'</td><td>'+(s.location||'-')+'</td><td>'+(s.first_use_time||'-')+'</td><td>'+(s.last_use_time||'-')+'</td>';
-            h+='<td style="color:#00ff88;font-weight:bold">'+s.total_entry+'</td><td style="color:#4fc3f7;font-weight:bold">'+s.total_complete+'</td>';
-            h+='<td style="color:#ff6b6b;font-weight:bold">'+s.total_cancel+'</td>';
-            h+='<td><div class="rate-bar"><div class="rate-fill" style="width:'+rc+'%;background:'+color+'"></div></div><span class="rate-pct" style="color:'+color+'">'+rc+'%</span></td></tr>';
+            h+='<tr><td data-label="키오스크">'+s.kiosk_id+'</td><td data-label="위치">'+(s.location||'-')+'</td><td data-label="첫사용">'+(s.first_use_time||'-')+'</td><td data-label="마지막">'+(s.last_use_time||'-')+'</td>';
+            h+='<td data-label="진입" style="color:#00ff88;font-weight:bold">'+s.total_entry+'</td><td data-label="완료" style="color:#4fc3f7;font-weight:bold">'+s.total_complete+'</td>';
+            h+='<td data-label="이탈" style="color:#ff6b6b;font-weight:bold">'+s.total_cancel+'</td>';
+            h+='<td data-label="완료율"><div class="rate-bar"><div class="rate-fill" style="width:'+rc+'%;background:'+color+'"></div></div><span class="rate-pct" style="color:'+color+'">'+rc+'%</span></td></tr>';
         });
         document.getElementById('tb-summary').innerHTML=h||'<tr><td colspan="8" style="color:#556">데이터 없음</td></tr>';
 
