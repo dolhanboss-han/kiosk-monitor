@@ -24,17 +24,17 @@
 <div id="nav-links">
     <a href="/" style="{{ nav_style }}" data-nav="/">대시보드</a>
     <a href="/monitoring" style="{{ nav_style }}" data-nav="/monitoring">모니터링</a>
-    {% if ot == 'hq' %}<a href="/hospitals" style="{{ nav_style }}" data-nav="/hospitals">병원</a>{% endif %}
+    {% if ot == 'hq' %}<a href="/hospitals" style="{{ nav_style }}" data-nav="/hospitals">병원목록</a>{% endif %}
     <a href="/usage" style="{{ nav_style }}" data-nav="/usage">행동분석</a>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/maintenance" style="{{ nav_style }}" data-nav="/maintenance">유지보수</a>{% endif %}
-    <a href="/alarms" style="{{ nav_style }}" data-nav="/alarms">알람</a>
-    <a href="/tickets" style="{{ nav_style }}" data-nav="/tickets">티켓</a>
+    <a href="/alarms" style="{{ nav_style }}" data-nav="/alarms">알람관리</a>
+    <a href="/tickets" style="{{ nav_style }}" data-nav="/tickets">티켓관리</a>
     {% if ot == 'hq' %}<a href="/executive" style="{{ nav_style }}" data-nav="/executive">경영진</a>
     <a href="/hospital-view" style="{{ nav_style }}" data-nav="/hospital-view">병원뷰</a>{% endif %}
     {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" style="{{ nav_style }}" data-nav="/usage-verify">검증</a>
     <a href="/setup-monitor" style="{{ nav_style }}" data-nav="/setup-monitor">설치</a>{% endif %}
     {% if role == 'hq_admin' %}<span style="color:#444;margin:0 2px">|</span>
-    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">관리</a>{% endif %}
+    <a href="/admin/users" style="{{ nav_style }}" data-nav="/admin/users">사용자관리</a>{% endif %}
 </div>
 
 <!-- 모바일: 햄버거 -->
@@ -44,17 +44,17 @@
     <div class="nav-close" onclick="document.getElementById('nav-overlay').style.display='none';document.getElementById('nav-mobile').style.display='none'">✕</div>
     <a href="/" data-nav="/">대시보드</a>
     <a href="/monitoring" data-nav="/monitoring">모니터링</a>
-    {% if ot == 'hq' %}<a href="/hospitals" data-nav="/hospitals">병원</a>{% endif %}
+    {% if ot == 'hq' %}<a href="/hospitals" data-nav="/hospitals">병원목록</a>{% endif %}
     <a href="/usage" data-nav="/usage">행동분석</a>
     {% if ot == 'hq' or ot == 'isv' %}<a href="/usage-verify" data-nav="/usage-verify">현장검증</a>{% endif %}
     {% if ot == 'hq' %}<a href="/executive" data-nav="/executive">경영진 대시보드</a>
-    <a href="/hospital-view" data-nav="/hospital-view">병원뷰 대시보드</a>{% endif %}
+    <a href="/hospital-view" data-nav="/hospital-view">병원 대시보드</a>{% endif %}
     {% if ot == 'hq' or ot == 'isv' %}<a href="/maintenance" data-nav="/maintenance">유지보수</a>{% endif %}
-    <a href="/alarms" data-nav="/alarms">알람</a>
-    <a href="/tickets" data-nav="/tickets">티켓</a>
-    {% if ot == 'hq' or ot == 'isv' %}<a href="/setup-monitor" data-nav="/setup-monitor">설치 마법사</a>{% endif %}
+    <a href="/alarms" data-nav="/alarms">알람관리</a>
+    <a href="/tickets" data-nav="/tickets">티켓관리</a>
+    {% if ot == 'hq' or ot == 'isv' %}<a href="/setup-monitor" data-nav="/setup-monitor">설치마법사</a>{% endif %}
     {% if role == 'hq_admin' %}
-    <a href="/admin/users" data-nav="/admin/users">관리</a>
+    <a href="/admin/users" data-nav="/admin/users">사용자관리</a>
     {% endif %}
     <a href="/change-password">비밀번호 변경</a>
     <a href="/logout" style="color:#ff6b6b">로그아웃</a>
