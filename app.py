@@ -4,7 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 import pyodbc
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from config import get_connection_string
 
 app = Flask(__name__)
@@ -502,48 +502,50 @@ def usage_receive():
 @login_required
 def usage_dashboard_api():
     """사용 현황 대시보드 API"""
-    today = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    start_date = request.args.get('start_date', request.args.get('date', today_str))
+    end_date = request.args.get('end_date', start_date)
     hosp_cd = request.args.get('hosp_cd', 'all')
-    # TODO: hosp_admin은 session['org_code']로 자기 병원만
-    # TODO: isv_admin은 소속 병원 목록으로 필터
+    kiosk_id = request.args.get('kiosk_id', 'all')
     db = get_monitor_db()
 
+    # 동적 WHERE 빌드
+    where = 'WHERE d.work_date >= ? AND d.work_date <= ?'
+    params = [start_date, end_date]
     if hosp_cd and hosp_cd != 'all':
-        summary = db.execute("""
-            SELECT d.*, k.kiosk_name, k.location, d.hosp_cd
-            FROM usage_daily_summary d
-            LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
-            WHERE d.work_date = ? AND d.hosp_cd = ?
-            ORDER BY d.kiosk_id
-        """, (today, hosp_cd)).fetchall()
-    else:
-        summary = db.execute("""
-            SELECT d.*, k.kiosk_name, k.location, d.hosp_cd
-            FROM usage_daily_summary d
-            LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
-            WHERE d.work_date = ?
-            ORDER BY d.kiosk_id
-        """, (today,)).fetchall()
+        where += ' AND d.hosp_cd = ?'
+        params.append(hosp_cd)
+    if kiosk_id and kiosk_id != 'all':
+        where += ' AND d.kiosk_id = ?'
+        params.append(kiosk_id)
+
+    # 키오스크별 기간 합산
+    summary = db.execute(f"""
+        SELECT d.kiosk_id, k.kiosk_name, k.location, d.hosp_cd,
+               MIN(d.first_use_time) as first_use_time,
+               MAX(d.last_use_time) as last_use_time,
+               SUM(d.total_entry) as total_entry,
+               SUM(d.total_complete) as total_complete,
+               SUM(d.total_cancel) as total_cancel
+        FROM usage_daily_summary d
+        LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
+        {where}
+        GROUP BY d.kiosk_id
+        ORDER BY d.kiosk_id
+    """, params).fetchall()
     summary = [dict(r) for r in summary]
+    for s in summary:
+        e = s.get('total_entry', 0) or 0
+        c = s.get('total_complete', 0) or 0
+        s['complete_rate'] = round(c / e * 100, 1) if e > 0 else 0
 
     total_entry = sum(s.get('total_entry', 0) for s in summary)
     total_complete = sum(s.get('total_complete', 0) for s in summary)
     total_cancel = sum(s.get('total_cancel', 0) for s in summary)
 
-    # 전체 통계
-    stats = db.execute("""
-        SELECT COUNT(DISTINCT kiosk_id) as kiosk_count,
-               COUNT(DISTINCT work_date) as day_count,
-               SUM(total_entry) as total_entry,
-               SUM(total_complete) as total_complete,
-               SUM(total_cancel) as total_cancel
-        FROM usage_daily_summary
-    """).fetchone()
-    stats = dict(stats) if stats else {}
-
     # 병원별 순위 (1단계 전체 뷰용)
     hospital_ranking = []
-    if not hosp_cd or hosp_cd == 'all':
+    if (not hosp_cd or hosp_cd == 'all') and (not kiosk_id or kiosk_id == 'all'):
         ranking_rows = db.execute("""
             SELECT d.hosp_cd,
                    COUNT(DISTINCT d.kiosk_id) as kiosk_count,
@@ -551,27 +553,86 @@ def usage_dashboard_api():
                    SUM(d.total_complete) as total_complete,
                    SUM(d.total_cancel) as total_cancel
             FROM usage_daily_summary d
-            WHERE d.work_date = ? AND d.hosp_cd IS NOT NULL AND d.hosp_cd != ''
+            WHERE d.work_date >= ? AND d.work_date <= ?
+              AND d.hosp_cd IS NOT NULL AND d.hosp_cd != ''
             GROUP BY d.hosp_cd
             ORDER BY total_entry DESC
-        """, (today,)).fetchall()
+        """, (start_date, end_date)).fetchall()
         hospital_ranking = [dict(r) for r in ranking_rows]
         for h in hospital_ranking:
             e = h.get('total_entry', 0) or 0
             c = h.get('total_complete', 0) or 0
             h['complete_rate'] = round(c / e * 100, 1) if e > 0 else 0
 
+    # 시간대별 사용 패턴
+    h_where = 'WHERE e.work_date >= ? AND e.work_date <= ? AND e.status = ?'
+    h_params = [start_date, end_date, 'START']
+    if hosp_cd and hosp_cd != 'all':
+        h_where += ' AND e.hosp_cd = ?'
+        h_params.append(hosp_cd)
+    if kiosk_id and kiosk_id != 'all':
+        h_where += ' AND e.kiosk_id = ?'
+        h_params.append(kiosk_id)
+
+    hourly_rows = db.execute(f"""
+        SELECT CAST(SUBSTR(e.log_dt, 12, 2) AS INTEGER) as hour,
+               COUNT(*) as cnt
+        FROM usage_event_log e
+        {h_where}
+        GROUP BY hour ORDER BY hour
+    """, h_params).fetchall()
+
+    # 선택 기간의 일수 계산
+    d1 = datetime.strptime(start_date, '%Y-%m-%d')
+    d2 = datetime.strptime(end_date, '%Y-%m-%d')
+    period_days = max((d2 - d1).days + 1, 1)
+
+    hourly_period = {}
+    for r in hourly_rows:
+        hourly_period[r[0]] = round(r[1] / period_days, 1)
+
+    # 14일 평균 (고정 기준선)
+    fourteen_start = (datetime.now() - timedelta(days=13)).strftime('%Y-%m-%d')
+    h14_where = 'WHERE e.work_date >= ? AND e.work_date <= ? AND e.status = ?'
+    h14_params = [fourteen_start, today_str, 'START']
+    if hosp_cd and hosp_cd != 'all':
+        h14_where += ' AND e.hosp_cd = ?'
+        h14_params.append(hosp_cd)
+    if kiosk_id and kiosk_id != 'all':
+        h14_where += ' AND e.kiosk_id = ?'
+        h14_params.append(kiosk_id)
+
+    hourly_14d_rows = db.execute(f"""
+        SELECT CAST(SUBSTR(e.log_dt, 12, 2) AS INTEGER) as hour,
+               COUNT(*) as cnt
+        FROM usage_event_log e
+        {h14_where}
+        GROUP BY hour ORDER BY hour
+    """, h14_params).fetchall()
+
+    hourly_14d = {}
+    for r in hourly_14d_rows:
+        hourly_14d[r[0]] = round(r[1] / 14, 1)
+
+    # 0~23시 배열로 정리
+    hourly_pattern = {
+        'hours': list(range(24)),
+        'period': [hourly_period.get(h, 0) for h in range(24)],
+        'avg_14d': [hourly_14d.get(h, 0) for h in range(24)]
+    }
+
     db.close()
     return jsonify({
-        'today': today,
+        'start_date': start_date,
+        'end_date': end_date,
         'active_kiosks': len(summary),
         'total_entry': total_entry,
         'total_complete': total_complete,
         'total_cancel': total_cancel,
         'complete_rate': round(total_complete / total_entry * 100, 1) if total_entry > 0 else 0,
         'summary': summary,
-        'all_stats': stats,
-        'hospital_ranking': hospital_ranking
+        'hospital_ranking': hospital_ranking,
+        'hourly_pattern': hourly_pattern
     })
 
 
@@ -638,13 +699,15 @@ def usage_detail_api():
 @login_required
 def usage_funnel_api():
     """메뉴별 퍼널 분석 API"""
-    work_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    start_date = request.args.get('start_date', request.args.get('date', today_str))
+    end_date = request.args.get('end_date', start_date)
     kiosk_id = request.args.get('kiosk_id', '')
     hosp_cd = request.args.get('hosp_cd', '')
     db = get_monitor_db()
 
-    where = 'WHERE work_date = ?'
-    params = [work_date]
+    where = 'WHERE work_date >= ? AND work_date <= ?'
+    params = [start_date, end_date]
 
     if kiosk_id and kiosk_id != 'all':
         where += ' AND kiosk_id = ?'
@@ -752,7 +815,7 @@ def usage_funnel_api():
         })
 
     result.sort(key=lambda x: x['total'], reverse=True)
-    return jsonify({'menus': result, 'date': work_date})
+    return jsonify({'menus': result, 'start_date': start_date, 'end_date': end_date})
 
 @app.route('/api/kiosk-usage/kiosks')
 @login_required
