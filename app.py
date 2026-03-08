@@ -739,6 +739,9 @@ def usage_funnel_api():
             sessions.append(cur_session)
             cur_session = None
 
+    import re
+    _is_biz_menu = re.compile(r'^[\uAC00-\uD7A3]+$')  # 한글만으로 된 메뉴명
+
     for log in logs:
         title = log.get('window_title', '') or ''
         status = log.get('status', '')
@@ -749,8 +752,12 @@ def usage_funnel_api():
             menu = parts[0]
             step = parts[1] if len(parts) > 1 else ''
         else:
-            menu = '기타' if title else '기타'
+            menu = '기타'
             step = title
+
+        # 시스템 이벤트 제외: 기타, Bluswell, 비한글 메뉴명
+        if menu in ('기타', 'Bluswell') or not _is_biz_menu.match(menu):
+            continue
 
         # 메뉴가 바뀌면 무조건 현재 세션 종료 + 새 세션 시작
         if cur_session and cur_session['menu'] != menu:
