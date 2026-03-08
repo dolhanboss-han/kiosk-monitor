@@ -60,7 +60,7 @@ td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
 <body>
 
 <div class="header">
-    <span class="logo"><em style="color:#00d4ff;font-style:normal">BS</em>EYE</span>
+    <span class="logo"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">대시보드</span></span>
     {% include 'nav.html' %}
     <div class="right">
         <span class="user">{{ session.get('user_name', '') }} ({{ session.get('user_role', '') }})</span>
