@@ -28,8 +28,9 @@
             td{padding:6px 8px;font-size:0.75rem;}
         }
         @media(max-width:768px){
-            .header{padding:6px 10px!important;height:auto!important}
+            .header{padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
             .header>div:last-child{display:none!important}
+            .clk{font-size:0.65rem!important}
         }
     </style>
 </head>
@@ -37,6 +38,7 @@
 <div class="header" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#111130;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;height:48px;">
     <span style="font-size:1.26rem;font-weight:700;color:#eee;white-space:nowrap"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">로그인이력</span></span>
     {% include 'nav.html' %}
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
     <div style="display:flex;gap:10px;align-items:center">
         <span style="color:#aaa;font-size:0.78rem;white-space:nowrap">{{ session.get('user_name', '') }}</span>
         <a href="/change-password" style="color:#aaa;text-decoration:none;font-size:0.72rem">비밀번호</a>
@@ -44,7 +46,7 @@
     </div>
 </div>
 
-    
+
     <div class="section">
         <div class="stat">최근 100건</div>
         <table>
@@ -68,5 +70,6 @@
             </tbody>
         </table>
     </div>
+<script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
 </html>
