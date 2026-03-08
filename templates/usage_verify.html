@@ -100,7 +100,8 @@ body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-siz
 .kpi .l{font-size:0.68rem;color:#556;margin-top:2px}
 
 @media(max-width:768px){
-    .hd{padding:6px 10px!important;height:auto!important}
+    .hd{padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .kpi-row{grid-template-columns:repeat(3,1fr)}
     .chk-grid{grid-template-columns:1fr}
     .send-grid{grid-template-columns:1fr}
@@ -110,7 +111,7 @@ body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-siz
 <body>
 <div class="hd">
     <span style="font-size:1.26rem;font-weight:700;color:#eee;white-space:nowrap"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">현장검증</span></span>
-    <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:center">{% include 'nav.html' %}<span id="clk" style="color:#556;font-size:0.75rem"></span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:center">{% include 'nav.html' %}<span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span></div>
 </div>
 <div class="ctrl">
     <label>날짜 <input type="date" id="dt"></label>
@@ -161,7 +162,7 @@ function today(){return new Date().toISOString().slice(0,10)}
 function init(){
     document.getElementById('dt').value=today();
     loadAll();
-    setInterval(function(){document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR')},1000);
+    setInterval(function(){var d=new Date();document.getElementById('clk').textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR')},1000);
     setInterval(function(){
         if(document.getElementById('ar').checked){loadAll();document.getElementById('ri').textContent='갱신: '+new Date().toLocaleTimeString('ko-KR')}
     },30000);
