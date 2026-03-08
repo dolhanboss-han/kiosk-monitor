@@ -51,9 +51,15 @@ td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
 @media(max-width:768px){
     .header{padding:6px 10px;height:auto;flex-wrap:wrap;gap:6px}
     .header .logo{font-size:0.95rem}
+    .header .right{display:none!important}
     .header .nav{overflow-x:auto;flex-wrap:nowrap;gap:4px}
     .header .nav a{font-size:0.7rem;padding:3px 6px}
-    #canvas{width:100%;margin-top:80px}
+    #canvas{width:100%!important;margin-top:60px;display:flex!important;flex-direction:column;gap:8px;padding:8px;min-height:auto!important;height:auto!important}
+    .widget{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;min-height:80px}
+    .widget .w-body{height:auto!important;min-height:60px;overflow:visible!important}
+    .widget .w-body canvas{max-width:100%!important;height:200px!important}
+    .widget .w-body table{width:100%!important}
+    .widget .w-body th,.widget .w-body td{font-size:0.65em!important;padding:2px 3px!important}
 }
 </style>
 </head>
