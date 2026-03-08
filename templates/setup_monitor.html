@@ -112,10 +112,23 @@ body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-siz
 .disconnected{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#ef444412;border:1px solid #ef444433;border-radius:6px;margin-bottom:12px}
 
 @media(max-width:768px){
+    .wrap{padding:8px}
     .fg{grid-template-columns:1fr}
     .sumg{grid-template-columns:repeat(2,1fr)}
-    .steps{gap:1px}
-    .stp{padding:6px 10px;font-size:0.7rem}
+    .steps{gap:1px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .stp{padding:6px 6px;font-size:0;gap:0;min-width:36px;justify-content:center}
+    .stp .dot{width:24px;height:24px;font-size:0.7rem}
+    .pnl{padding:12px}
+    .pnl h2{font-size:0.85rem}
+    .btn{padding:6px 12px;font-size:0.78rem;min-height:40px}
+    .ci{padding:8px 10px;flex-wrap:wrap}
+    .cin{font-size:0.78rem}
+    .civ{font-size:0.7rem}
+    .cia{margin-top:6px;width:100%;justify-content:flex-end}
+    .cia button{min-height:36px;padding:6px 10px}
+    .note{font-size:0.72rem;padding:8px}
+    .br{flex-wrap:wrap;gap:8px}
+    .br .btn{flex:1;min-width:120px;text-align:center}
 }
 </style>
 </head>
