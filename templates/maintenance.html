@@ -135,6 +135,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 /* 모바일 */
 @media(max-width:768px){
     .header{flex-wrap:wrap;padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .header h1{font-size:0.75rem;white-space:nowrap}
     .header .nav{gap:4px}
     .header .nav a{font-size:0.6rem;padding:3px 6px}
@@ -157,7 +158,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 <div class="header">
     <span style="font-size:1.26rem;font-weight:700;color:#eee;white-space:nowrap"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">유지보수</span></span>
     {% include 'nav.html' %}
-    <div class="time" id="clock"></div>
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
 </div>
 <!-- 탭 -->
 <div class="tabs">
@@ -238,11 +239,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 // ═══════════════════════════════════════
 // 시계
 // ═══════════════════════════════════════
-function updateClock(){
-    const now=new Date();
-    document.getElementById('clock').textContent=now.getFullYear()+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+String(now.getDate()).padStart(2,'0')+' '+now.toLocaleTimeString('ko-KR');
-}
-setInterval(updateClock,1000);updateClock();
+function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();
 
 // ═══════════════════════════════════════
 // 탭 전환
