@@ -28,6 +28,8 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
 .toolbar select{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
 .toolbar button{background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;border-radius:4px;padding:4px 12px;font-size:0.75rem;cursor:pointer}
 .toolbar button:hover{background:#2a4a6f}
+.toolbar button:disabled{background:#1a1a3e;color:#556;border-color:#333;cursor:not-allowed;opacity:0.6}
+.toolbar button:disabled:hover{background:#1a1a3e}
 
 .tabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid #1a1a3e}
 .tab{padding:8px 16px;font-size:0.8rem;color:#889;cursor:pointer;border-bottom:2px solid transparent;transition:0.2s}
@@ -76,7 +78,8 @@ tr:hover{background:#1a1a3a}
 .funnel-card-hdr .fc-arrow{color:#556;font-size:0.7rem}
 /* 깔때기 단계 */
 .fnl-step{margin:0 auto 2px;height:36px;line-height:36px;text-align:center;border-radius:4px;color:#fff;font-size:0.78rem;font-weight:bold;transition:width 0.5s ease;position:relative}
-.fnl-drop{text-align:center;font-size:0.65rem;color:#ff6b6b;line-height:1.4;padding:1px 0}
+.fnl-drop{text-align:center;font-size:0.65rem;color:#cc3333;line-height:1.4;padding:1px 0}
+.period-label{font-size:0.72rem;color:#889;text-align:right;padding:0 16px 0 0;white-space:nowrap}
 .no-data{text-align:center;padding:30px;color:#556;font-size:0.8rem}
 /* 워터폴 모달 */
 .wf-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center}
@@ -150,6 +153,8 @@ tr:hover{background:#1a1a3a}
     .dropout-info{font-size:0.62rem;width:70px}
     .time-grid{grid-template-columns:1fr}
     .breadcrumb{padding:4px 8px;font-size:0.7rem}
+    .period-label{font-size:0.62rem;padding:0 8px 0 0}
+    .dropout-list .fnl-step{height:28px;line-height:28px;font-size:0.68rem}
 }
 </style>
 </head>
@@ -168,12 +173,16 @@ tr:hover{background:#1a1a3a}
     <label>병원:</label>
     <select id="t-hosp" onchange="onHospChange()"><option value="all">전체</option></select>
     <label>키오스크:</label>
-    <select id="t-kiosk"><option value="all">전체</option></select>
-    <button onclick="loadAll()">조회</button>
+    <select id="t-kiosk" onchange="currentKiosk=this.value"><option value="all">전체</option></select>
+    <button id="btn-query" onclick="loadAll()" disabled>조회</button>
 </div>
 
 <div class="breadcrumb" id="breadcrumb"></div>
 
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+    <div style="flex:1"></div>
+    <div class="period-label" id="period-label"></div>
+</div>
 <div class="kpi-row">
     <div class="kpi c1"><div class="val" id="k-kiosk">-</div><div class="label">활성 키오스크</div></div>
     <div class="kpi c2"><div class="val" id="k-entry">-</div><div class="label">기간 진입</div></div>
@@ -276,6 +285,7 @@ tr:hover{background:#1a1a3a}
 var chHourly=null,chDaily=null,chRate=null,chMenuTime=null,chStepTime=null;
 var funnelData=null, selectedMenu=null;
 var hospMap={};
+var currentKiosk='all';
 
 function today(){return new Date().toISOString().slice(0,10)}
 function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
@@ -285,6 +295,16 @@ document.getElementById('t-end').value=today();
 
 function getStart(){return document.getElementById('t-start').value||daysAgo(13)}
 function getEnd(){return document.getElementById('t-end').value||today()}
+
+function checkQueryReady(){
+    var s=document.getElementById('t-start').value;
+    var e=document.getElementById('t-end').value;
+    var h=document.getElementById('t-hosp').value;
+    document.getElementById('btn-query').disabled=!(s && e && h && h!=='all');
+}
+document.getElementById('t-start').addEventListener('change',checkQueryReady);
+document.getElementById('t-end').addEventListener('change',checkQueryReady);
+document.getElementById('t-hosp').addEventListener('change',checkQueryReady);
 
 // ── 병원 목록 로드 ──
 async function loadHospitals(){
@@ -301,12 +321,13 @@ async function loadHospitals(){
 }
 
 function getHospCd(){return document.getElementById('t-hosp').value}
-function getKioskId(){return document.getElementById('t-kiosk').value}
+function getKioskId(){return currentKiosk}
 
 async function onHospChange(){
     var hc=getHospCd();
     var sel=document.getElementById('t-kiosk');
     sel.innerHTML='<option value="all">전체</option>';
+    currentKiosk='all';
     if(hc && hc!=='all'){
         try{
             var r=await fetch('/api/kiosk-usage/kiosks?hosp_cd='+hc);
@@ -315,7 +336,7 @@ async function onHospChange(){
         }catch(e){console.error(e)}
     }
     sel.value='all';
-    loadAll();
+    checkQueryReady();
 }
 
 function showTab(n){
@@ -327,8 +348,17 @@ function showTab(n){
 
 function loadAll(){
     updateBreadcrumb();
+    updatePeriodLabel();
     loadData();
     loadFunnel();
+}
+
+function updatePeriodLabel(){
+    var sd=getStart().replace(/-/g,'.');
+    var ed=getEnd().replace(/-/g,'.');
+    var d1=new Date(getStart()),d2=new Date(getEnd());
+    var diff=Math.round((d2-d1)/(1000*60*60*24))+1;
+    document.getElementById('period-label').textContent=sd+' ~ '+ed+' ('+diff+'일간)';
 }
 
 // ── 탭0: 현황 ──
@@ -465,7 +495,7 @@ function renderFunnel(){
         (m.funnel||[]).forEach(function(f,fi){
             var w=Math.max(f.count/maxCount*100,20);
             var isComplete=f.step.indexOf('완료')>=0;
-            var bg=isComplete?'#00ff88cc':'#00d4ffcc';
+            var bg=isComplete?'#0a8a5a':'#0a7ea8';
             html+='<div class="fnl-step" style="width:'+w+'%;background:'+bg+'">';
             html+=f.step+' <span style="opacity:0.8">'+f.count+'</span> <span style="font-size:0.65rem;opacity:0.7">'+f.pct+'%</span>';
             html+='</div>';
@@ -496,10 +526,10 @@ function openWaterfall(menuIdx){
         var isComplete=f.step.indexOf('완료')>=0;
         stayData.push(stayed);
         dropData.push(f.cancel_count||0);
-        bgStay.push(isComplete?'#00ff8888':'#00d4ff88');
-        bdStay.push(isComplete?'#00ff88':'#00d4ff');
-        bgDrop.push('#ff444488');
-        bdDrop.push('#ff4444');
+        bgStay.push(isComplete?'#0a8a5a88':'#0a7ea888');
+        bdStay.push(isComplete?'#0a8a5a':'#0a7ea8');
+        bgDrop.push('#cc333388');
+        bdDrop.push('#cc3333');
         times+='<span>'+f.avg_sec+'초</span>';
     });
     document.getElementById('wf-times').innerHTML=times;
@@ -532,25 +562,28 @@ function closeWaterfall(e){
     if(chWaterfall){chWaterfall.destroy();chWaterfall=null}
 }
 
-// ── 탭2: 메뉴별 이탈율 바 차트 ──
+// ── 탭2: 메뉴별 이탈율 (깔때기형, 완료율 높은 순) ──
 function renderDropout(){
     var el=document.getElementById('dropout-chart');
     if(!funnelData||!funnelData.menus||funnelData.menus.length===0){
         el.innerHTML='<div class="no-data">데이터 없음</div>';
         return;
     }
+    var sorted=funnelData.menus.slice().sort(function(a,b){return b.rate-a.rate});
+    var maxTotal=Math.max.apply(null,sorted.map(function(m){return m.total||1}));
     var html='';
-    funnelData.menus.forEach(function(m){
-        var total=m.total||1;
-        var compPct=Math.round(m.completed/total*100);
-        var cancelPct=100-compPct;
-        html+='<div class="dropout-row">';
-        html+='<div class="dropout-menu">'+m.menu+'</div>';
-        html+='<div class="dropout-bar">';
-        if(compPct>0) html+='<div class="db" style="width:'+compPct+'%;background:#00ff8888">'+m.completed+'</div>';
-        if(cancelPct>0) html+='<div class="db" style="width:'+cancelPct+'%;background:#ff444488">'+m.cancelled+'</div>';
+    sorted.forEach(function(m,i){
+        var w=Math.max(m.total/maxTotal*100,25);
+        var rc=m.rate;
+        var rColor=rc>=80?'#0a8a5a':rc>=60?'#ffd166':'#cc3333';
+        var mi=funnelData.menus.indexOf(m);
+        html+='<div style="cursor:pointer;margin-bottom:4px" onclick="showTab(1);setTimeout(function(){openWaterfall('+mi+')},100)">';
+        html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">';
+        html+='<span style="width:80px;text-align:right;font-size:0.75rem;color:#ccc;flex-shrink:0">'+m.menu+'</span>';
+        html+='<div class="fnl-step" style="width:'+w+'%;background:'+rColor+';text-align:left;padding-left:10px">';
+        html+=m.total+'건 <span style="opacity:0.7;font-size:0.65rem">완료율 '+rc+'%</span>';
         html+='</div>';
-        html+='<div class="dropout-info">완료 '+compPct+'% 이탈 '+cancelPct+'%</div>';
+        html+='</div>';
         html+='</div>';
     });
     el.innerHTML=html;
@@ -618,17 +651,18 @@ async function loadDetail(){
 
 function selectHosp(code){
     document.getElementById('t-hosp').value=code;
+    currentKiosk='all';
     onHospChange();
 }
 
 function selectKiosk(kid){
-    document.getElementById('t-kiosk').value=kid;
+    currentKiosk=kid;
     loadAll();
 }
 
 function updateBreadcrumb(){
     var hc=getHospCd();
-    var kid=getKioskId();
+    var kid=currentKiosk;
     var el=document.getElementById('breadcrumb');
     if(hc==='all'){
         el.innerHTML='<span class="bc-current">전체</span>';
@@ -639,13 +673,13 @@ function updateBreadcrumb(){
     if(kid==='all'){
         html+='<span class="bc-current">'+hName+'</span>';
     }else{
-        html+='<span class="bc-link" onclick="document.getElementById(\'t-kiosk\').value=\'all\';loadAll()">'+hName+'</span>';
+        html+='<span class="bc-link" onclick="currentKiosk=\'all\';loadAll()">'+hName+'</span>';
         html+='<span> &gt; </span><span class="bc-current">'+kid+'</span>';
     }
     el.innerHTML=html;
 }
 
-loadHospitals().then(function(){loadAll()});
+loadHospitals();
 </script>
 <script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
