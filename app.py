@@ -4,6 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 import pyodbc
 import sqlite3
+import re
 from datetime import date, datetime, timedelta
 from config import get_connection_string
 
@@ -12,6 +13,7 @@ app.config['SECRET_KEY'] = 'bseye-monitor-secret-2026'
 socketio = SocketIO(app)
 
 EXCLUDE_ISV = "('MCC','NSS')"
+_is_biz_menu = re.compile(r'^[\uAC00-\uD7A3]+$')  # 한글만으로 된 메뉴명
 MONITOR_DB = '/home/ubuntu/kiosk-monitor/monitor.db'
 
 def get_db():
@@ -739,9 +741,6 @@ def usage_funnel_api():
             sessions.append(cur_session)
             cur_session = None
 
-    import re
-    _is_biz_menu = re.compile(r'^[\uAC00-\uD7A3]+$')  # 한글만으로 된 메뉴명
-
     for log in logs:
         title = log.get('window_title', '') or ''
         status = log.get('status', '')
@@ -826,6 +825,9 @@ def usage_funnel_api():
             'rate': round(m['completed'] / m['total'] * 100, 1) if m['total'] > 0 else 0,
             'funnel': funnel
         })
+
+    # 시스템 이벤트 메뉴 제외 (한글 메뉴명만 통과)
+    result = [r for r in result if r['menu'] not in ('기타', 'Bluswell') and _is_biz_menu.match(r['menu'])]
 
     result.sort(key=lambda x: x['total'], reverse=True)
     return jsonify({'menus': result, 'start_date': start_date, 'end_date': end_date})
