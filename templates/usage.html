@@ -97,7 +97,8 @@ tr:hover{background:#1a1a3a}
     .kpi{padding:10px}
     .kpi .val{font-size:1.3rem}
     .kpi .label{font-size:0.65rem}
-    .hdr{padding:6px 10px!important;height:auto!important}
+    .hdr{padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .hdr .logo{font-size:0.95rem}
     .content{grid-template-columns:1fr}
     .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;gap:2px}
@@ -123,6 +124,7 @@ tr:hover{background:#1a1a3a}
 <div class="hdr">
     <span class="logo"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">행동분석</span></span>
     {% include 'nav.html' %}
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
 </div>
 <div class="kpi-row">
     <div class="kpi c1"><div class="val" id="k-kiosk">-</div><div class="label">활성 키오스크</div></div>
@@ -452,5 +454,6 @@ async function loadDetail(){
 
 loadAll();
 </script>
+<script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
 </html>
