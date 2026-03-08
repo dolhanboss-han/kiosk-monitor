@@ -35,6 +35,24 @@
         .flash{background:#00d4ff22;color:#00d4ff;padding:10px 20px;border-radius:6px;margin:15px 30px 0;font-size:0.9rem;}
         .flash.error{background:#ff444422;color:#ff4444;}
         .actions{display:flex;gap:6px;}
+        @media(max-width:768px){
+            .section{padding:15px 8px}
+            .top-bar{flex-direction:column;gap:10px;align-items:stretch}
+            .top-bar .stat{font-size:0.82rem}
+            .btn-add{width:100%;text-align:center;padding:10px 16px;min-height:44px;font-size:0.85rem}
+            .flash{margin:10px 8px 0;font-size:0.82rem}
+            table{background:transparent}
+            thead{display:none}
+            tbody{display:block}
+            tr{display:block;margin-bottom:10px;border:1px solid #333;border-radius:8px;padding:12px;background:#1a1a2e}
+            td{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;font-size:0.82rem;border:none;border-bottom:1px solid #252540}
+            td:last-child{border-bottom:none;padding-top:8px;justify-content:flex-end}
+            td::before{content:attr(data-label);color:#888;font-size:0.72rem;font-weight:bold;margin-right:10px;white-space:nowrap;min-width:65px}
+            td:last-child::before{display:none}
+            .actions{gap:8px}
+            .btn{padding:6px 14px;font-size:0.75rem;min-height:36px;display:inline-flex;align-items:center}
+            .badge{font-size:0.72rem;padding:3px 10px}
+        }
     </style>
 </head>
 <body style="padding-top:60px">
@@ -80,16 +98,16 @@
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td>{{ u['id'] }}</td>
-                    <td>{{ u['username'] }}</td>
-                    <td>{{ u['name'] }}</td>
-                    <td><span class="badge {{ u['org_type'] }}">{{ u['org_type'] }}</span></td>
-                    <td>{{ u['role'] }}</td>
-                    <td>{{ u['org_code'] or '-' }}</td>
-                    <td>{{ u['phone'] or '-' }}</td>
-                    <td><span class="badge {{ 'active' if u['is_active'] else 'inactive' }}">{{ '활성' if u['is_active'] else '비활성' }}</span></td>
-                    <td>{{ u['last_login'] or '없음' }}</td>
-                    <td class="actions">
+                    <td data-label="ID">{{ u['id'] }}</td>
+                    <td data-label="아이디">{{ u['username'] }}</td>
+                    <td data-label="이름">{{ u['name'] }}</td>
+                    <td data-label="구분"><span class="badge {{ u['org_type'] }}">{{ u['org_type'] }}</span></td>
+                    <td data-label="권한">{{ u['role'] }}</td>
+                    <td data-label="소속코드">{{ u['org_code'] or '-' }}</td>
+                    <td data-label="연락처">{{ u['phone'] or '-' }}</td>
+                    <td data-label="상태"><span class="badge {{ 'active' if u['is_active'] else 'inactive' }}">{{ '활성' if u['is_active'] else '비활성' }}</span></td>
+                    <td data-label="최근 로그인">{{ u['last_login'] or '없음' }}</td>
+                    <td data-label="관리" class="actions">
                         <a href="/admin/user/edit/{{ u['id'] }}" class="btn btn-edit">수정</a>
                         <form method="POST" action="/admin/user/delete/{{ u['id'] }}" style="display:inline;" onsubmit="return confirm('정말 삭제하시겠습니까?')">
                             <button type="submit" class="btn btn-del">삭제</button>
