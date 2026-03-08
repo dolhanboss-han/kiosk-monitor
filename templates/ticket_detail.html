@@ -37,6 +37,25 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif}
 .comment-form textarea{width:100%;padding:10px;background:#1a1a3e;border:1px solid #444;border-radius:6px;color:#eee;font-size:0.85rem;height:80px;resize:vertical}
 .comment-form textarea:focus{border-color:#00d4ff;outline:none}
 .comment-form button{margin-top:8px;padding:8px 16px;background:#00d4ff;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:0.85rem}
+@media(max-width:768px){
+    .container{padding:0 8px;margin-top:10px}
+    .info-card{padding:14px;margin-bottom:12px}
+    .info-card h2{font-size:0.92rem;margin-bottom:12px}
+    .info-grid{grid-template-columns:1fr 1fr;gap:10px}
+    .info-item .label{font-size:0.7rem}
+    .info-item .value{font-size:0.82rem}
+    .description{padding:10px;font-size:0.82rem}
+    .status-form{flex-direction:row;flex-wrap:wrap;gap:8px}
+    .status-form select{flex:1;min-height:40px;font-size:0.82rem}
+    .status-form button{min-height:40px;padding:8px 16px;font-size:0.82rem}
+    .comments h3{font-size:0.85rem}
+    .comment{padding:10px}
+    .comment .meta{font-size:0.7rem}
+    .comment .text{font-size:0.82rem}
+    .comment-form textarea{font-size:0.82rem;height:80px}
+    .comment-form button{width:100%;min-height:44px;font-size:0.85rem}
+    .badge{font-size:0.72rem;padding:3px 10px}
+}
 </style>
 </head>
 <body style="padding-top:60px">
