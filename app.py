@@ -436,6 +436,7 @@ def usage_receive():
         kiosk_id = data['kiosk_id']
         hosp_cd = data.get("hosp_cd", "")
         work_date = data['work_date']
+        hosp_cd = data.get('hosp_cd', '')
         summary = data.get('summary', {})
         logs = data.get('logs', [])
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -462,7 +463,7 @@ def usage_receive():
               summary.get('total_complete', 0),
               summary.get('total_cancel', 0),
               summary.get('complete_rate', 0),
-              now))
+              now, hosp_cd))
 
         # 이벤트 로그 저장
         for log in logs:
@@ -478,7 +479,7 @@ def usage_receive():
                   log.get('class_name', ''),
                   log.get('status', ''),
                   log.get('elapsed_sec'),
-                  now))
+                  now, hosp_cd))
 
         # 키오스크 마스터 업데이트
         db.execute("""
@@ -502,15 +503,27 @@ def usage_receive():
 def usage_dashboard_api():
     """사용 현황 대시보드 API"""
     today = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    hosp_cd = request.args.get('hosp_cd', 'all')
+    # TODO: hosp_admin은 session['org_code']로 자기 병원만
+    # TODO: isv_admin은 소속 병원 목록으로 필터
     db = get_monitor_db()
 
-    summary = db.execute("""
-        SELECT d.*, k.kiosk_name, k.location
-        FROM usage_daily_summary d
-        LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
-        WHERE d.work_date = ?
-        ORDER BY d.kiosk_id
-    """, (today,)).fetchall()
+    if hosp_cd and hosp_cd != 'all':
+        summary = db.execute("""
+            SELECT d.*, k.kiosk_name, k.location, d.hosp_cd
+            FROM usage_daily_summary d
+            LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
+            WHERE d.work_date = ? AND d.hosp_cd = ?
+            ORDER BY d.kiosk_id
+        """, (today, hosp_cd)).fetchall()
+    else:
+        summary = db.execute("""
+            SELECT d.*, k.kiosk_name, k.location, d.hosp_cd
+            FROM usage_daily_summary d
+            LEFT JOIN usage_kiosk_master k ON d.kiosk_id = k.kiosk_id
+            WHERE d.work_date = ?
+            ORDER BY d.kiosk_id
+        """, (today,)).fetchall()
     summary = [dict(r) for r in summary]
 
     total_entry = sum(s.get('total_entry', 0) for s in summary)
@@ -528,6 +541,26 @@ def usage_dashboard_api():
     """).fetchone()
     stats = dict(stats) if stats else {}
 
+    # 병원별 순위 (1단계 전체 뷰용)
+    hospital_ranking = []
+    if not hosp_cd or hosp_cd == 'all':
+        ranking_rows = db.execute("""
+            SELECT d.hosp_cd,
+                   COUNT(DISTINCT d.kiosk_id) as kiosk_count,
+                   SUM(d.total_entry) as total_entry,
+                   SUM(d.total_complete) as total_complete,
+                   SUM(d.total_cancel) as total_cancel
+            FROM usage_daily_summary d
+            WHERE d.work_date = ? AND d.hosp_cd IS NOT NULL AND d.hosp_cd != ''
+            GROUP BY d.hosp_cd
+            ORDER BY total_entry DESC
+        """, (today,)).fetchall()
+        hospital_ranking = [dict(r) for r in ranking_rows]
+        for h in hospital_ranking:
+            e = h.get('total_entry', 0) or 0
+            c = h.get('total_complete', 0) or 0
+            h['complete_rate'] = round(c / e * 100, 1) if e > 0 else 0
+
     db.close()
     return jsonify({
         'today': today,
@@ -537,7 +570,8 @@ def usage_dashboard_api():
         'total_cancel': total_cancel,
         'complete_rate': round(total_complete / total_entry * 100, 1) if total_entry > 0 else 0,
         'summary': summary,
-        'all_stats': stats
+        'all_stats': stats,
+        'hospital_ranking': hospital_ranking
     })
 
 
@@ -548,20 +582,24 @@ def usage_daily_api():
     start_date = request.args.get('start_date', datetime.now().strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', start_date)
     kiosk_id = request.args.get('kiosk_id', 'all')
+    hosp_cd = request.args.get('hosp_cd', 'all')
     db = get_monitor_db()
 
+    where = 'WHERE work_date >= ? AND work_date <= ?'
+    params = [start_date, end_date]
+
     if kiosk_id and kiosk_id != 'all':
-        rows = db.execute("""
-            SELECT * FROM usage_daily_summary
-            WHERE work_date >= ? AND work_date <= ? AND kiosk_id = ?
-            ORDER BY work_date DESC, kiosk_id
-        """, (start_date, end_date, kiosk_id)).fetchall()
-    else:
-        rows = db.execute("""
-            SELECT * FROM usage_daily_summary
-            WHERE work_date >= ? AND work_date <= ?
-            ORDER BY work_date DESC, kiosk_id
-        """, (start_date, end_date)).fetchall()
+        where += ' AND kiosk_id = ?'
+        params.append(kiosk_id)
+    if hosp_cd and hosp_cd != 'all':
+        where += ' AND hosp_cd = ?'
+        params.append(hosp_cd)
+
+    rows = db.execute(f"""
+        SELECT * FROM usage_daily_summary
+        {where}
+        ORDER BY work_date DESC, kiosk_id
+    """, params).fetchall()
 
     db.close()
     return jsonify({'data': [dict(r) for r in rows], 'count': len(rows)})
@@ -602,22 +640,25 @@ def usage_funnel_api():
     """메뉴별 퍼널 분석 API"""
     work_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     kiosk_id = request.args.get('kiosk_id', '')
+    hosp_cd = request.args.get('hosp_cd', '')
     db = get_monitor_db()
 
+    where = 'WHERE work_date = ?'
+    params = [work_date]
+
     if kiosk_id and kiosk_id != 'all':
-        rows = db.execute("""
-            SELECT window_title, status, elapsed_sec, log_dt
-            FROM usage_event_log
-            WHERE work_date = ? AND kiosk_id = ?
-            ORDER BY log_dt
-        """, (work_date, kiosk_id)).fetchall()
-    else:
-        rows = db.execute("""
-            SELECT window_title, status, elapsed_sec, log_dt
-            FROM usage_event_log
-            WHERE work_date = ?
-            ORDER BY log_dt
-        """, (work_date,)).fetchall()
+        where += ' AND kiosk_id = ?'
+        params.append(kiosk_id)
+    if hosp_cd and hosp_cd != 'all' and hosp_cd:
+        where += ' AND hosp_cd = ?'
+        params.append(hosp_cd)
+
+    rows = db.execute(f"""
+        SELECT window_title, status, elapsed_sec, log_dt
+        FROM usage_event_log
+        {where}
+        ORDER BY log_dt
+    """, params).fetchall()
 
     logs = [dict(r) for r in rows]
     db.close()
@@ -717,12 +758,48 @@ def usage_funnel_api():
 @login_required
 def usage_kiosk_list_api():
     """등록된 키오스크 목록"""
+    hosp_cd = request.args.get('hosp_cd', 'all')
     db = get_monitor_db()
-    rows = db.execute('SELECT * FROM usage_kiosk_master ORDER BY kiosk_id').fetchall()
+
+    if hosp_cd and hosp_cd != 'all':
+        rows = db.execute('SELECT * FROM usage_kiosk_master WHERE hosp_cd = ? ORDER BY kiosk_id', (hosp_cd,)).fetchall()
+    else:
+        rows = db.execute('SELECT * FROM usage_kiosk_master ORDER BY kiosk_id').fetchall()
+
     db.close()
     return jsonify({'kiosks': [dict(r) for r in rows]})
 
+@app.route('/api/kiosk-usage/hospitals')
+@login_required
+def usage_hospital_list_api():
+    """행동분석용 병원 목록 API"""
+    db = get_monitor_db()
+    rows = db.execute("""
+        SELECT DISTINCT hosp_cd FROM usage_kiosk_master
+        WHERE hosp_cd IS NOT NULL AND hosp_cd != ''
+        ORDER BY hosp_cd
+    """).fetchall()
+    db.close()
 
+    hospitals = [{'hosp_cd': r[0], 'hosp_nm': r[0]} for r in rows]
+
+    # MSSQL에서 병원명 매핑 시도
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        codes = [h['hosp_cd'] for h in hospitals]
+        if codes:
+            placeholders = ','.join(['?' for _ in codes])
+            cursor.execute(f"SELECT HOSP_CD, HOSP_NM FROM KIOSK_HOSP_INFO WHERE HOSP_CD IN ({placeholders})", codes)
+            name_map = {str(row[0]): str(row[1]) for row in cursor.fetchall()}
+            for h in hospitals:
+                if h['hosp_cd'] in name_map:
+                    h['hosp_nm'] = name_map[h['hosp_cd']]
+        conn.close()
+    except:
+        pass
+
+    return jsonify({'hospitals': hospitals})
 
 
 
