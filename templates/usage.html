@@ -92,6 +92,17 @@ tr:hover{background:#1a1a3a}
 .time-card{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px}
 .time-card-title{font-size:0.8rem;color:#4fc3f7;margin-bottom:8px}
 
+/* 클릭 가능한 셀 */
+.clickable{color:#00d4ff;cursor:pointer;transition:0.15s}
+.clickable:hover{text-decoration:underline}
+
+/* 빵가루 네비게이션 */
+.breadcrumb{display:flex;gap:4px;padding:4px 16px;font-size:0.75rem;color:#889;align-items:center}
+.breadcrumb span{color:#889}
+.bc-link{color:#4fc3f7;cursor:pointer;transition:0.15s}
+.bc-link:hover{text-decoration:underline}
+.bc-current{color:#e0e0e0;font-weight:bold}
+
 @media(max-width:768px){
     .kpi-row{grid-template-columns:repeat(2,1fr);gap:6px;padding:8px}
     .kpi{padding:10px}
@@ -117,6 +128,7 @@ tr:hover{background:#1a1a3a}
     .funnel-label{width:80px;font-size:0.65rem}
     .funnel-summary{grid-template-columns:repeat(2,1fr)}
     .time-grid{grid-template-columns:1fr}
+    .breadcrumb{padding:4px 8px;font-size:0.7rem}
 }
 </style>
 </head>
@@ -143,6 +155,8 @@ tr:hover{background:#1a1a3a}
     <select id="t-kiosk"><option value="all">전체</option></select>
     <button onclick="loadAll()">조회</button>
 </div>
+
+<div class="breadcrumb" id="breadcrumb"></div>
 
 <div class="tabs">
     <div class="tab active" onclick="showTab(0)">현황</div>
@@ -273,6 +287,7 @@ function showTab(n){
 }
 
 function loadAll(){
+    updateBreadcrumb();
     loadData();
     loadFunnel();
 }
@@ -298,8 +313,8 @@ async function loadData(){
                 var rc=hr.total_entry>0?Math.round(hr.total_complete/hr.total_entry*100):0;
                 var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
                 var nm=hospMap[hr.hosp_cd]||hr.hosp_cd;
-                rh+='<tr><td data-label="병원코드">'+hr.hosp_cd+'</td>';
-                rh+='<td data-label="병원명"><a href="#" onclick="selectHosp(\''+hr.hosp_cd+'\');return false" style="color:#4fc3f7;text-decoration:underline;cursor:pointer">'+nm+'</a></td>';
+                rh+='<tr><td data-label="병원코드" class="clickable" onclick="selectHosp(\''+hr.hosp_cd+'\')">'+hr.hosp_cd+'</td>';
+                rh+='<td data-label="병원명" class="clickable" onclick="selectHosp(\''+hr.hosp_cd+'\')">'+nm+'</td>';
                 rh+='<td data-label="키오스크수">'+hr.kiosk_count+'</td>';
                 rh+='<td data-label="진입" style="color:#00ff88;font-weight:bold">'+hr.total_entry+'</td>';
                 rh+='<td data-label="완료" style="color:#4fc3f7;font-weight:bold">'+hr.total_complete+'</td>';
@@ -316,7 +331,7 @@ async function loadData(){
         (d.summary||[]).forEach(function(s){
             var rc=s.complete_rate||0;
             var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
-            h+='<tr><td data-label="키오스크">'+s.kiosk_id+'</td><td data-label="위치">'+(s.location||'-')+'</td><td data-label="첫사용">'+(s.first_use_time||'-')+'</td><td data-label="마지막">'+(s.last_use_time||'-')+'</td>';
+            h+='<tr><td data-label="키오스크" class="clickable" onclick="selectKiosk(\''+s.kiosk_id+'\')">'+s.kiosk_id+'</td><td data-label="위치">'+(s.location||'-')+'</td><td data-label="첫사용">'+(s.first_use_time||'-')+'</td><td data-label="마지막">'+(s.last_use_time||'-')+'</td>';
             h+='<td data-label="진입" style="color:#00ff88;font-weight:bold">'+s.total_entry+'</td><td data-label="완료" style="color:#4fc3f7;font-weight:bold">'+s.total_complete+'</td>';
             h+='<td data-label="이탈" style="color:#ff6b6b;font-weight:bold">'+s.total_cancel+'</td>';
             h+='<td data-label="완료율"><div class="rate-bar"><div class="rate-fill" style="width:'+rc+'%;background:'+color+'"></div></div><span class="rate-pct" style="color:'+color+'">'+rc+'%</span></td></tr>';
@@ -522,6 +537,30 @@ async function loadDetail(){
 function selectHosp(code){
     document.getElementById('t-hosp').value=code;
     onHospChange();
+}
+
+function selectKiosk(kid){
+    document.getElementById('t-kiosk').value=kid;
+    loadAll();
+}
+
+function updateBreadcrumb(){
+    var hc=getHospCd();
+    var kid=document.getElementById('t-kiosk').value;
+    var el=document.getElementById('breadcrumb');
+    if(hc==='all'){
+        el.innerHTML='<span class="bc-current">전체</span>';
+        return;
+    }
+    var hName=hospMap[hc]||hc;
+    var html='<span class="bc-link" onclick="selectHosp(\'all\')">전체</span><span> &gt; </span>';
+    if(kid==='all'){
+        html+='<span class="bc-current">'+hName+'</span>';
+    }else{
+        html+='<span class="bc-link" onclick="document.getElementById(\'t-kiosk\').value=\'all\';loadAll()">'+hName+'</span>';
+        html+='<span> &gt; </span><span class="bc-current">'+kid+'</span>';
+    }
+    el.innerHTML=html;
 }
 
 loadHospitals().then(function(){loadAll()});
