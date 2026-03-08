@@ -137,6 +137,8 @@ tr:hover{background:#1a1a3a}
 <div class="toolbar">
     <label>날짜:</label>
     <input type="date" id="t-date">
+    <label>병원:</label>
+    <select id="t-hosp" onchange="onHospChange()"><option value="all">전체</option></select>
     <label>키오스크:</label>
     <select id="t-kiosk"><option value="all">전체</option></select>
     <button onclick="loadAll()">조회</button>
@@ -152,6 +154,15 @@ tr:hover{background:#1a1a3a}
 
 <!-- 탭0: 현황 -->
 <div class="tab-content active" id="tc0">
+<div id="hosp-ranking-wrap" style="display:none;margin-bottom:12px">
+    <div class="card card-full">
+        <div class="card-title">병원별 순위</div>
+        <div class="tbl-wrap">
+            <table><thead><tr><th>병원코드</th><th>병원명</th><th>키오스크수</th><th>진입</th><th>완료</th><th>이탈</th><th>완료율</th></tr></thead>
+            <tbody id="tb-hosp-ranking"></tbody></table>
+        </div>
+    </div>
+</div>
 <div class="content">
     <div class="card">
         <div class="card-title">키오스크별 현황</div>
@@ -217,9 +228,42 @@ tr:hover{background:#1a1a3a}
 <script>
 var chHourly=null,chDaily=null,chRate=null,chMenuTime=null,chStepTime=null;
 var funnelData=null, selectedMenu=null;
+var hospMap={};
 
 function today(){return new Date().toISOString().slice(0,10)}
 document.getElementById('t-date').value=today();
+
+// ── 병원 목록 로드 ──
+async function loadHospitals(){
+    try{
+        var r=await fetch('/api/kiosk-usage/hospitals');
+        var d=await r.json();
+        var sel=document.getElementById('t-hosp');
+        sel.innerHTML='<option value="all">전체</option>';
+        (d.hospitals||[]).forEach(function(h){
+            hospMap[h.hosp_cd]=h.hosp_nm;
+            sel.innerHTML+='<option value="'+h.hosp_cd+'">'+h.hosp_nm+'</option>';
+        });
+    }catch(e){console.error(e)}
+}
+
+function getHospCd(){return document.getElementById('t-hosp').value}
+
+async function onHospChange(){
+    var hc=getHospCd();
+    // 키오스크 목록 갱신
+    var sel=document.getElementById('t-kiosk');
+    sel.innerHTML='<option value="all">전체</option>';
+    if(hc && hc!=='all'){
+        try{
+            var r=await fetch('/api/kiosk-usage/kiosks?hosp_cd='+hc);
+            var d=await r.json();
+            (d.kiosks||[]).forEach(function(k){sel.innerHTML+='<option value="'+k.kiosk_id+'">'+k.kiosk_id+'</option>'});
+        }catch(e){console.error(e)}
+    }
+    sel.value='all';
+    loadAll();
+}
 
 function showTab(n){
     document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===n)});
@@ -237,13 +281,36 @@ function loadAll(){
 async function loadData(){
     var dt=document.getElementById('t-date').value||today();
     try{
-        var r=await fetch('/api/kiosk-usage/dashboard?date='+dt);
+        var hc=getHospCd();
+        var r=await fetch('/api/kiosk-usage/dashboard?date='+dt+'&hosp_cd='+hc);
         var d=await r.json();
         document.getElementById('k-kiosk').textContent=d.active_kiosks;
         document.getElementById('k-entry').textContent=d.total_entry;
         document.getElementById('k-complete').textContent=d.total_complete;
         document.getElementById('k-cancel').textContent=d.total_cancel;
         document.getElementById('k-rate').textContent=d.complete_rate+'%';
+
+        // 병원 랭킹 (전체일 때만)
+        var rankWrap=document.getElementById('hosp-ranking-wrap');
+        if(hc==='all' && d.hospital_ranking && d.hospital_ranking.length>0){
+            var rh='';
+            d.hospital_ranking.forEach(function(hr){
+                var rc=hr.total_entry>0?Math.round(hr.total_complete/hr.total_entry*100):0;
+                var color=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
+                var nm=hospMap[hr.hosp_cd]||hr.hosp_cd;
+                rh+='<tr><td data-label="병원코드">'+hr.hosp_cd+'</td>';
+                rh+='<td data-label="병원명"><a href="#" onclick="selectHosp(\''+hr.hosp_cd+'\');return false" style="color:#4fc3f7;text-decoration:underline;cursor:pointer">'+nm+'</a></td>';
+                rh+='<td data-label="키오스크수">'+hr.kiosk_count+'</td>';
+                rh+='<td data-label="진입" style="color:#00ff88;font-weight:bold">'+hr.total_entry+'</td>';
+                rh+='<td data-label="완료" style="color:#4fc3f7;font-weight:bold">'+hr.total_complete+'</td>';
+                rh+='<td data-label="이탈" style="color:#ff6b6b;font-weight:bold">'+hr.total_cancel+'</td>';
+                rh+='<td data-label="완료율"><div class="rate-bar"><div class="rate-fill" style="width:'+rc+'%;background:'+color+'"></div></div><span class="rate-pct" style="color:'+color+'">'+rc+'%</span></td></tr>';
+            });
+            document.getElementById('tb-hosp-ranking').innerHTML=rh;
+            rankWrap.style.display='block';
+        }else{
+            rankWrap.style.display='none';
+        }
 
         var h='';
         (d.summary||[]).forEach(function(s){
@@ -287,7 +354,7 @@ async function loadDailyTrend(){
     var end=today();var start=new Date();start.setDate(start.getDate()-13);start=start.toISOString().slice(0,10);
     var kid=document.getElementById('t-kiosk').value;
     try{
-        var r=await fetch('/api/kiosk-usage/daily?start_date='+start+'&end_date='+end+'&kiosk_id='+kid);
+        var r=await fetch('/api/kiosk-usage/daily?start_date='+start+'&end_date='+end+'&kiosk_id='+kid+'&hosp_cd='+getHospCd());
         var d=await r.json();
         var map={};(d.data||[]).forEach(function(row){if(!map[row.work_date])map[row.work_date]={entry:0,complete:0};map[row.work_date].entry+=row.total_entry;map[row.work_date].complete+=row.total_complete});
         var labels=[],entries=[],completes=[],rates=[];
@@ -309,7 +376,7 @@ async function loadFunnel(){
     var dt=document.getElementById('t-date').value||today();
     var kid=document.getElementById('t-kiosk').value;
     try{
-        var r=await fetch('/api/kiosk-usage/funnel?date='+dt+'&kiosk_id='+(kid==='all'?'':kid));
+        var r=await fetch('/api/kiosk-usage/funnel?date='+dt+'&kiosk_id='+(kid==='all'?'':kid)+'&hosp_cd='+getHospCd());
         funnelData=await r.json();
         if(funnelData.menus&&funnelData.menus.length>0){selectedMenu=funnelData.menus[0].menu}
         renderFunnel();
@@ -452,7 +519,12 @@ async function loadDetail(){
     }catch(e){console.error(e)}
 }
 
-loadAll();
+function selectHosp(code){
+    document.getElementById('t-hosp').value=code;
+    onHospChange();
+}
+
+loadHospitals().then(function(){loadAll()});
 </script>
 <script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
