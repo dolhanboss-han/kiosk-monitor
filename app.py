@@ -434,6 +434,7 @@ def usage_receive():
     try:
         data = request.get_json()
         kiosk_id = data['kiosk_id']
+        hosp_cd = data.get("hosp_cd", "")
         work_date = data['work_date']
         summary = data.get('summary', {})
         logs = data.get('logs', [])
@@ -451,10 +452,10 @@ def usage_receive():
         # 요약 저장
         db.execute("""
             INSERT INTO usage_daily_summary
-                (kiosk_id, work_date, first_use_time, last_use_time,
+                (kiosk_id, work_date, hosp_cd, first_use_time, last_use_time,
                  total_entry, total_complete, total_cancel, complete_rate, received_dt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (kiosk_id, work_date,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (kiosk_id, work_date, hosp_cd,
               summary.get('first_use_time', ''),
               summary.get('last_use_time', ''),
               summary.get('total_entry', 0),
@@ -467,10 +468,10 @@ def usage_receive():
         for log in logs:
             db.execute("""
                 INSERT INTO usage_event_log
-                    (kiosk_id, work_date, log_dt, proc_name, window_title,
+                    (kiosk_id, work_date, hosp_cd, log_dt, proc_name, window_title,
                      class_name, status, elapsed_sec, received_dt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (kiosk_id, work_date,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (kiosk_id, work_date, hosp_cd,
                   log.get('log_dt', ''),
                   log.get('proc_name', ''),
                   log.get('window_title', ''),
@@ -482,11 +483,11 @@ def usage_receive():
         # 키오스크 마스터 업데이트
         db.execute("""
             INSERT OR REPLACE INTO usage_kiosk_master
-                (kiosk_id, kiosk_name, location, last_received_dt)
+                (kiosk_id, kiosk_name, location, hosp_cd, last_received_dt)
             VALUES (?, COALESCE((SELECT kiosk_name FROM usage_kiosk_master WHERE kiosk_id=?), ?),
                     COALESCE((SELECT location FROM usage_kiosk_master WHERE kiosk_id=?), ''),
-                    ?)
-        """, (kiosk_id, kiosk_id, kiosk_id, kiosk_id, now))
+                    ?, ?)
+        """, (kiosk_id, kiosk_id, kiosk_id, kiosk_id, hosp_cd, now))
 
         db.commit()
         db.close()
