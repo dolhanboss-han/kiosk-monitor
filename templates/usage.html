@@ -22,6 +22,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
 
 .toolbar{display:flex;gap:8px;padding:8px 16px;align-items:center;flex-wrap:wrap}
 .toolbar label{font-size:0.75rem;color:#889}
+.toolbar .sep{font-size:0.75rem;color:#556}
 .toolbar input[type=date]{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
 .toolbar select{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
 .toolbar button{background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;border-radius:4px;padding:4px 12px;font-size:0.75rem;cursor:pointer}
@@ -67,18 +68,17 @@ tr:hover{background:#1a1a3a}
 .funnel-menu-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .fm-tab{padding:5px 12px;font-size:0.75rem;border-radius:4px;cursor:pointer;background:#1a1a3a;color:#889;border:1px solid #2a2a4e}
 .fm-tab.active{background:#1e3a5f;color:#4fc3f7;border-color:#4fc3f7}
-.funnel-bar-wrap{margin:6px 0}
-.funnel-step{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:0.78rem}
-.funnel-label{width:120px;color:#ccc;text-align:right;flex-shrink:0}
-.funnel-bar{flex:1;height:28px;background:#1a1a3a;border-radius:4px;overflow:hidden;position:relative}
-.funnel-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:0.7rem;font-weight:bold;color:#fff;transition:width 0.8s ease}
-.funnel-count{width:50px;text-align:right;color:#aab;font-size:0.75rem;flex-shrink:0}
-.funnel-pct{width:45px;text-align:right;color:#889;font-size:0.7rem;flex-shrink:0}
-.funnel-cancel{font-size:0.65rem;color:#ff6b6b;margin-left:4px}
 .funnel-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .fs-item{background:#0d0d2b;border:1px solid #1a1a3e;border-radius:6px;padding:10px;text-align:center}
 .fs-val{font-size:1.2rem;font-weight:bold}
 .fs-label{font-size:0.65rem;color:#889;margin-top:2px}
+.funnel-steps{margin-top:10px}
+.funnel-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:0.78rem}
+.funnel-row-label{width:100px;color:#ccc;text-align:right;flex-shrink:0;font-size:0.72rem}
+.funnel-row-bars{flex:1;display:flex;gap:2px;height:24px;border-radius:4px;overflow:hidden;background:#1a1a3a}
+.funnel-row-bars .fb{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:bold;color:#fff;transition:width 0.6s ease;min-width:0}
+.funnel-row-info{width:90px;font-size:0.68rem;color:#889;text-align:right;flex-shrink:0}
+.no-data{text-align:center;padding:30px;color:#556;font-size:0.8rem}
 
 /* 히트맵 */
 .heatmap{overflow-x:auto}
@@ -115,7 +115,8 @@ tr:hover{background:#1a1a3a}
     .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;gap:2px}
     .tab{white-space:nowrap;flex-shrink:0;font-size:0.72rem;padding:7px 10px}
     .toolbar{flex-wrap:wrap;gap:6px;padding:6px 8px}
-    .toolbar input[type=date],.toolbar select{font-size:0.75rem;padding:6px}
+    .toolbar input[type=date]{font-size:0.75rem;padding:6px;max-width:130px}
+    .toolbar select{font-size:0.75rem;padding:6px}
     .hdr .nav a{font-size:0.65rem;padding:3px 6px}
     .chart-wrap{height:200px}
     .chart-wrap canvas{max-width:100%!important}
@@ -125,8 +126,14 @@ tr:hover{background:#1a1a3a}
     table td{display:flex!important;justify-content:space-between;align-items:center;padding:4px 8px;font-size:0.78rem;border:none!important;border-bottom:1px solid #1a1a3e!important}
     table td:last-child{border-bottom:none!important}
     table td::before{content:attr(data-label);color:#889;font-size:0.68rem;font-weight:bold;margin-right:8px;white-space:nowrap;min-width:45px}
-    .funnel-label{width:80px;font-size:0.65rem}
     .funnel-summary{grid-template-columns:repeat(2,1fr)}
+    .funnel-row-label{width:70px;font-size:0.65rem}
+    .funnel-row-info{width:70px;font-size:0.62rem}
+    .funnel-row{font-size:0.7rem}
+    .heatmap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .heatmap td{width:50px;height:30px;font-size:0.6rem}
+    .heatmap th{font-size:0.6rem;padding:3px 5px}
+    .heatmap .menu-label{font-size:0.65rem}
     .time-grid{grid-template-columns:1fr}
     .breadcrumb{padding:4px 8px;font-size:0.7rem}
 }
@@ -140,15 +147,17 @@ tr:hover{background:#1a1a3a}
 </div>
 <div class="kpi-row">
     <div class="kpi c1"><div class="val" id="k-kiosk">-</div><div class="label">활성 키오스크</div></div>
-    <div class="kpi c2"><div class="val" id="k-entry">-</div><div class="label">오늘 진입</div></div>
-    <div class="kpi c3"><div class="val" id="k-complete">-</div><div class="label">오늘 완료</div></div>
-    <div class="kpi c4"><div class="val" id="k-cancel">-</div><div class="label">오늘 이탈</div></div>
+    <div class="kpi c2"><div class="val" id="k-entry">-</div><div class="label">기간 진입</div></div>
+    <div class="kpi c3"><div class="val" id="k-complete">-</div><div class="label">기간 완료</div></div>
+    <div class="kpi c4"><div class="val" id="k-cancel">-</div><div class="label">기간 이탈</div></div>
     <div class="kpi c5"><div class="val" id="k-rate">-</div><div class="label">완료율</div></div>
 </div>
 
 <div class="toolbar">
-    <label>날짜:</label>
-    <input type="date" id="t-date">
+    <label>기간:</label>
+    <input type="date" id="t-start">
+    <span class="sep">~</span>
+    <input type="date" id="t-end">
     <label>병원:</label>
     <select id="t-hosp" onchange="onHospChange()"><option value="all">전체</option></select>
     <label>키오스크:</label>
@@ -190,7 +199,7 @@ tr:hover{background:#1a1a3a}
         <div class="chart-wrap"><canvas id="ch-hourly"></canvas></div>
     </div>
     <div class="card">
-        <div class="card-title">일별 추이 (최근 14일)</div>
+        <div class="card-title">일별 추이</div>
         <div class="chart-wrap"><canvas id="ch-daily"></canvas></div>
     </div>
     <div class="card">
@@ -204,13 +213,13 @@ tr:hover{background:#1a1a3a}
 <div class="tab-content" id="tc1">
     <div class="funnel-menu-tabs" id="funnel-tabs"></div>
     <div class="funnel-summary" id="funnel-summary"></div>
-    <div id="funnel-chart"></div>
+    <div class="funnel-steps" id="funnel-chart"></div>
 </div>
 
 <!-- 탭2: 이탈 히트맵 -->
 <div class="tab-content" id="tc2">
     <div class="card card-full">
-        <div class="card-title">메뉴 x 단계 이탈 히트맵 (셀 색상 = 이탈 비율)</div>
+        <div class="card-title">메뉴 x 단계 이탈 히트맵 (셀 색상 = 이탈 건수)</div>
         <div class="heatmap" id="heatmap"></div>
     </div>
 </div>
@@ -245,7 +254,14 @@ var funnelData=null, selectedMenu=null;
 var hospMap={};
 
 function today(){return new Date().toISOString().slice(0,10)}
-document.getElementById('t-date').value=today();
+function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
+
+// 기간 기본값: 14일 전 ~ 오늘
+document.getElementById('t-start').value=daysAgo(13);
+document.getElementById('t-end').value=today();
+
+function getStart(){return document.getElementById('t-start').value||daysAgo(13)}
+function getEnd(){return document.getElementById('t-end').value||today()}
 
 // ── 병원 목록 로드 ──
 async function loadHospitals(){
@@ -262,10 +278,10 @@ async function loadHospitals(){
 }
 
 function getHospCd(){return document.getElementById('t-hosp').value}
+function getKioskId(){return document.getElementById('t-kiosk').value}
 
 async function onHospChange(){
     var hc=getHospCd();
-    // 키오스크 목록 갱신
     var sel=document.getElementById('t-kiosk');
     sel.innerHTML='<option value="all">전체</option>';
     if(hc && hc!=='all'){
@@ -294,10 +310,10 @@ function loadAll(){
 
 // ── 탭0: 현황 ──
 async function loadData(){
-    var dt=document.getElementById('t-date').value||today();
+    var sd=getStart(),ed=getEnd();
+    var hc=getHospCd(),kid=getKioskId();
     try{
-        var hc=getHospCd();
-        var r=await fetch('/api/kiosk-usage/dashboard?date='+dt+'&hosp_cd='+hc);
+        var r=await fetch('/api/kiosk-usage/dashboard?start_date='+sd+'&end_date='+ed+'&hosp_cd='+hc+'&kiosk_id='+kid);
         var d=await r.json();
         document.getElementById('k-kiosk').textContent=d.active_kiosks;
         document.getElementById('k-entry').textContent=d.total_entry;
@@ -307,7 +323,7 @@ async function loadData(){
 
         // 병원 랭킹 (전체일 때만)
         var rankWrap=document.getElementById('hosp-ranking-wrap');
-        if(hc==='all' && d.hospital_ranking && d.hospital_ranking.length>0){
+        if(hc==='all' && kid==='all' && d.hospital_ranking && d.hospital_ranking.length>0){
             var rh='';
             d.hospital_ranking.forEach(function(hr){
                 var rc=hr.total_entry>0?Math.round(hr.total_complete/hr.total_entry*100):0;
@@ -338,60 +354,63 @@ async function loadData(){
         });
         document.getElementById('tb-summary').innerHTML=h||'<tr><td colspan="8" style="color:#556">데이터 없음</td></tr>';
 
-        var sel=document.getElementById('t-kiosk');
-        var cur=sel.value;
-        sel.innerHTML='<option value="all">전체</option>';
-        (d.summary||[]).forEach(function(s){sel.innerHTML+='<option value="'+s.kiosk_id+'">'+s.kiosk_id+'</option>'});
-        sel.value=cur;
+        // 키오스크 드롭다운 갱신 (병원 전체일 때만)
+        if(hc==='all'){
+            var sel=document.getElementById('t-kiosk');
+            var cur=sel.value;
+            sel.innerHTML='<option value="all">전체</option>';
+            (d.summary||[]).forEach(function(s){sel.innerHTML+='<option value="'+s.kiosk_id+'">'+s.kiosk_id+'</option>'});
+            sel.value=cur;
+        }
 
-        loadHourly(dt);
+        // 시간대별 사용 패턴 (서버에서 hourly_pattern 제공)
+        renderHourlyChart(d.hourly_pattern);
+
         loadDailyTrend();
     }catch(e){console.error(e)}
 }
 
-async function loadHourly(dt){
-    var kid=document.getElementById('t-kiosk').value;
-    try{
-        var r=await fetch('/api/kiosk-usage/detail?kiosk_id='+(kid==='all'?'':kid)+'&work_date='+dt);
-        var d=await r.json();
-        var hours={};for(var i=6;i<22;i++)hours[i]=0;
-        (d.logs||[]).forEach(function(l){if(l.status==='START'&&l.log_dt){var h=parseInt(l.log_dt.substring(11,13));if(hours[h]!==undefined)hours[h]++}});
-        var labels=[],data=[];for(var i=6;i<22;i++){labels.push(i+':00');data.push(hours[i])}
-        var mx=Math.max.apply(null,data)||1;
-        if(chHourly)chHourly.destroy();
-        chHourly=new Chart(document.getElementById('ch-hourly'),{type:'bar',
-            data:{labels:labels,datasets:[{label:'진입',data:data,backgroundColor:data.map(function(v){return v>=mx*0.8?'#00ff88cc':v>=mx*0.5?'#00ff8888':'#00ff8844'}),borderColor:'#00ff88',borderWidth:1,borderRadius:4,barPercentage:0.7}]},
-            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
-    }catch(e){console.error(e)}
+function renderHourlyChart(hp){
+    if(chHourly)chHourly.destroy();
+    if(!hp){document.getElementById('ch-hourly').parentElement.innerHTML='<div class="no-data">시간대 데이터 없음</div>';return}
+    var labels=[];for(var i=0;i<24;i++)labels.push(i+'시');
+    chHourly=new Chart(document.getElementById('ch-hourly'),{type:'bar',
+        data:{labels:labels,datasets:[
+            {label:'14일 평균',data:hp.avg_14d,backgroundColor:'#55555566',borderColor:'#555',borderWidth:1,borderRadius:2,barPercentage:0.5,categoryPercentage:0.8,order:2},
+            {label:'선택 기간',data:hp.period,backgroundColor:'#00d4ff66',borderColor:'#00d4ff',borderWidth:1,borderRadius:3,barPercentage:0.5,categoryPercentage:0.8,order:1}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},
+            scales:{x:{ticks:{color:'#889',font:{size:9},maxRotation:0},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
 }
 
 async function loadDailyTrend(){
-    var end=today();var start=new Date();start.setDate(start.getDate()-13);start=start.toISOString().slice(0,10);
-    var kid=document.getElementById('t-kiosk').value;
+    var sd=getStart(),ed=getEnd();
+    var kid=getKioskId();
     try{
-        var r=await fetch('/api/kiosk-usage/daily?start_date='+start+'&end_date='+end+'&kiosk_id='+kid+'&hosp_cd='+getHospCd());
+        var r=await fetch('/api/kiosk-usage/daily?start_date='+sd+'&end_date='+ed+'&kiosk_id='+kid+'&hosp_cd='+getHospCd());
         var d=await r.json();
         var map={};(d.data||[]).forEach(function(row){if(!map[row.work_date])map[row.work_date]={entry:0,complete:0};map[row.work_date].entry+=row.total_entry;map[row.work_date].complete+=row.total_complete});
         var labels=[],entries=[],completes=[],rates=[];
-        var cur=new Date(start);var endD=new Date(end);
+        var cur=new Date(sd);var endD=new Date(ed);
         while(cur<=endD){var ds=cur.toISOString().slice(0,10);labels.push(ds.slice(5));var m=map[ds]||{entry:0,complete:0};entries.push(m.entry);completes.push(m.complete);rates.push(m.entry>0?Math.round(m.complete/m.entry*100):0);cur.setDate(cur.getDate()+1)}
 
         if(chDaily)chDaily.destroy();
         chDaily=new Chart(document.getElementById('ch-daily'),{type:'bar',data:{labels:labels,datasets:[{label:'진입',data:entries,backgroundColor:'#4fc3f766',borderColor:'#4fc3f7',borderWidth:1,borderRadius:3,barPercentage:0.4},{label:'완료',data:completes,backgroundColor:'#00ff8866',borderColor:'#00ff88',borderWidth:1,borderRadius:3,barPercentage:0.4}]},
-            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10},maxRotation:45},grid:{display:false}},y:{ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}}}});
 
         if(chRate)chRate.destroy();
         chRate=new Chart(document.getElementById('ch-rate'),{type:'line',data:{labels:labels,datasets:[{label:'완료율(%)',data:rates,borderColor:'#bb86fc',backgroundColor:'#bb86fc22',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#bb86fc',borderWidth:2.5},{label:'80% 기준',data:labels.map(function(){return 80}),borderColor:'#ff6b6b55',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}]},
-            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10}},grid:{display:false}},y:{min:0,max:100,ticks:{color:'#889',font:{size:10},callback:function(v){return v+'%'}},grid:{color:'#1a1a3e'}}}}});
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{color:'#889',font:{size:10},maxRotation:45},grid:{display:false}},y:{min:0,max:100,ticks:{color:'#889',font:{size:10},callback:function(v){return v+'%'}},grid:{color:'#1a1a3e'}}}}});
     }catch(e){console.error(e)}
 }
 
 // ── 탭1: 퍼널 분석 ──
 async function loadFunnel(){
-    var dt=document.getElementById('t-date').value||today();
-    var kid=document.getElementById('t-kiosk').value;
+    var sd=getStart(),ed=getEnd();
+    var kid=getKioskId();
     try{
-        var r=await fetch('/api/kiosk-usage/funnel?date='+dt+'&kiosk_id='+(kid==='all'?'':kid)+'&hosp_cd='+getHospCd());
+        var r=await fetch('/api/kiosk-usage/funnel?start_date='+sd+'&end_date='+ed+'&kiosk_id='+(kid==='all'?'':kid)+'&hosp_cd='+getHospCd());
         funnelData=await r.json();
         if(funnelData.menus&&funnelData.menus.length>0){selectedMenu=funnelData.menus[0].menu}
         renderFunnel();
@@ -401,7 +420,12 @@ async function loadFunnel(){
 }
 
 function renderFunnel(){
-    if(!funnelData||!funnelData.menus)return;
+    if(!funnelData||!funnelData.menus||funnelData.menus.length===0){
+        document.getElementById('funnel-tabs').innerHTML='';
+        document.getElementById('funnel-summary').innerHTML='';
+        document.getElementById('funnel-chart').innerHTML='<div class="no-data">데이터 없음</div>';
+        return;
+    }
     var tabs='';
     funnelData.menus.forEach(function(m){
         var cls=m.menu===selectedMenu?'fm-tab active':'fm-tab';
@@ -419,17 +443,20 @@ function renderFunnel(){
     sh+='<div class="fs-item"><div class="fs-val" style="color:'+color+'">'+rc+'%</div><div class="fs-label">완료율</div></div>';
     document.getElementById('funnel-summary').innerHTML=sh;
 
+    // 수평 스택 바 (진입→완료/이탈 비율)
     var fh='';
-    var maxCount=m.total;
-    (m.funnel||[]).forEach(function(f,i){
-        var w=maxCount>0?Math.max(f.count/maxCount*100,2):0;
-        var gc=i===m.funnel.length-1&&f.step.indexOf('완료')>=0?'#00ff88':'#4fc3f7';
-        var cancelHtml=f.cancel_count>0?'<span class="funnel-cancel">(-'+f.cancel_count+' 이탈)</span>':'';
-        fh+='<div class="funnel-step">';
-        fh+='<div class="funnel-label">'+f.step+'</div>';
-        fh+='<div class="funnel-bar"><div class="funnel-fill" style="width:'+w+'%;background:'+gc+'88">'+f.count+'</div></div>';
-        fh+='<div class="funnel-pct">'+f.pct+'%</div>';
-        fh+='<div class="funnel-count">'+f.avg_sec+'초'+cancelHtml+'</div>';
+    (m.funnel||[]).forEach(function(f){
+        var stayed=f.count-f.cancel_count;
+        var total=f.count||1;
+        var wStay=Math.round(stayed/total*100);
+        var wCancel=100-wStay;
+        fh+='<div class="funnel-row">';
+        fh+='<div class="funnel-row-label">'+f.step+'</div>';
+        fh+='<div class="funnel-row-bars" style="max-width:'+Math.max(f.pct,5)+'%">';
+        if(stayed>0) fh+='<div class="fb" style="width:'+wStay+'%;background:#00d4ff88" title="통과 '+stayed+'">'+stayed+'</div>';
+        if(f.cancel_count>0) fh+='<div class="fb" style="width:'+wCancel+'%;background:#ff444488" title="이탈 '+f.cancel_count+'">'+f.cancel_count+'</div>';
+        fh+='</div>';
+        fh+='<div class="funnel-row-info">'+f.count+'건 '+f.pct+'% '+f.avg_sec+'초</div>';
         fh+='</div>';
     });
     document.getElementById('funnel-chart').innerHTML=fh;
@@ -439,13 +466,22 @@ function selectMenu(menu){selectedMenu=menu;renderFunnel();renderStepTime()}
 
 // ── 탭2: 히트맵 ──
 function renderHeatmap(){
-    if(!funnelData||!funnelData.menus)return;
+    if(!funnelData||!funnelData.menus||funnelData.menus.length===0){
+        document.getElementById('heatmap').innerHTML='<div class="no-data">데이터 없음</div>';
+        return;
+    }
     var allSteps=[];
     funnelData.menus.forEach(function(m){
         m.funnel.forEach(function(f,i){
             var label='단계'+(i+1);
             if(allSteps.indexOf(label)<0)allSteps.push(label);
         });
+    });
+
+    // 최대 이탈 건수 (색상 농도 기준)
+    var maxCancel=0;
+    funnelData.menus.forEach(function(m){
+        m.funnel.forEach(function(f){if(f.cancel_count>maxCancel)maxCancel=f.cancel_count});
     });
 
     var h='<table><thead><tr><th></th>';
@@ -457,11 +493,13 @@ function renderHeatmap(){
         for(var i=0;i<allSteps.length;i++){
             if(i<m.funnel.length){
                 var f=m.funnel[i];
-                var dropPct=0;
-                if(i>0){var prev=m.funnel[i-1].count;dropPct=prev>0?Math.round((prev-f.count)/prev*100):0}
-                var bg=dropPct>=20?'#ff6b6b':dropPct>=10?'#ffd166':dropPct>=5?'#4fc3f733':'#00ff8833';
-                var txt=dropPct>=10?'#fff':'#ccc';
-                h+='<td style="background:'+bg+';color:'+txt+'">'+f.count+'<br><span style="font-size:0.55rem">'+dropPct+'%</span></td>';
+                var cc=f.cancel_count||0;
+                // 배경색 농도: 이탈 건수에 비례 (0=투명, max=진한 빨강)
+                var intensity=maxCancel>0?cc/maxCancel:0;
+                var r=Math.round(255*intensity),g=Math.round(40*intensity),b=Math.round(40*intensity);
+                var bg=cc>0?'rgba('+r+','+g+','+b+','+Math.max(intensity*0.8,0.15)+')':'#00ff8822';
+                var txt=intensity>=0.5?'#fff':'#ccc';
+                h+='<td style="background:'+bg+';color:'+txt+'">'+cc+'<br><span style="font-size:0.55rem">통과 '+f.count+'</span></td>';
             }else{
                 h+='<td style="background:#0a0a1a;color:#333">-</td>';
             }
@@ -476,9 +514,8 @@ function renderHeatmap(){
 
 // ── 탭3: 시간 분석 ──
 function renderTimeCharts(){
-    if(!funnelData||!funnelData.menus)return;
+    if(!funnelData||!funnelData.menus||funnelData.menus.length===0)return;
 
-    // 메뉴별 평균 시간
     var labels=[],data=[],colors=[];
     var palette=['#4fc3f7','#00ff88','#ffd166','#ff6b6b','#bb86fc','#ff9800','#e91e63'];
     funnelData.menus.forEach(function(m,i){
@@ -517,8 +554,8 @@ function renderStepTime(){
 
 // ── 탭4: 상세 로그 ──
 async function loadDetail(){
-    var dt=document.getElementById('t-date').value||today();
-    var kid=document.getElementById('t-kiosk').value;
+    var dt=getEnd();
+    var kid=getKioskId();
     if(kid==='all'){var opts=document.getElementById('t-kiosk').options;if(opts.length>1)kid=opts[1].value;else return}
     try{
         var r=await fetch('/api/kiosk-usage/detail?kiosk_id='+kid+'&work_date='+dt);
@@ -546,7 +583,7 @@ function selectKiosk(kid){
 
 function updateBreadcrumb(){
     var hc=getHospCd();
-    var kid=document.getElementById('t-kiosk').value;
+    var kid=getKioskId();
     var el=document.getElementById('breadcrumb');
     if(hc==='all'){
         el.innerHTML='<span class="bc-current">전체</span>';
