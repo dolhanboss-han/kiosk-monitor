@@ -22,6 +22,16 @@ textarea{height:120px;resize:vertical}
 .btn-submit{padding:10px 24px;background:#00d4ff;color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.9rem}
 .btn-submit:hover{background:#00b8d9}
 .btn-cancel{padding:10px 24px;background:#333;color:#ccc;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:0.9rem;text-decoration:none;text-align:center}
+@media(max-width:768px){
+    .container{padding:0 8px;margin:10px auto}
+    .form-card{padding:16px}
+    .form-card h2{font-size:0.92rem;margin-bottom:16px}
+    label{font-size:0.78rem;margin-top:12px}
+    input,select,textarea{padding:10px 12px;font-size:0.85rem;min-height:42px}
+    textarea{height:100px}
+    .btn-row{flex-direction:column;gap:8px}
+    .btn-submit,.btn-cancel{width:100%;min-height:44px;font-size:0.85rem;text-align:center}
+}
 </style>
 </head>
 <body style="padding-top:60px">
