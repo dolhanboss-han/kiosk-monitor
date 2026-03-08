@@ -137,13 +137,8 @@ EYE 색상: #eee (흰색)
 모바일 레이아웃 완료:
 index.html, monitoring.html, usage.html, maintenance.html, executive.html,
 hospital_view.html, hospitals.html, hospital_detail.html, isv_detail.html,
-admin_login_log.html, change_password.html, setup_monitor.html, usage_verify.html
-
-@media 존재하나 모바일 레이아웃 불완전 (보강 필요):
-alarms.html, tickets.html
-
-@media 없음 (추가 필요):
-admin_users.html, ticket_detail.html, ticket_form.html
+admin_login_log.html, change_password.html, setup_monitor.html, usage_verify.html,
+alarms.html, tickets.html, admin_users.html, ticket_detail.html, ticket_form.html
 
 PC 전용 — 모바일 작업 불필요:
 editor.html, kiosk_editor.html, dashboard_preview.html, kiosk_preview.html,
@@ -207,8 +202,7 @@ usage_daily_summary — 일별 사용 요약
 - GitHub private repo 연동
 
 ### 진행중
-- 모바일 @media 보강: alarms.html, tickets.html
-- 모바일 @media 신규: admin_users.html, ticket_detail.html, ticket_form.html
+- (없음)
 
 ### 미해결
 - setup-monitor: saveInfo/downloadInstaller/next 버튼 동작 불량
