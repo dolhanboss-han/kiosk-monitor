@@ -112,7 +112,8 @@ body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-siz
 .disconnected{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#ef444412;border:1px solid #ef444433;border-radius:6px;margin-bottom:12px}
 
 @media(max-width:768px){
-    .hd{padding:6px 10px!important;height:auto!important}
+    .hd{padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .wrap{padding:8px}
     .fg{grid-template-columns:1fr}
     .sumg{grid-template-columns:repeat(2,1fr)}
@@ -140,6 +141,7 @@ body{background:#0a0e1a;color:#c8d6e5;font-family:'Segoe UI',sans-serif;font-siz
         <span class="gs gs-ready" id="gSt">준비</span>
     </div>
     {% include 'nav.html' %}
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
 </div>
 <div class="wrap">
     <div class="steps" id="stpTabs">
@@ -606,5 +608,6 @@ setInterval(function(){
 // 연결 상태 폴링
 setInterval(function(){if(cur>=2) checkConnection()}, 15000);
 </script>
+<script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
 </html>
