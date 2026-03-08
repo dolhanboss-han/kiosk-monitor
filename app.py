@@ -731,6 +731,14 @@ def usage_funnel_api():
     sessions = []
     cur_session = None
 
+    def close_session():
+        nonlocal cur_session
+        if cur_session:
+            last_step = cur_session['steps'][-1] if cur_session['steps'] else ''
+            cur_session['completed'] = '완료' in last_step
+            sessions.append(cur_session)
+            cur_session = None
+
     for log in logs:
         title = log.get('window_title', '') or ''
         status = log.get('status', '')
@@ -741,14 +749,15 @@ def usage_funnel_api():
             menu = parts[0]
             step = parts[1] if len(parts) > 1 else ''
         else:
-            menu = title
-            step = ''
+            menu = '기타' if title else '기타'
+            step = title
 
-        if status == 'START' and (cur_session is None or cur_session['menu'] != menu or step in ('메인', '')):
-            if cur_session:
-                last_step = cur_session['steps'][-1] if cur_session['steps'] else ''
-                cur_session['completed'] = '완료' in last_step
-                sessions.append(cur_session)
+        # 메뉴가 바뀌면 무조건 현재 세션 종료 + 새 세션 시작
+        if cur_session and cur_session['menu'] != menu:
+            close_session()
+
+        if status == 'START' and (cur_session is None or step in ('메인', '')):
+            close_session()
             cur_session = {'menu': menu, 'steps': [step], 'times': {step: 0}, 'total_sec': 0}
         elif cur_session:
             if step and step not in cur_session['steps']:
@@ -757,10 +766,7 @@ def usage_funnel_api():
                 cur_session['times'][step] = cur_session['times'].get(step, 0) + elapsed
                 cur_session['total_sec'] += elapsed
 
-    if cur_session:
-        last_step = cur_session['steps'][-1] if cur_session['steps'] else ''
-        cur_session['completed'] = '완료' in last_step
-        sessions.append(cur_session)
+    close_session()
 
     # 메뉴별 집계
     for s in sessions:
