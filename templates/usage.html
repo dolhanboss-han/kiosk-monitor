@@ -66,18 +66,28 @@ tr:hover{background:#1a1a3a}
 .log-elapsed{color:#889;width:60px;text-align:right;flex-shrink:0}
 
 /* 퍼널 카드 */
-.funnel-cards{display:grid;grid-template-columns:1fr;gap:12px}
-.funnel-card{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px}
-.funnel-card-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #1a1a3e;flex-wrap:wrap}
+.funnel-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.funnel-card{background:#12122a;border:1px solid #1a1a3e;border-radius:8px;padding:14px;cursor:pointer;transition:border-color 0.2s}
+.funnel-card:hover{border-color:#4fc3f7}
+.funnel-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #1a1a3e;flex-wrap:wrap}
 .funnel-card-hdr .fc-menu{font-size:0.9rem;font-weight:bold;color:#4fc3f7}
-.funnel-card-hdr .fc-stat{font-size:0.72rem;color:#889}
+.funnel-card-hdr .fc-stat{font-size:0.7rem;color:#889}
 .funnel-card-hdr .fc-stat b{font-weight:bold}
-.funnel-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:0.78rem}
-.funnel-row-label{width:100px;color:#ccc;text-align:right;flex-shrink:0;font-size:0.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.funnel-row-bar{flex:1;height:26px;background:#1a1a3a;border-radius:4px;overflow:hidden;display:flex}
-.funnel-row-bar .fb{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:bold;color:#fff;min-width:0}
-.funnel-row-info{font-size:0.68rem;color:#889;white-space:nowrap;flex-shrink:0}
+.funnel-card-hdr .fc-arrow{color:#556;font-size:0.7rem}
+/* 깔때기 단계 */
+.fnl-step{margin:0 auto 2px;height:36px;line-height:36px;text-align:center;border-radius:4px;color:#fff;font-size:0.78rem;font-weight:bold;transition:width 0.5s ease;position:relative}
+.fnl-drop{text-align:center;font-size:0.65rem;color:#ff6b6b;line-height:1.4;padding:1px 0}
 .no-data{text-align:center;padding:30px;color:#556;font-size:0.8rem}
+/* 워터폴 모달 */
+.wf-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center}
+.wf-modal{background:#12122a;border:1px solid #1a1a3e;border-radius:10px;padding:20px;width:90%;max-width:700px;max-height:90vh;overflow-y:auto;position:relative}
+.wf-close{position:absolute;top:10px;right:14px;font-size:1.2rem;color:#889;cursor:pointer;background:none;border:none;padding:4px 8px}
+.wf-close:hover{color:#fff}
+.wf-title{font-size:1rem;color:#4fc3f7;font-weight:bold;margin-bottom:4px}
+.wf-subtitle{font-size:0.75rem;color:#889;margin-bottom:14px}
+.wf-chart-wrap{height:280px;position:relative}
+.wf-times{display:flex;gap:0;margin-top:8px;font-size:0.68rem;color:#889;text-align:center}
+.wf-times span{flex:1}
 
 /* 이탈율 바 */
 .dropout-list{display:flex;flex-direction:column;gap:10px}
@@ -126,14 +136,15 @@ tr:hover{background:#1a1a3a}
     table td{display:flex!important;justify-content:space-between;align-items:center;padding:4px 8px;font-size:0.78rem;border:none!important;border-bottom:1px solid #1a1a3e!important}
     table td:last-child{border-bottom:none!important}
     table td::before{content:attr(data-label);color:#889;font-size:0.68rem;font-weight:bold;margin-right:8px;white-space:nowrap;min-width:45px}
+    .funnel-cards{grid-template-columns:1fr}
     .funnel-card{padding:10px}
-    .funnel-row-label{width:70px;font-size:0.65rem}
-    .funnel-row-bar{height:24px}
-    .funnel-row{font-size:0.75rem}
-    .funnel-row-info{font-size:0.62rem}
+    .fnl-step{height:28px;line-height:28px;font-size:0.7rem}
+    .fnl-drop{font-size:0.58rem}
     .funnel-card-hdr{gap:6px}
     .funnel-card-hdr .fc-menu{font-size:0.8rem}
-    .funnel-card-hdr .fc-stat{font-size:0.65rem}
+    .funnel-card-hdr .fc-stat{font-size:0.62rem}
+    .wf-modal{width:95%;padding:14px}
+    .wf-chart-wrap{height:220px;overflow-x:auto}
     .dropout-menu{width:70px;font-size:0.65rem}
     .dropout-bar{height:24px}
     .dropout-info{font-size:0.62rem;width:70px}
@@ -216,6 +227,17 @@ tr:hover{background:#1a1a3a}
 <!-- 탭1: 퍼널 분석 -->
 <div class="tab-content" id="tc1">
     <div class="funnel-cards" id="funnel-cards"></div>
+</div>
+
+<!-- 워터폴 모달 -->
+<div class="wf-overlay" id="wf-overlay" style="display:none" onclick="closeWaterfall(event)">
+    <div class="wf-modal" onclick="event.stopPropagation()">
+        <button class="wf-close" onclick="closeWaterfall()">&times;</button>
+        <div class="wf-title" id="wf-title"></div>
+        <div class="wf-subtitle" id="wf-subtitle"></div>
+        <div class="wf-chart-wrap"><canvas id="ch-waterfall"></canvas></div>
+        <div class="wf-times" id="wf-times"></div>
+    </div>
 </div>
 
 <!-- 탭2: 메뉴별 이탈율 -->
@@ -417,6 +439,8 @@ async function loadFunnel(){
     }catch(e){console.error(e)}
 }
 
+var chWaterfall=null;
+
 function renderFunnel(){
     var el=document.getElementById('funnel-cards');
     if(!funnelData||!funnelData.menus||funnelData.menus.length===0){
@@ -424,39 +448,88 @@ function renderFunnel(){
         return;
     }
     var html='';
-    funnelData.menus.forEach(function(m){
+    funnelData.menus.forEach(function(m,mi){
         var rc=m.rate;
         var rColor=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
-        html+='<div class="funnel-card">';
+        html+='<div class="funnel-card" onclick="openWaterfall('+mi+')">';
         html+='<div class="funnel-card-hdr">';
         html+='<span class="fc-menu">'+m.menu+'</span>';
         html+='<span class="fc-stat">진입 <b style="color:#4fc3f7">'+m.total+'</b>건</span>';
+        html+='<span class="fc-arrow">&rarr;</span>';
         html+='<span class="fc-stat">완료 <b style="color:#00ff88">'+m.completed+'</b>건</span>';
-        html+='<span class="fc-stat">이탈 <b style="color:#ff6b6b">'+m.cancelled+'</b>건</span>';
-        html+='<span class="fc-stat">완료율 <b style="color:'+rColor+'">'+rc+'%</b></span>';
+        html+='<span class="fc-stat" style="margin-left:auto">완료율 <b style="color:'+rColor+'">'+rc+'%</b></span>';
         html+='</div>';
 
+        // 깔때기 (사다리꼴 블록)
         var maxCount=m.total||1;
-        (m.funnel||[]).forEach(function(f){
-            var barW=Math.max(f.count/maxCount*100,3);
-            var stayed=f.count-(f.cancel_count||0);
+        (m.funnel||[]).forEach(function(f,fi){
+            var w=Math.max(f.count/maxCount*100,20);
             var isComplete=f.step.indexOf('완료')>=0;
-            var stayColor=isComplete?'#00ff88':'#00d4ff';
-            var stayW=f.count>0?Math.round(stayed/f.count*100):100;
-            var cancelW=100-stayW;
-
-            html+='<div class="funnel-row">';
-            html+='<div class="funnel-row-label" title="'+f.step+'">'+f.step+'</div>';
-            html+='<div class="funnel-row-bar" style="width:'+barW+'%">';
-            if(stayed>0) html+='<div class="fb" style="width:'+stayW+'%;background:'+stayColor+'88">'+stayed+'</div>';
-            if(f.cancel_count>0) html+='<div class="fb" style="width:'+cancelW+'%;background:#ff444488">'+f.cancel_count+'</div>';
+            var bg=isComplete?'#00ff88cc':'#00d4ffcc';
+            html+='<div class="fnl-step" style="width:'+w+'%;background:'+bg+'">';
+            html+=f.step+' <span style="opacity:0.8">'+f.count+'</span> <span style="font-size:0.65rem;opacity:0.7">'+f.pct+'%</span>';
             html+='</div>';
-            html+='<div class="funnel-row-info">'+f.pct+'% '+f.avg_sec+'초</div>';
-            html+='</div>';
+            // 이탈 표시 (마지막 단계 제외)
+            if(f.cancel_count>0 && fi<m.funnel.length-1){
+                html+='<div class="fnl-drop">&darr; -'+f.cancel_count+' 이탈</div>';
+            }
         });
         html+='</div>';
     });
     el.innerHTML=html;
+}
+
+function openWaterfall(menuIdx){
+    if(!funnelData||!funnelData.menus||!funnelData.menus[menuIdx])return;
+    var m=funnelData.menus[menuIdx];
+    var rc=m.rate;
+    var rColor=rc>=80?'#00ff88':rc>=60?'#ffd166':'#ff6b6b';
+
+    document.getElementById('wf-title').textContent=m.menu+' 퍼널 상세';
+    document.getElementById('wf-subtitle').innerHTML='진입 <b style="color:#4fc3f7">'+m.total+'</b>건 &rarr; 완료 <b style="color:#00ff88">'+m.completed+'</b>건 (완료율 <b style="color:'+rColor+'">'+rc+'%</b>)';
+
+    var labels=[],stayData=[],dropData=[],bgStay=[],bgDrop=[],bdStay=[],bdDrop=[];
+    var times='';
+    (m.funnel||[]).forEach(function(f){
+        labels.push(f.step);
+        var stayed=f.count-(f.cancel_count||0);
+        var isComplete=f.step.indexOf('완료')>=0;
+        stayData.push(stayed);
+        dropData.push(f.cancel_count||0);
+        bgStay.push(isComplete?'#00ff8888':'#00d4ff88');
+        bdStay.push(isComplete?'#00ff88':'#00d4ff');
+        bgDrop.push('#ff444488');
+        bdDrop.push('#ff4444');
+        times+='<span>'+f.avg_sec+'초</span>';
+    });
+    document.getElementById('wf-times').innerHTML=times;
+
+    if(chWaterfall)chWaterfall.destroy();
+    var canvas=document.getElementById('ch-waterfall');
+    chWaterfall=new Chart(canvas,{type:'bar',
+        data:{labels:labels,datasets:[
+            {label:'잔존',data:stayData,backgroundColor:bgStay,borderColor:bdStay,borderWidth:1,borderRadius:3},
+            {label:'이탈',data:dropData,backgroundColor:bgDrop,borderColor:bdDrop,borderWidth:1,borderRadius:3}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+            plugins:{
+                legend:{display:true,labels:{color:'#ccc',font:{size:10},usePointStyle:true,pointStyle:'circle'}},
+                tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.raw+'건'}}}
+            },
+            scales:{
+                x:{stacked:true,ticks:{color:'#ccc',font:{size:10},maxRotation:45},grid:{display:false}},
+                y:{stacked:true,ticks:{color:'#889',font:{size:10}},grid:{color:'#1a1a3e'}}
+            }
+        }
+    });
+
+    document.getElementById('wf-overlay').style.display='flex';
+}
+
+function closeWaterfall(e){
+    if(e && e.target!==document.getElementById('wf-overlay'))return;
+    document.getElementById('wf-overlay').style.display='none';
+    if(chWaterfall){chWaterfall.destroy();chWaterfall=null}
 }
 
 // ── 탭2: 메뉴별 이탈율 바 차트 ──
