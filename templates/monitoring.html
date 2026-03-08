@@ -112,7 +112,8 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hi
 /* === 모바일 반응형 === */
 @media(max-width:768px){
     body{overflow:auto!important;height:auto!important}
-    .hdr{height:auto!important;padding:6px 10px!important}
+    .hdr{height:auto!important;padding:6px 10px!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .hdr .logo{font-size:0.95rem}
     .hdr .nav{gap:2px}
     .hdr .nav a{font-size:0.6rem;padding:2px 4px}
@@ -234,6 +235,7 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hi
 <div class="hdr">
     <span class="logo"><em>BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">모니터링</span></span>
     {% include 'nav.html' %}
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
 </div>
 <div class="wrap">
     <div class="stats">
@@ -559,6 +561,6 @@ function load(){
 load();setInterval(load,30000);
 
 </script>
-
+<script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
 </html>
