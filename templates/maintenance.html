@@ -134,11 +134,11 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 
 /* 모바일 */
 @media(max-width:768px){
-    .header{flex-wrap:wrap;padding:6px 10px!important;height:auto!important}
+    .header{flex-wrap:wrap;padding:6px 10px!important;height:auto!important;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
     .header h1{font-size:0.75rem;white-space:nowrap}
     .header .nav{gap:4px}
     .header .nav a{font-size:0.6rem;padding:3px 6px}
-    .header .time{font-size:0.7rem;width:auto;white-space:nowrap}
+    .header .time{font-size:0.7rem;width:auto;white-space:nowrap;color:#a0b0c0!important}
     .supply-grid,.ctrl-grid,.dispatch-grid{grid-template-columns:1fr}
     .stat-overview{grid-template-columns:repeat(2,1fr)}
     .tabs{overflow-x:auto;flex-wrap:nowrap}
@@ -240,7 +240,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;overflow
 // ═══════════════════════════════════════
 function updateClock(){
     const now=new Date();
-    document.getElementById('clock').textContent=now.toLocaleString('ko-KR');
+    document.getElementById('clock').textContent=now.getFullYear()+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+String(now.getDate()).padStart(2,'0')+' '+now.toLocaleTimeString('ko-KR');
 }
 setInterval(updateClock,1000);updateClock();
 
