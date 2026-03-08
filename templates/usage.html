@@ -28,7 +28,7 @@ body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif}
 .toolbar select{background:#12122a;border:1px solid #2a2a4e;border-radius:4px;color:#e0e0e0;padding:4px 8px;font-size:0.8rem}
 .toolbar button{background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;border-radius:4px;padding:4px 12px;font-size:0.75rem;cursor:pointer}
 .toolbar button:hover{background:#2a4a6f}
-.toolbar button:disabled{background:#1a1a3e;color:#556;border-color:#333;cursor:not-allowed;opacity:0.6}
+.toolbar button:disabled{background:#1a1a3e;color:#556;border-color:#333;cursor:not-allowed;opacity:0.5}
 .toolbar button:disabled:hover{background:#1a1a3e}
 
 .tabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid #1a1a3e}
@@ -79,7 +79,7 @@ tr:hover{background:#1a1a3a}
 /* 깔때기 단계 */
 .fnl-step{margin:0 auto 2px;height:36px;line-height:36px;text-align:center;border-radius:4px;color:#fff;font-size:0.78rem;font-weight:bold;transition:width 0.5s ease;position:relative}
 .fnl-drop{text-align:center;font-size:0.65rem;color:#cc3333;line-height:1.4;padding:1px 0}
-.period-label{font-size:0.72rem;color:#889;text-align:right;padding:0 16px 0 0;white-space:nowrap}
+.period-label{font-size:0.9rem;color:#fff;font-weight:bold;text-align:right;padding:0 16px 0 0;white-space:nowrap}
 .no-data{text-align:center;padding:30px;color:#556;font-size:0.8rem}
 /* 워터폴 모달 */
 .wf-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center}
@@ -92,13 +92,10 @@ tr:hover{background:#1a1a3a}
 .wf-times{display:flex;gap:0;margin-top:8px;font-size:0.68rem;color:#889;text-align:center}
 .wf-times span{flex:1}
 
-/* 이탈율 바 */
-.dropout-list{display:flex;flex-direction:column;gap:10px}
-.dropout-row{display:flex;align-items:center;gap:10px;font-size:0.78rem}
-.dropout-menu{width:100px;color:#ccc;text-align:right;flex-shrink:0;font-size:0.75rem}
-.dropout-bar{flex:1;height:28px;background:#1a1a3a;border-radius:4px;overflow:hidden;display:flex}
-.dropout-bar .db{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:bold;color:#fff;min-width:0}
-.dropout-info{font-size:0.7rem;color:#889;white-space:nowrap;flex-shrink:0;width:90px;text-align:right}
+/* 이탈율 깔때기 */
+.dropout-list{display:flex;flex-direction:column;gap:0}
+.dropout-fnl{margin:0 auto 3px;height:40px;line-height:40px;text-align:center;border-radius:4px;color:#fff;font-size:0.85rem;font-weight:bold;cursor:pointer;transition:opacity 0.2s}
+.dropout-fnl:hover{opacity:0.85}
 
 /* 시간분석 */
 .time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -148,13 +145,11 @@ tr:hover{background:#1a1a3a}
     .funnel-card-hdr .fc-stat{font-size:0.62rem}
     .wf-modal{width:95%;padding:14px}
     .wf-chart-wrap{height:220px;overflow-x:auto}
-    .dropout-menu{width:70px;font-size:0.65rem}
-    .dropout-bar{height:24px}
-    .dropout-info{font-size:0.62rem;width:70px}
+    .dropout-fnl{height:32px;line-height:32px;font-size:0.7rem;min-width:40%!important}
     .time-grid{grid-template-columns:1fr}
     .breadcrumb{padding:4px 8px;font-size:0.7rem}
-    .period-label{font-size:0.62rem;padding:0 8px 0 0}
-    .dropout-list .fnl-step{height:28px;line-height:28px;font-size:0.68rem}
+    .period-label{font-size:0.75rem;float:none;display:block;text-align:right}
+    .toolbar button:disabled{opacity:0.5}
 }
 </style>
 </head>
@@ -173,7 +168,7 @@ tr:hover{background:#1a1a3a}
     <label>병원:</label>
     <select id="t-hosp" onchange="onHospChange()"><option value="all">전체</option></select>
     <label>키오스크:</label>
-    <select id="t-kiosk" onchange="currentKiosk=this.value"><option value="all">전체</option></select>
+    <select id="t-kiosk" onchange="onKioskDropdownChange()"><option value="all">전체</option></select>
     <button id="btn-query" onclick="loadAll()" disabled>조회</button>
 </div>
 
@@ -285,7 +280,7 @@ tr:hover{background:#1a1a3a}
 var chHourly=null,chDaily=null,chRate=null,chMenuTime=null,chStepTime=null;
 var funnelData=null, selectedMenu=null;
 var hospMap={};
-var currentKiosk='all';
+var selectedKioskForDetail='all';
 
 function today(){return new Date().toISOString().slice(0,10)}
 function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
@@ -300,6 +295,7 @@ function checkQueryReady(){
     var s=document.getElementById('t-start').value;
     var e=document.getElementById('t-end').value;
     var h=document.getElementById('t-hosp').value;
+    // TODO: 권한별 전체 조회 제한 — 현재는 병원 선택 필수, 향후 hq_admin은 전체 허용 가능
     document.getElementById('btn-query').disabled=!(s && e && h && h!=='all');
 }
 document.getElementById('t-start').addEventListener('change',checkQueryReady);
@@ -321,13 +317,14 @@ async function loadHospitals(){
 }
 
 function getHospCd(){return document.getElementById('t-hosp').value}
-function getKioskId(){return currentKiosk}
+function getKioskId(){return document.getElementById('t-kiosk').value}
+function getDetailKiosk(){return selectedKioskForDetail}
 
 async function onHospChange(){
     var hc=getHospCd();
     var sel=document.getElementById('t-kiosk');
     sel.innerHTML='<option value="all">전체</option>';
-    currentKiosk='all';
+    selectedKioskForDetail='all';
     if(hc && hc!=='all'){
         try{
             var r=await fetch('/api/kiosk-usage/kiosks?hosp_cd='+hc);
@@ -337,6 +334,11 @@ async function onHospChange(){
     }
     sel.value='all';
     checkQueryReady();
+}
+
+function onKioskDropdownChange(){
+    selectedKioskForDetail='all';
+    loadAll();
 }
 
 function showTab(n){
@@ -458,7 +460,7 @@ async function loadDailyTrend(){
 // ── 탭1: 퍼널 분석 (메뉴별 독립 카드) ──
 async function loadFunnel(){
     var sd=getStart(),ed=getEnd();
-    var kid=getKioskId();
+    var kid=getDetailKiosk();
     try{
         var r=await fetch('/api/kiosk-usage/funnel?start_date='+sd+'&end_date='+ed+'&kiosk_id='+(kid==='all'?'':kid)+'&hosp_cd='+getHospCd());
         funnelData=await r.json();
@@ -570,23 +572,26 @@ function renderDropout(){
         return;
     }
     var sorted=funnelData.menus.slice().sort(function(a,b){return b.rate-a.rate});
-    var maxTotal=Math.max.apply(null,sorted.map(function(m){return m.total||1}));
+    var maxRate=sorted[0].rate||1;
     var html='';
-    sorted.forEach(function(m,i){
-        var w=Math.max(m.total/maxTotal*100,25);
+    sorted.forEach(function(m){
+        var w=Math.max(m.rate/maxRate*100,30);
         var rc=m.rate;
-        var rColor=rc>=80?'#0a8a5a':rc>=60?'#ffd166':'#cc3333';
+        var bg=rc>=70?'#0a8a5a':rc>=50?'#0a7ea8':'#cc3333';
         var mi=funnelData.menus.indexOf(m);
-        html+='<div style="cursor:pointer;margin-bottom:4px" onclick="showTab(1);setTimeout(function(){openWaterfall('+mi+')},100)">';
-        html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">';
-        html+='<span style="width:80px;text-align:right;font-size:0.75rem;color:#ccc;flex-shrink:0">'+m.menu+'</span>';
-        html+='<div class="fnl-step" style="width:'+w+'%;background:'+rColor+';text-align:left;padding-left:10px">';
-        html+=m.total+'건 <span style="opacity:0.7;font-size:0.65rem">완료율 '+rc+'%</span>';
-        html+='</div>';
-        html+='</div>';
+        html+='<div class="dropout-fnl" style="width:'+w+'%;background:'+bg+'" onclick="jumpToFunnelCard('+mi+')">';
+        html+=m.menu+' | '+rc+'% | 진입 '+m.total+'건 &rarr; 완료 '+m.completed+'건';
         html+='</div>';
     });
     el.innerHTML=html;
+}
+
+function jumpToFunnelCard(menuIdx){
+    showTab(1);
+    setTimeout(function(){
+        var cards=document.querySelectorAll('.funnel-card');
+        if(cards[menuIdx]) cards[menuIdx].scrollIntoView({behavior:'smooth',block:'center'});
+    },150);
 }
 
 // ── 탭3: 시간 분석 ──
@@ -633,7 +638,7 @@ function renderStepTime(){
 // ── 탭4: 상세 로그 ──
 async function loadDetail(){
     var dt=getEnd();
-    var kid=getKioskId();
+    var kid=getDetailKiosk();
     if(kid==='all'){var opts=document.getElementById('t-kiosk').options;if(opts.length>1)kid=opts[1].value;else return}
     try{
         var r=await fetch('/api/kiosk-usage/detail?kiosk_id='+kid+'&work_date='+dt);
@@ -651,18 +656,19 @@ async function loadDetail(){
 
 function selectHosp(code){
     document.getElementById('t-hosp').value=code;
-    currentKiosk='all';
+    selectedKioskForDetail='all';
     onHospChange();
 }
 
 function selectKiosk(kid){
-    currentKiosk=kid;
-    loadAll();
+    selectedKioskForDetail=kid;
+    updateBreadcrumb();
+    loadFunnel();
 }
 
 function updateBreadcrumb(){
     var hc=getHospCd();
-    var kid=currentKiosk;
+    var kid=selectedKioskForDetail;
     var el=document.getElementById('breadcrumb');
     if(hc==='all'){
         el.innerHTML='<span class="bc-current">전체</span>';
@@ -673,7 +679,7 @@ function updateBreadcrumb(){
     if(kid==='all'){
         html+='<span class="bc-current">'+hName+'</span>';
     }else{
-        html+='<span class="bc-link" onclick="currentKiosk=\'all\';loadAll()">'+hName+'</span>';
+        html+='<span class="bc-link" onclick="selectedKioskForDetail=\'all\';updateBreadcrumb();loadFunnel()">'+hName+'</span>';
         html+='<span> &gt; </span><span class="bc-current">'+kid+'</span>';
     }
     el.innerHTML=html;
