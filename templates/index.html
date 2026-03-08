@@ -49,7 +49,8 @@ td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
 
 /* 모바일 */
 @media(max-width:768px){
-    .header{padding:6px 10px!important;height:auto!important;flex-wrap:wrap;gap:6px}
+    .header{padding:6px 10px!important;height:auto!important;flex-wrap:wrap;gap:6px;background:linear-gradient(135deg,#0d1220,#131a2e)!important;border-bottom:1px solid #1a2340!important}
+    .clk{font-size:0.65rem!important}
     .header .logo{font-size:0.95rem}
     .header .right{display:none!important}
     .header .nav{overflow-x:auto;flex-wrap:nowrap;gap:4px}
@@ -68,6 +69,7 @@ td{padding:1px 4px;border-bottom:1px solid #222;font-size:0.7em;line-height:1.2}
 <div class="header">
     <span class="logo"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">대시보드</span></span>
     {% include 'nav.html' %}
+    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
     <div class="right">
         <span class="user">{{ session.get('user_name', '') }} ({{ session.get('user_role', '') }})</span>
         <span class="user"><a href="/change-password">비밀번호</a> <a href="/logout">로그아웃</a></span>
@@ -358,5 +360,6 @@ setInterval(()=>{
 }, 60000);
 
 </script>
+<script>function tick(){const d=new Date();const el=document.getElementById('clk');if(el)el.textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+d.toLocaleTimeString('ko-KR');}setInterval(tick,1000);tick();</script>
 </body>
 </html>
