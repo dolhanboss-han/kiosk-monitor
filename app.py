@@ -2823,6 +2823,142 @@ def api_hosp_compare(hosp_cd):
     })
 
 
+@app.route('/tv')
+def tv_dashboard():
+    return render_template('tv.html')
+
+@app.route('/api/tv-data')
+def api_tv_data():
+    """TV 전용 대시보드 데이터 (로그인 불필요)"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        today = date.today().strftime('%Y-%m-%d')
+
+        # KPI: 가동병원, 전체키오스크
+        cur.execute(f"SELECT COUNT(*) FROM KIOSK_HOSP_INFO WHERE USER_YN='Y' AND EMR_COMPANY NOT IN {EXCLUDE_ISV}")
+        active_hosp = cur.fetchone()[0]
+        cur.execute(f"SELECT ISNULL(SUM(CAST(KIOSK_CNT AS INT)),0) FROM KIOSK_HOSP_INFO WHERE KIOSK_CNT IS NOT NULL AND EMR_COMPANY NOT IN {EXCLUDE_ISV}")
+        total_kiosk = cur.fetchone()[0]
+
+        # KPI: 오늘이용건수
+        cur.execute(f"""
+            SELECT COUNT(DISTINCT c.HOSP_CD),
+                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
+                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
+                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
+                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
+                   ISNULL(c.COUNT_13,0))
+            FROM KIOSK_HOSP_COUNT c
+            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            WHERE c.COUNT_DATE = ? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+        """, today)
+        today_row = cur.fetchone()
+        today_hosps = today_row[0] or 0
+        today_count = today_row[1] or 0
+        today_rate = round(today_hosps / active_hosp * 100, 1) if active_hosp > 0 else 0
+
+        # 주간 이용 추이 (7일)
+        cur.execute(f"""
+            SELECT TOP 7 c.COUNT_DATE,
+                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
+                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
+                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
+                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
+                   ISNULL(c.COUNT_13,0))
+            FROM KIOSK_HOSP_COUNT c
+            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            WHERE h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            GROUP BY c.COUNT_DATE ORDER BY c.COUNT_DATE DESC
+        """)
+        weekly = [{'date': r[0], 'count': r[1] or 0} for r in reversed(cur.fetchall())]
+
+        # 월별 이용 추이 (12개월)
+        cur.execute(f"""
+            SELECT LEFT(c.COUNT_DATE,7) as month,
+                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
+                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
+                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
+                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
+                   ISNULL(c.COUNT_13,0))
+            FROM KIOSK_HOSP_COUNT c
+            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            WHERE h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            GROUP BY LEFT(c.COUNT_DATE,7) ORDER BY month DESC
+        """)
+        monthly = [{'month': r[0], 'count': r[1] or 0} for r in reversed(cur.fetchall()[:12])]
+
+        # ISV 분포
+        cur.execute(f"SELECT EMR_COMPANY, COUNT(*) as cnt FROM KIOSK_HOSP_INFO WHERE EMR_COMPANY NOT IN {EXCLUDE_ISV} GROUP BY EMR_COMPANY ORDER BY cnt DESC")
+        isv_dist = [{'isv': r[0], 'count': r[1]} for r in cur.fetchall()]
+
+        # 시간대별 이용현황
+        cur.execute(f"""
+            SELECT ISNULL(SUM(c.COUNT_01),0), ISNULL(SUM(c.COUNT_02),0), ISNULL(SUM(c.COUNT_03),0),
+                   ISNULL(SUM(c.COUNT_04),0), ISNULL(SUM(c.COUNT_05),0), ISNULL(SUM(c.COUNT_06),0),
+                   ISNULL(SUM(c.COUNT_07),0), ISNULL(SUM(c.COUNT_08),0), ISNULL(SUM(c.COUNT_09),0),
+                   ISNULL(SUM(c.COUNT_10),0), ISNULL(SUM(c.COUNT_11),0), ISNULL(SUM(c.COUNT_12),0),
+                   ISNULL(SUM(c.COUNT_13),0)
+            FROM KIOSK_HOSP_COUNT c
+            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            WHERE c.COUNT_DATE = ? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+        """, today)
+        hr = cur.fetchone()
+        hourly = [hr[i] or 0 for i in range(13)]
+
+        # ISV별 오늘 이용 테이블
+        cur.execute(f"""
+            SELECT h.EMR_COMPANY,
+                   COUNT(DISTINCT h2.HOSP_CD) as total_hosps,
+                   COUNT(DISTINCT c.HOSP_CD) as active_hosps,
+                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
+                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
+                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
+                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
+                   ISNULL(c.COUNT_13,0)) as total_count
+            FROM KIOSK_HOSP_INFO h2
+            LEFT JOIN KIOSK_HOSP_COUNT c ON h2.HOSP_CD = c.HOSP_CD AND c.COUNT_DATE = ?
+            LEFT JOIN KIOSK_HOSP_INFO h ON h2.HOSP_CD = h.HOSP_CD
+            WHERE h2.EMR_COMPANY NOT IN {EXCLUDE_ISV} AND h2.USER_YN = 'Y'
+            GROUP BY h.EMR_COMPANY ORDER BY total_count DESC
+        """, today)
+        isv_today = []
+        for r in cur.fetchall():
+            total_h = r[1] or 0
+            active_h = r[2] or 0
+            rate = round(active_h / total_h * 100, 1) if total_h > 0 else 0
+            isv_today.append({'isv': r[0], 'hosps': total_h, 'count': r[3] or 0, 'rate': rate})
+
+        conn.close()
+
+        # 에이전트 상태 (SQLite)
+        try:
+            db = get_monitor_db()
+            agent_total = db.execute("SELECT COUNT(*) FROM kiosk_status").fetchone()[0]
+            agent_online = db.execute("SELECT COUNT(*) FROM kiosk_status WHERE status='online'").fetchone()[0]
+            agent_error = db.execute("SELECT COUNT(*) FROM kiosk_status WHERE status='error'").fetchone()[0]
+            db.close()
+        except Exception:
+            agent_total, agent_online, agent_error = 0, 0, 0
+
+        return jsonify({
+            'kpi': {
+                'active_hosp': active_hosp,
+                'total_kiosk': total_kiosk,
+                'today_count': today_count,
+                'today_rate': today_rate,
+                'agent_online': agent_online,
+                'agent_error': agent_error
+            },
+            'weekly': weekly,
+            'monthly': monthly,
+            'isv_dist': isv_dist,
+            'hourly': hourly,
+            'isv_today': isv_today
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/hospital-list')
 @login_required
 def api_hospital_list():
