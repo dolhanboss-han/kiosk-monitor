@@ -677,6 +677,7 @@ function selectKiosk(kid){
         document.getElementById('k-rate').textContent=(sel.complete_rate||0)+'%';
     }
     loadFunnel();
+    loadHourlyForKiosk(kid);
 }
 
 function resetKioskDetail(){
@@ -692,6 +693,16 @@ function resetKioskDetail(){
     document.getElementById('k-cancel').textContent=tca;
     document.getElementById('k-rate').textContent=(te>0?Math.round(tc/te*100):0)+'%';
     loadFunnel();
+    loadHourlyForKiosk('all');
+}
+
+async function loadHourlyForKiosk(kid){
+    var sd=getStart(),ed=getEnd(),hc=getHospCd();
+    try{
+        var r=await fetch('/api/kiosk-usage/dashboard?start_date='+sd+'&end_date='+ed+'&hosp_cd='+hc+'&kiosk_id='+kid);
+        var d=await r.json();
+        renderHourlyChart(d.hourly_pattern);
+    }catch(e){console.error(e)}
 }
 
 function updateBreadcrumb(){
