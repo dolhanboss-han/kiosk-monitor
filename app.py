@@ -16,6 +16,34 @@ EXCLUDE_ISV = "('MCC','NSS')"
 _is_biz_menu = re.compile(r'^[\uAC00-\uD7A3]+$')  # 한글만으로 된 메뉴명
 MONITOR_DB = '/home/ubuntu/kiosk-monitor/monitor.db'
 
+PAGE_SECTIONS = {
+    'executive': [
+        {'id': 'kpi_cards', 'name': 'KPI 카드 영역', 'default': True},
+        {'id': 'weekday_heatmap', 'name': '요일별 사용 패턴', 'default': True},
+        {'id': 'hospital_ranking', 'name': '병원 순위 테이블', 'default': True},
+        {'id': 'risk_hospitals', 'name': '위험 병원 리스트', 'default': True},
+        {'id': 'monthly_trend', 'name': '월별 추이 차트', 'default': True},
+        {'id': 'service_rate', 'name': '서비스율 현황', 'default': True}
+    ],
+    'hospital_view': [
+        {'id': 'search_bar', 'name': '병원 검색', 'default': True},
+        {'id': 'hospital_list', 'name': '병원 리스트', 'default': True},
+        {'id': 'hospital_detail', 'name': '병원 상세', 'default': True}
+    ],
+    'monitoring': [
+        {'id': 'hospital_tiles', 'name': '키오스크 타일 그리드', 'default': True},
+        {'id': 'detail_panel', 'name': '키오스크 상세 패널', 'default': True}
+    ],
+    'maintenance': [
+        {'id': 'tab_supply', 'name': '소모품 현황', 'default': True},
+        {'id': 'tab_alert', 'name': '알림 센터', 'default': True},
+        {'id': 'tab_remote', 'name': '원격 제어', 'default': True},
+        {'id': 'tab_print', 'name': '인쇄 통계', 'default': True},
+        {'id': 'tab_history', 'name': '장애 이력', 'default': True},
+        {'id': 'tab_dispatch', 'name': '현장 출동', 'default': True}
+    ]
+}
+
 def get_db():
     return pyodbc.connect(get_connection_string())
 
@@ -1403,7 +1431,51 @@ def save_layout():
     db.close()
     return jsonify({'status': 'saved'})
 
+@app.route('/api/page-sections', methods=['GET'])
+@login_required
+def get_page_sections():
+    page_type = request.args.get('page_type', '')
+    defs = PAGE_SECTIONS.get(page_type, [])
+    if not defs:
+        return jsonify({'sections': []})
+    # DB에서 저장된 설정 로드
+    db = get_monitor_db()
+    row = db.execute('SELECT layout_json FROM dashboard_layouts WHERE page_type=? AND is_default=1', (page_type,)).fetchone()
+    db.close()
+    saved = {}
+    if row:
+        try:
+            data = json.loads(row[0])
+            if isinstance(data, dict):
+                saved = data.get('sections', {})
+        except Exception:
+            pass
+    result = []
+    for s in defs:
+        visible = saved.get(s['id'], s['default'])
+        result.append({'id': s['id'], 'name': s['name'], 'visible': visible})
+    return jsonify({'sections': result})
 
+@app.route('/api/page-sections', methods=['POST'])
+@login_required
+def save_page_sections():
+    data = request.get_json()
+    page_type = data.get('page_type', '')
+    sections = data.get('sections', {})
+    if page_type not in PAGE_SECTIONS:
+        return jsonify({'status': 'error', 'error': 'invalid page_type'}), 400
+    layout = json.dumps({'sections': sections})
+    db = get_monitor_db()
+    row = db.execute('SELECT id FROM dashboard_layouts WHERE page_type=? AND is_default=1', (page_type,)).fetchone()
+    if row:
+        db.execute('UPDATE dashboard_layouts SET layout_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                   (layout, row[0]))
+    else:
+        db.execute('INSERT INTO dashboard_layouts (name, role, page_type, layout_json, is_default) VALUES (?, ?, ?, ?, 1)',
+                   (page_type, 'hq_admin', page_type, layout))
+    db.commit()
+    db.close()
+    return jsonify({'status': 'saved'})
 
 @app.route('/api/kiosk-monitor')
 @login_required
