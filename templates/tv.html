@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>BSEYE TV Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0e1a;color:#fff;font-family:'Segoe UI','맑은 고딕',sans-serif}
+.wrap{width:1920px;height:1080px;padding:20px;display:flex;flex-direction:column;gap:12px}
+
+/* 상단 헤더 */
+.header{display:flex;align-items:center;justify-content:space-between;height:50px;flex-shrink:0}
+.logo{font-size:1.6rem;font-weight:800;letter-spacing:2px}
+.logo-bs{color:#00d4ff}
+.logo-eye{color:#eee}
+.logo-sub{font-size:0.85rem;color:#888;margin-left:12px;font-weight:400}
+.clock{font-size:1.1rem;color:#aaa;font-variant-numeric:tabular-nums}
+
+/* KPI 카드 */
+.kpi-row{display:flex;gap:12px;flex-shrink:0;height:80px}
+.kpi-card{flex:1;background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
+.kpi-label{font-size:0.75rem;color:#888;margin-bottom:4px}
+.kpi-value{font-size:2rem;font-weight:700;color:#fff;line-height:1}
+
+/* 차트 영역 */
+.mid-row{display:flex;gap:12px;flex:45}
+.bot-row{display:flex;gap:12px;flex:40}
+.chart-box{background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;padding:14px;display:flex;flex-direction:column}
+.chart-box .chart-title{font-size:0.9rem;color:#00d4ff;margin-bottom:8px;font-weight:600}
+.chart-box canvas{flex:1;min-height:0}
+
+.mid-left{flex:6}
+.mid-center{flex:3}
+.mid-right{flex:3}
+.bot-left{flex:6}
+.bot-right{flex:4}
+
+/* 테이블 */
+.tv-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.tv-table thead th{background:#1e2a3a;padding:8px 10px;text-align:left;color:#aaa;font-weight:600;position:sticky;top:0}
+.tv-table tbody tr{background:#0d1117;border-bottom:1px solid #1a2332}
+.tv-table tbody tr:hover{background:#1a2332}
+.tv-table tbody td{padding:7px 10px;color:#ddd}
+.table-wrap{flex:1;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 상단 헤더 -->
+  <div class="header">
+    <div class="logo"><span class="logo-bs">BS</span><span class="logo-eye">EYE</span><span class="logo-sub">실시간 모니터링</span></div>
+    <div class="clock" id="clock"></div>
+  </div>
+
+  <!-- KPI 카드 -->
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="kpi-label">가동병원</div><div class="kpi-value" id="kpi-hosp">-</div></div>
+    <div class="kpi-card"><div class="kpi-label">전체 키오스크</div><div class="kpi-value" id="kpi-kiosk">-</div></div>
+    <div class="kpi-card"><div class="kpi-label">오늘 이용건수</div><div class="kpi-value" id="kpi-count">-</div></div>
+    <div class="kpi-card"><div class="kpi-label">오늘 가동율</div><div class="kpi-value" id="kpi-rate">-</div></div>
+    <div class="kpi-card"><div class="kpi-label">온라인 에이전트</div><div class="kpi-value" id="kpi-online">-</div></div>
+    <div class="kpi-card"><div class="kpi-label">장애 에이전트</div><div class="kpi-value" id="kpi-error">-</div></div>
+  </div>
+
+  <!-- 중단: 차트 3개 -->
+  <div class="mid-row">
+    <div class="chart-box mid-left">
+      <div class="chart-title">주간 이용 추이</div>
+      <canvas id="chartWeekly"></canvas>
+    </div>
+    <div class="chart-box mid-center">
+      <div class="chart-title">월별 이용 추이</div>
+      <canvas id="chartMonthly"></canvas>
+    </div>
+    <div class="chart-box mid-right">
+      <div class="chart-title">ISV 분포</div>
+      <canvas id="chartIsv"></canvas>
+    </div>
+  </div>
+
+  <!-- 하단: 차트 + 테이블 -->
+  <div class="bot-row">
+    <div class="chart-box bot-left">
+      <div class="chart-title">시간대별 이용현황</div>
+      <canvas id="chartHourly"></canvas>
+    </div>
+    <div class="chart-box bot-right">
+      <div class="chart-title">ISV별 오늘 이용</div>
+      <div class="table-wrap">
+        <table class="tv-table">
+          <thead><tr><th>ISV</th><th>병원수</th><th>이용건수</th><th>가동율</th></tr></thead>
+          <tbody id="isvBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// === 시계 ===
+function tickClock(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=
+    d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
+setInterval(tickClock,1000);tickClock();
+
+// === Chart.js 공통 설정 ===
+Chart.defaults.color='#888';
+Chart.defaults.borderColor='#1e2a3a';
+Chart.defaults.font.size=11;
+
+const ISV_COLORS=['#00d4ff','#ff6b6b','#ffd93d','#6bcb77','#a66cff','#ff9a3c','#4ecdc4','#f067b4','#58d68d','#e74c3c','#3498db','#e67e22'];
+
+let chartWeekly, chartMonthly, chartIsv, chartHourly;
+
+function initCharts(){
+  // 주간 라인차트
+  chartWeekly=new Chart(document.getElementById('chartWeekly'),{
+    type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.15)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#00d4ff',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
+  });
+
+  // 월별 바차트
+  chartMonthly=new Chart(document.getElementById('chartMonthly'),{
+    type:'bar',
+    data:{labels:[],datasets:[{data:[],backgroundColor:'#00d4ff',borderRadius:4,maxBarThickness:28}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
+  });
+
+  // ISV 도넛차트
+  chartIsv=new Chart(document.getElementById('chartIsv'),{
+    type:'doughnut',
+    data:{labels:[],datasets:[{data:[],backgroundColor:ISV_COLORS,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8,font:{size:11},color:'#ccc'}}},cutout:'55%'}
+  });
+
+  // 시간대별 바차트
+  chartHourly=new Chart(document.getElementById('chartHourly'),{
+    type:'bar',
+    data:{labels:[],datasets:[{data:[],backgroundColor:'rgba(0,212,255,0.7)',borderRadius:3,maxBarThickness:36}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
+  });
+}
+
+function numFmt(n){return n!=null?n.toLocaleString():'-'}
+
+function rateColor(v){return v>=90?'#00ff88':v>=70?'#ffaa00':'#ff4444'}
+
+function loadData(){
+  fetch('/api/tv-data').then(r=>r.json()).then(d=>{
+    if(d.error)return;
+
+    // KPI
+    const k=d.kpi;
+    document.getElementById('kpi-hosp').textContent=numFmt(k.active_hosp);
+    document.getElementById('kpi-kiosk').textContent=numFmt(k.total_kiosk);
+    document.getElementById('kpi-count').textContent=numFmt(k.today_count);
+    const rateEl=document.getElementById('kpi-rate');
+    rateEl.textContent=k.today_rate+'%';
+    rateEl.style.color=rateColor(k.today_rate);
+    document.getElementById('kpi-online').textContent=numFmt(k.agent_online);
+    const errEl=document.getElementById('kpi-error');
+    errEl.textContent=numFmt(k.agent_error);
+    errEl.style.color=k.agent_error>0?'#ff4444':'#00ff88';
+
+    // 주간 차트
+    chartWeekly.data.labels=d.weekly.map(r=>r.date.slice(5));
+    chartWeekly.data.datasets[0].data=d.weekly.map(r=>r.count);
+    chartWeekly.update();
+
+    // 월별 차트
+    chartMonthly.data.labels=d.monthly.map(r=>r.month.slice(2));
+    chartMonthly.data.datasets[0].data=d.monthly.map(r=>r.count);
+    chartMonthly.update();
+
+    // ISV 분포
+    chartIsv.data.labels=d.isv_dist.map(r=>r.isv);
+    chartIsv.data.datasets[0].data=d.isv_dist.map(r=>r.count);
+    chartIsv.update();
+
+    // 시간대별
+    const hLabels=d.hourly.map((_,i)=>'구간'+(i+1));
+    chartHourly.data.labels=hLabels;
+    chartHourly.data.datasets[0].data=d.hourly;
+    chartHourly.update();
+
+    // ISV 테이블
+    const tbody=document.getElementById('isvBody');
+    tbody.innerHTML='';
+    d.isv_today.slice(0,8).forEach(r=>{
+      const rc=rateColor(r.rate);
+      tbody.innerHTML+=`<tr><td>${r.isv}</td><td>${r.hosps}</td><td>${numFmt(r.count)}</td><td style="color:${rc};font-weight:600">${r.rate}%</td></tr>`;
+    });
+  }).catch(e=>console.error('TV data fetch error:',e));
+}
+
+initCharts();
+loadData();
+setInterval(loadData,300000);
+</script>
+</body>
+</html>
