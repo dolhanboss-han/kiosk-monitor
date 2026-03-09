@@ -281,6 +281,7 @@ var chHourly=null,chDaily=null,chRate=null,chMenuTime=null,chStepTime=null;
 var funnelData=null, selectedMenu=null;
 var hospMap={};
 var selectedKioskForDetail='all';
+var cachedSummary=[];
 
 function today(){return new Date().toISOString().slice(0,10)}
 function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
@@ -367,10 +368,11 @@ function updatePeriodLabel(){
 // ── 탭0: 현황 ──
 async function loadData(){
     var sd=getStart(),ed=getEnd();
-    var hc=getHospCd(),kid=getEffectiveKiosk();
+    var hc=getHospCd(),kid=getKioskId();
     try{
         var r=await fetch('/api/kiosk-usage/dashboard?start_date='+sd+'&end_date='+ed+'&hosp_cd='+hc+'&kiosk_id='+kid);
         var d=await r.json();
+        cachedSummary=d.summary||[];
         document.getElementById('k-kiosk').textContent=d.active_kiosks;
         document.getElementById('k-entry').textContent=d.total_entry;
         document.getElementById('k-complete').textContent=d.total_complete;
@@ -439,7 +441,7 @@ function renderHourlyChart(hp){
 
 async function loadDailyTrend(){
     var sd=getStart(),ed=getEnd();
-    var kid=getEffectiveKiosk();
+    var kid=getKioskId();
     try{
         var r=await fetch('/api/kiosk-usage/daily?start_date='+sd+'&end_date='+ed+'&kiosk_id='+kid+'&hosp_cd='+getHospCd());
         var d=await r.json();
@@ -664,7 +666,32 @@ function selectHosp(code){
 function selectKiosk(kid){
     selectedKioskForDetail=kid;
     updateBreadcrumb();
-    loadAll();
+    updatePeriodLabel();
+    // KPI를 캐시에서 업데이트 (API 재호출 없이)
+    var sel=cachedSummary.find(function(s){return s.kiosk_id===kid});
+    if(sel){
+        document.getElementById('k-kiosk').textContent='1';
+        document.getElementById('k-entry').textContent=sel.total_entry;
+        document.getElementById('k-complete').textContent=sel.total_complete;
+        document.getElementById('k-cancel').textContent=sel.total_cancel;
+        document.getElementById('k-rate').textContent=(sel.complete_rate||0)+'%';
+    }
+    loadFunnel();
+}
+
+function resetKioskDetail(){
+    selectedKioskForDetail='all';
+    updateBreadcrumb();
+    updatePeriodLabel();
+    // KPI를 캐시 전체 합산으로 복원
+    var te=0,tc=0,tca=0;
+    cachedSummary.forEach(function(s){te+=s.total_entry;tc+=s.total_complete;tca+=s.total_cancel});
+    document.getElementById('k-kiosk').textContent=cachedSummary.length;
+    document.getElementById('k-entry').textContent=te;
+    document.getElementById('k-complete').textContent=tc;
+    document.getElementById('k-cancel').textContent=tca;
+    document.getElementById('k-rate').textContent=(te>0?Math.round(tc/te*100):0)+'%';
+    loadFunnel();
 }
 
 function updateBreadcrumb(){
@@ -680,7 +707,7 @@ function updateBreadcrumb(){
     if(kid==='all'){
         html+='<span class="bc-current">'+hName+'</span>';
     }else{
-        html+='<span class="bc-link" onclick="selectedKioskForDetail=\'all\';updateBreadcrumb();loadFunnel()">'+hName+'</span>';
+        html+='<span class="bc-link" onclick="resetKioskDetail()">'+hName+'</span>';
         html+='<span> &gt; </span><span class="bc-current">'+kid+'</span>';
     }
     el.innerHTML=html;
