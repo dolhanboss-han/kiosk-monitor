@@ -39,6 +39,15 @@ def get_monitor_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# dashboard_layouts에 page_type 컬럼 추가 (최초 1회)
+try:
+    _mdb = sqlite3.connect(MONITOR_DB, timeout=10)
+    _mdb.execute("ALTER TABLE dashboard_layouts ADD COLUMN page_type TEXT DEFAULT 'dashboard'")
+    _mdb.commit()
+    _mdb.close()
+except Exception:
+    pass
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -1370,8 +1379,9 @@ import json
 @app.route('/api/layout', methods=['GET'])
 @login_required
 def get_layout():
+    page_type = request.args.get('page_type', 'dashboard')
     db = get_monitor_db()
-    row = db.execute('SELECT layout_json FROM dashboard_layouts WHERE is_default=1').fetchone()
+    row = db.execute('SELECT layout_json FROM dashboard_layouts WHERE page_type=? AND is_default=1', (page_type,)).fetchone()
     db.close()
     return jsonify({'layout': json.loads(row[0]) if row else []})
 
@@ -1379,10 +1389,16 @@ def get_layout():
 @login_required
 def save_layout():
     data = request.get_json()
+    page_type = data.get('page_type', 'dashboard')
     layout = json.dumps(data.get('layout', []))
     db = get_monitor_db()
-    db.execute('UPDATE dashboard_layouts SET layout_json=?, updated_at=CURRENT_TIMESTAMP WHERE is_default=1',
-               (layout,))
+    row = db.execute('SELECT id FROM dashboard_layouts WHERE page_type=? AND is_default=1', (page_type,)).fetchone()
+    if row:
+        db.execute('UPDATE dashboard_layouts SET layout_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                   (layout, row[0]))
+    else:
+        db.execute('INSERT INTO dashboard_layouts (name, role, page_type, layout_json, is_default) VALUES (?, ?, ?, ?, 1)',
+                   (page_type, 'hq_admin', page_type, layout))
     db.commit()
     db.close()
     return jsonify({'status': 'saved'})
