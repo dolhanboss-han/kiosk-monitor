@@ -105,6 +105,13 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;display:fle
 </div>
 
 <div id="toolbar">
+<select id="page-type" onchange="onPageTypeChange()" style="background:#1a1a3e;color:#eee;border:1px solid #333;padding:6px 12px;border-radius:4px;font-size:0.8rem">
+<option value="dashboard">대시보드</option>
+<option value="executive">경영진 대시보드</option>
+<option value="hospital_view">병원 대시보드</option>
+<option value="monitoring">모니터링</option>
+<option value="maintenance">유지보수</option>
+</select>
 <button onclick="saveLayout()" class="btn-save">저장</button>
 <button onclick="previewLayout()" class="btn-preview">미리보기</button>
 <button onclick="clearCanvas()">추천 레이아웃</button>
@@ -500,7 +507,7 @@ async function saveLayout(saveAs) {
             extra: w.getAttribute('data-extra') || ''
         });
     });
-    const body = {layout: layout, save_as: saveAs || 'personal'};
+    const body = {layout: layout, save_as: saveAs || 'personal', page_type: document.getElementById('page-type').value};
     if(saveAs === 'role_default') {
         body.target_role = document.getElementById('roleSelect').value;
     }
@@ -516,8 +523,14 @@ async function saveLayout(saveAs) {
     });
 }
 async function loadLayout(){
-    const res=await fetch('/api/layout');const d=await res.json();
+    const pt=document.getElementById('page-type').value;
+    const res=await fetch('/api/layout?page_type='+pt);const d=await res.json();
     if(d.layout&&d.layout.length>0)d.layout.forEach(w=>addWidget(w.type,w.x,w.y,w.w,w.h,w.extra));
+}
+function onPageTypeChange(){
+    document.querySelectorAll('#canvas .widget').forEach(w=>w.remove());
+    widgets=[];widgetId=0;selectedWidgets.clear();removeGroupBox();
+    loadLayout();
 }
 function previewLayout(){window.open('/dashboard-preview','_blank');}
 function showMsg(t){const m=document.getElementById('msg');m.textContent=t;m.style.display='block';setTimeout(()=>m.style.display='none',2000);}
