@@ -146,7 +146,7 @@ const canvas = document.getElementById('canvas');
 let widgets = [];
 let widgetId = 0;
 let snapToGrid = true;
-const GRID = 20;
+const GRID = 10;
 let dragWidget = null, dragOffX = 0, dragOffY = 0;
 let resizeWidget = null, resizeStartX = 0, resizeStartY = 0, resizeStartW = 0, resizeStartH = 0;
 let selectedWidgets = new Set();
@@ -320,7 +320,7 @@ document.addEventListener('mousemove', e => {
     if (resizeWidget) {
         let nw = resizeStartW + (e.clientX - resizeStartX), nh = resizeStartH + (e.clientY - resizeStartY);
         if (snapToGrid) { nw = Math.round(nw/GRID)*GRID; nh = Math.round(nh/GRID)*GRID; }
-        nw = Math.max(80,nw); nh = Math.max(50,nh);
+        nw = Math.max(60,nw); nh = Math.max(40,nh);
         resizeWidget.style.width = nw+'px'; resizeWidget.style.height = nh+'px';
         applyFontScale(resizeWidget, nw, nh);
         const wd = widgets.find(w => w.id === resizeWidget.id);

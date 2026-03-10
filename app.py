@@ -2176,6 +2176,67 @@ def widget_ticket_summary():
     db.close()
     return jsonify({'open': o, 'in_progress': p})
 
+
+@app.route('/api/widget-data/equipment_alert')
+@login_required
+def widget_equipment_alert():
+    """장비 이상 요약 위젯 API"""
+    import json as _json
+    from datetime import datetime as _dt
+    db = get_monitor_db()
+    rows = db.execute("""SELECT hosp_cd, kiosk_id, status, printer_a4, printer_thermal, 
+        card_reader, barcode_reader, network_printers, last_heartbeat
+        FROM kiosk_status ORDER BY last_heartbeat DESC""").fetchall()
+    
+    _now = _dt.now()
+    offline = 0
+    device_err = 0
+    printer_warn = 0
+    issues = []
+    
+    for r in rows:
+        hc, kid, st, pa4, pth, cr, br, np_raw, lhb = r
+        # 오프라인
+        if lhb:
+            try:
+                elapsed = (_now - _dt.strptime(lhb[:19], '%Y-%m-%d %H:%M:%S')).total_seconds() / 60
+                if elapsed > 30:
+                    offline += 1
+                    issues.append({'hosp_cd': hc, 'kiosk_id': kid, 'type': 'offline', 
+                        'msg': f'{int(elapsed)}분 통신없음', 'severity': 'critical' if elapsed > 1440 else 'warning'})
+            except: pass
+        # 장치 오류
+        for dev, dname in [(pa4,'A4프린터'),(pth,'영수증'),(cr,'카드리더'),(br,'바코드')]:
+            if dev == 'error':
+                device_err += 1
+                issues.append({'hosp_cd': hc, 'kiosk_id': kid, 'type': 'device', 'msg': f'{dname} 오류', 'severity': 'critical'})
+        # 프린터 경고
+        if np_raw:
+            try:
+                np = _json.loads(np_raw)
+                for pname, pinfo in np.items():
+                    detail = pinfo.get('detail', {})
+                    toner = detail.get('toner_black', {}).get('pct', 100)
+                    if toner <= 20:
+                        printer_warn += 1
+                        issues.append({'hosp_cd': hc, 'kiosk_id': kid, 'type': 'toner', 'msg': f'토너 {toner}%', 'severity': 'critical' if toner <= 10 else 'warning'})
+                    for tkey, tname in [('tray2','트레이1'),('tray3','트레이2')]:
+                        tpct = detail.get(tkey, {}).get('pct', 100)
+                        if tpct <= 20:
+                            printer_warn += 1
+                            issues.append({'hosp_cd': hc, 'kiosk_id': kid, 'type': 'paper', 'msg': f'{tname} {tpct}%', 'severity': 'critical' if tpct <= 0 else 'warning'})
+            except: pass
+    
+    db.close()
+    # 심각도순 정렬
+    sev = {'critical': 0, 'warning': 1}
+    issues.sort(key=lambda x: sev.get(x['severity'], 9))
+    
+    return jsonify({
+        'offline': offline, 'device_errors': device_err, 'printer_warnings': printer_warn,
+        'total_issues': len(issues), 'issues': issues[:15]
+    })
+
 @app.route('/api/widget-data/agent_summary')
 @login_required
 def widget_agent_summary():
