@@ -128,13 +128,13 @@ function renderWidget(el, type){
         fetch('/api/widget-data/kpi_summary').then(r=>r.json()).then(d=>{
             let val=type==='kpi_total_hosp'?d.total_hosp:type==='kpi_active_hosp'?d.active_hosp:d.total_kiosk;
             let color=type==='kpi_total_hosp'?'#4ecdc4':type==='kpi_active_hosp'?'#45b7d1':'#96ceb4';
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+val+'</div><div style="color:#aaa;font-size:0.75em">'+(LABELS[type])+'</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:'+color+'">'+val+'</div></div>';
         });
     } else if(type==='kpi_today_count'||type==='kpi_today_hosp'||type==='kpi_today_kiosk'){
         fetch('/api/widget-data/today_usage').then(r=>r.json()).then(d=>{
             let val=type==='kpi_today_count'?d.total_count:type==='kpi_today_hosp'?d.hosp_count:d.kiosk_count;
             let color=type==='kpi_today_count'?'#feca57':type==='kpi_today_hosp'?'#ff9ff3':'#54a0ff';
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+Number(val).toLocaleString()+'</div><div style="color:#aaa;font-size:0.75em">'+LABELS[type]+'</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:'+color+'">'+Number(val).toLocaleString()+'</div></div>';
         });
 
     // ===== KPI: 에이전트 =====
@@ -145,31 +145,31 @@ function renderWidget(el, type){
             else if(type==='kpi_error_agent'){val=d.error;color='#ff4757';}
             else if(type==='kpi_total_agent'){val=d.total;color='#4ecdc4';}
             else{val=d.offline;color='#999';}
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:'+color+'">'+val+'</div><div style="color:#aaa;font-size:0.75em">'+LABELS[type]+'</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:'+color+'">'+val+'</div></div>';
         });
 
     // ===== KPI: 알람/티켓 =====
     } else if(type==='kpi_open_alarms'){
         fetch('/api/widget-data/alarm_summary').then(r=>r.json()).then(d=>{
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#ff6b6b">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 알람</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:#ff6b6b">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 알람</div></div>';
         });
     } else if(type==='kpi_open_tickets'){
         fetch('/api/widget-data/ticket_summary').then(r=>r.json()).then(d=>{
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#feca57">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 티켓</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:#feca57">'+d.open+'</div><div style="color:#aaa;font-size:0.75em">미처리 티켓</div></div>';
         });
 
     // ===== KPI: 신규 3종 =====
     } else if(type==='kpi_today_alarm'){
         fetch('/api/widget-data/today_alarm').then(r=>r.json()).then(d=>{
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#ff6b6b">'+d.count+'</div><div style="color:#aaa;font-size:0.75em">오늘 장애건수</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:#ff6b6b">'+d.count+'</div><div style="color:#aaa;font-size:0.75em">오늘 장애건수</div></div>';
         });
     } else if(type==='kpi_avg_response'){
         fetch('/api/widget-data/avg_response').then(r=>r.json()).then(d=>{
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#4ecdc4">'+d.avg_ms+'</div><div style="color:#aaa;font-size:0.75em">평균 응답(ms)</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:#4ecdc4">'+d.avg_ms+'</div><div style="color:#aaa;font-size:0.75em">평균 응답(ms)</div></div>';
         });
     } else if(type==='kpi_month_count'){
         fetch('/api/widget-data/month_count').then(r=>r.json()).then(d=>{
-            body.innerHTML='<div style="text-align:center;padding:8px"><div style="font-size:2em;font-weight:bold;color:#45b7d1">'+Number(d.count).toLocaleString()+'</div><div style="color:#aaa;font-size:0.75em">이번달 누적</div></div>';
+            body.innerHTML='<div style="text-align:center;padding:8px;display:flex;align-items:center;justify-content:center;height:100%"><div style="font-size:2.5em;font-weight:bold;color:#45b7d1">'+Number(d.count).toLocaleString()+'</div><div style="color:#aaa;font-size:0.75em">이번달 누적</div></div>';
         });
 
     // ===== 테이블: ISV 목록 =====
@@ -234,8 +234,14 @@ function renderWidget(el, type){
     } else if(type==='table_no_heartbeat'){
         fetch('/api/widget-data/no_heartbeat').then(r=>r.json()).then(d=>{
             if((!d.data||d.data.length===0)&&(!d.items||d.items.length===0)){body.innerHTML='<div style="text-align:center;padding:20px;color:#666">미응답 키오스크 없음</div>';return;}
-            let h='<table><tr><th>병원</th><th>키오스크</th><th>마지막 응답</th></tr>';
-            (d.data||d.items||[]).forEach(i=>{h+='<tr><td>'+(i.hosp||i.hosp_cd)+'</td><td>'+(i.kiosk||i.kiosk_id)+'</td><td style="color:#feca57">'+(i.time||i.last_heartbeat)+'</td></tr>';});
+            const bw=el.offsetWidth;
+            const fs=Math.max(11,Math.min(15,bw/45));
+            let h='<table style="font-size:'+fs+'px"><tr><th>병원</th><th>키오스크</th><th style="white-space:nowrap">미응답</th></tr>';
+            (d.data||d.items||[]).forEach(i=>{
+                const tm=i.time||i.raw_time||'-';
+                const tc=tm.includes('일')?'#ff6b6b':'#feca57';
+                h+='<tr><td>'+i.hosp+'</td><td>'+i.kiosk+'</td><td style="color:'+tc+';white-space:nowrap">'+tm+'</td></tr>';
+            });
             h+='</table>';body.innerHTML=h;
         });
 
@@ -285,29 +291,32 @@ function renderWidget(el, type){
         fetch('/api/widget-data/isv_today').then(r=>r.json()).then(d=>{
             let items=d.data||[];let labels=items.map(i=>i.isv);let counts=items.map(i=>i.count);
             let cvs=document.createElement('canvas');cvs.style.width='100%';cvs.style.height='100%';body.innerHTML='';body.appendChild(cvs);
-            let colors=['#4ecdc4','#ff6b6b','#45b7d1','#96ceb4','#feca57','#ff9ff3','#54a0ff','#5f27cd','#01a3a4','#f368e0'];
+            let colors=['#00d4ff','#00ff88','#a855f7','#ff4444','#ffaa00','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7','#74b9ff','#fd79a8'];
             new Chart(cvs,{type:'bar',data:{labels:labels,datasets:[{label:'오늘 이용',data:counts,backgroundColor:colors.slice(0,labels.length)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},title:{display:true,text:'ISV별 오늘 이용',color:'#ccc',font:{size:11}}},scales:{x:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}},y:{ticks:{color:'#999',font:{size:9}},grid:{color:'#333'}}}}});
         });
 
     // ===== 장비 이상 현황 =====
     } else if(type==='kpi_equipment_alert'){
         fetch('/api/widget-data/equipment_alert').then(r=>r.json()).then(d=>{
-            let h='<div style="padding:6px">';
+            const bw=el.offsetWidth, bh=el.offsetHeight;
+            const fs=Math.max(12,Math.min(18,bw/50));
+            const numFs=Math.max(18,Math.min(36,bw/25));
+            let h='<div style="padding:8px;height:100%;display:flex;flex-direction:column;font-size:'+fs+'px">';
             // 상단 요약 카드
             h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-            h+='<div style="flex:1;text-align:center;background:#ff444420;border-radius:6px;padding:6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:1.5em;font-weight:bold;color:#ff8888">'+d.offline+'</div><div style="font-size:0.65em;color:#aaa">오프라인</div></div>';
-            h+='<div style="flex:1;text-align:center;background:#ff444420;border-radius:6px;padding:6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:1.5em;font-weight:bold;color:#ff6666">'+d.device_errors+'</div><div style="font-size:0.65em;color:#aaa">장치오류</div></div>';
-            h+='<div style="flex:1;text-align:center;background:#ffaa0020;border-radius:6px;padding:6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:1.5em;font-weight:bold;color:#ffcc44">'+d.printer_warnings+'</div><div style="font-size:0.65em;color:#aaa">프린터경고</div></div>';
+            h+='<div style="flex:1;text-align:center;background:#ff444420;border-radius:8px;padding:10px 6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:2.2em;font-weight:bold;color:#ff8888">'+d.offline+'</div><div style="font-size:0.85em;color:#bbb">오프라인</div></div>';
+            h+='<div style="flex:1;text-align:center;background:#ff444420;border-radius:8px;padding:10px 6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:2.2em;font-weight:bold;color:#ff6666">'+d.device_errors+'</div><div style="font-size:0.85em;color:#bbb">장치오류</div></div>';
+            h+='<div style="flex:1;text-align:center;background:#ffaa0020;border-radius:8px;padding:10px 6px;cursor:pointer" onclick="location.href=\'/monitoring\'"><div style="font-size:2.2em;font-weight:bold;color:#ffcc44">'+d.printer_warnings+'</div><div style="font-size:0.85em;color:#bbb">프린터경고</div></div>';
             h+='</div>';
             // 이상 목록
             if(d.issues && d.issues.length>0){
-                h+='<div style="max-height:calc(100% - 60px);overflow-y:auto">';
+                h+='<div style="flex:1;overflow-y:auto">';
                 d.issues.forEach(i=>{
                     let c=i.severity==='critical'?'#ff8888':'#ffcc44';
                     let icon=i.type==='offline'?'📡':i.type==='toner'?'🖨':i.type==='paper'?'📄':'⚙';
-                    h+='<div style="display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:0.68em;border-bottom:1px solid #222">';
+                    h+='<div style="display:flex;align-items:center;gap:6px;padding:2px 4px;border-bottom:1px solid #1a1a3a;line-height:1.3">';
                     h+='<span>'+icon+'</span>';
-                    h+='<span style="color:#aaa;min-width:50px">'+i.hosp_cd+'</span>';
+                    h+='<span style="color:#aaa;font-weight:500">'+i.hosp_cd+'</span>';
                     h+='<span style="color:#ccc">'+i.kiosk_id+'</span>';
                     h+='<span style="color:'+c+';margin-left:auto">'+i.msg+'</span>';
                     h+='</div>';

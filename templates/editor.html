@@ -45,6 +45,17 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;display:fle
 /* 위젯 */
 .widget{position:absolute;background:#1a1a3e;border:2px solid #333;border-radius:8px;cursor:move;overflow:hidden}
 .widget.selected{border-color:#a855f7;box-shadow:0 0 10px #a855f755}
+
+/* 우클릭 컨텍스트 메뉴 */
+#ctx-menu{display:none;position:fixed;z-index:9999;background:#1a1a3e;border:1px solid #00d4ff;border-radius:8px;padding:6px 0;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+#ctx-menu .ctx-title{padding:6px 16px;color:#889;font-size:.75rem;border-bottom:1px solid #ffffff10;margin-bottom:2px}
+#ctx-menu .ctx-item{padding:8px 16px;color:#dde;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
+#ctx-menu .ctx-item:hover{background:#00d4ff22;color:#fff}
+#ctx-menu .ctx-sep{height:1px;background:#ffffff15;margin:4px 0}
+#ctx-menu .ctx-sub{position:relative}
+#ctx-menu .ctx-sub .ctx-submenu{display:none;position:absolute;left:100%;top:-6px;background:#1a1a3e;border:1px solid #00d4ff;border-radius:8px;padding:6px 0;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+#ctx-menu .ctx-sub:hover .ctx-submenu{display:block}
+#ctx-menu .ctx-sub::after{content:'▶';position:absolute;right:12px;top:8px;font-size:.6rem;color:#889}
 .widget.multi-selected{border-color:#00d4ff;box-shadow:0 0 10px #00d4ff55}
 .widget .w-header{background:#222250;padding:3px 8px;font-size:0.65rem;color:#888;display:flex;justify-content:space-between;align-items:center;cursor:move}
 .widget .w-header .w-del{cursor:pointer;color:#f66;font-size:0.85rem;padding:0 4px}
@@ -131,6 +142,51 @@ body{background:#0a0a1a;color:#eee;font-family:'Segoe UI',sans-serif;display:fle
 </div>
 
 <div id="canvas-wrap">
+<!-- 우클릭 컨텍스트 메뉴 -->
+<div id="ctx-menu">
+    <div class="ctx-title" id="ctx-label">2개 위젯 선택됨</div>
+    <div class="ctx-sub">
+        <div class="ctx-item">📐 정렬</div>
+        <div class="ctx-submenu">
+            <div class="ctx-item" onclick="ctxAlign('left')">⬅ 왼쪽 정렬</div>
+            <div class="ctx-item" onclick="ctxAlign('right')">➡ 오른쪽 정렬</div>
+            <div class="ctx-item" onclick="ctxAlign('top')">⬆ 위쪽 정렬</div>
+            <div class="ctx-item" onclick="ctxAlign('bottom')">⬇ 아래쪽 정렬</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item" onclick="ctxAlign('centerH')">↔ 가로 중앙</div>
+            <div class="ctx-item" onclick="ctxAlign('centerV')">↕ 세로 중앙</div>
+        </div>
+    </div>
+    <div class="ctx-sub">
+        <div class="ctx-item">📏 간격</div>
+        <div class="ctx-submenu">
+            <div class="ctx-item" onclick="ctxDistribute('h')">↔ 가로 균등 배치</div>
+            <div class="ctx-item" onclick="ctxDistribute('v')">↕ 세로 균등 배치</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item" onclick="ctxTighten('h')">⇤ 가로 밀착</div>
+            <div class="ctx-item" onclick="ctxTighten('v')">⇧ 세로 밀착</div>
+        </div>
+    </div>
+    <div class="ctx-sub">
+        <div class="ctx-item">📐 크기 맞춤</div>
+        <div class="ctx-submenu">
+            <div class="ctx-item" onclick="ctxResize('sameW')">↔ 같은 너비</div>
+            <div class="ctx-item" onclick="ctxResize('sameH')">↕ 같은 높이</div>
+            <div class="ctx-item" onclick="ctxResize('sameWH')">⬛ 같은 크기</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item" onclick="ctxResize('minW')">⇤ 최소 너비로</div>
+            <div class="ctx-item" onclick="ctxResize('maxW')">⇥ 최대 너비로</div>
+            <div class="ctx-item" onclick="ctxResize('minH')">⇧ 최소 높이로</div>
+            <div class="ctx-item" onclick="ctxResize('maxH')">⇩ 최대 높이로</div>
+        </div>
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxGridSnap()">🧲 그리드에 맞추기</div>
+    <div class="ctx-item" onclick="selectAll()">🔲 전체 선택</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" style="color:#ff6b6b" onclick="ctxDeleteSelected()">🗑 선택 삭제</div>
+</div>
+
 <div id="canvas" id="canvas"></div>
 </div>
 
@@ -607,7 +663,175 @@ async function submitCustomWidget(){
 }
 
 // 초기 로드
+
+// ─── 우클릭 컨텍스트 메뉴 ───
+const ctxMenu = document.getElementById('ctx-menu');
+const ctxLabel = document.getElementById('ctx-label');
+
+document.addEventListener('contextmenu', e => {
+    const inCanvas = e.target.closest('#canvas');
+    const inMenu = e.target.closest('#ctx-menu');
+    if (!inCanvas && !inMenu) return;
+    e.preventDefault();
+    if (inMenu) return;
+
+    const w = e.target.closest('.widget');
+    if (w) {
+        if (!selectedWidgets.has(w)) {
+            if (!e.ctrlKey) clearSelection();
+            selectedWidgets.add(w); w.classList.add('multi-selected');
+            updateGroupBox();
+        }
+    } else {
+        // 캔버스 빈 영역 우클릭 - 선택 없으면 무시
+        if (selectedWidgets.size < 1) return;
+    }
+    if (selectedWidgets.size < 1) return;
+
+    ctxLabel.textContent = selectedWidgets.size + '개 위젯 선택됨';
+    ctxMenu.style.display = 'block';
+    requestAnimationFrame(() => {
+        let mx = e.clientX, my = e.clientY;
+        const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;
+        if (mx + mw > window.innerWidth) mx = window.innerWidth - mw - 8;
+        if (my + mh > window.innerHeight) my = window.innerHeight - mh - 8;
+        ctxMenu.style.left = mx + 'px';
+        ctxMenu.style.top = my + 'px';
+    });
+});
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#ctx-menu')) ctxMenu.style.display = 'none';
+});
+
+function _getSelectedEls() {
+    return [...selectedWidgets].map(el => ({
+        el, x: parseInt(el.style.left), y: parseInt(el.style.top),
+        w: el.offsetWidth, h: el.offsetHeight,
+        wd: widgets.find(w => w.id === el.id)
+    }));
+}
+function _syncWidget(item) {
+    item.el.style.left = item.x + 'px';
+    item.el.style.top = item.y + 'px';
+    item.el.style.width = item.w + 'px';
+    item.el.style.height = item.h + 'px';
+    if (item.wd) { item.wd.x = item.x; item.wd.y = item.y; item.wd.w = item.w; item.wd.h = item.h; }
+    applyFontScale(item.el, item.w, item.h);
+}
+
+// 정렬
+function ctxAlign(mode) {
+    const items = _getSelectedEls();
+    if (items.length < 2) return;
+    let ref;
+    switch(mode) {
+        case 'left':    ref = Math.min(...items.map(i=>i.x)); items.forEach(i=>{i.x=ref;_syncWidget(i);}); break;
+        case 'right':   ref = Math.max(...items.map(i=>i.x+i.w)); items.forEach(i=>{i.x=ref-i.w;_syncWidget(i);}); break;
+        case 'top':     ref = Math.min(...items.map(i=>i.y)); items.forEach(i=>{i.y=ref;_syncWidget(i);}); break;
+        case 'bottom':  ref = Math.max(...items.map(i=>i.y+i.h)); items.forEach(i=>{i.y=ref-i.h;_syncWidget(i);}); break;
+        case 'centerH': {
+            const minX = Math.min(...items.map(i=>i.x));
+            const maxX = Math.max(...items.map(i=>i.x+i.w));
+            const cx = (minX+maxX)/2;
+            items.forEach(i=>{i.x=Math.round(cx-i.w/2);_syncWidget(i);});
+            break;
+        }
+        case 'centerV': {
+            const minY = Math.min(...items.map(i=>i.y));
+            const maxY = Math.max(...items.map(i=>i.y+i.h));
+            const cy = (minY+maxY)/2;
+            items.forEach(i=>{i.y=Math.round(cy-i.h/2);_syncWidget(i);});
+            break;
+        }
+    }
+    updateGroupBox();
+    ctxMenu.style.display='none';
+}
+
+// 균등 배치
+function ctxDistribute(axis) {
+    const items = _getSelectedEls();
+    if (items.length < 3) { ctxMenu.style.display='none'; return; }
+    if (axis === 'h') {
+        items.sort((a,b) => a.x - b.x);
+        const minX = items[0].x, maxX = items[items.length-1].x + items[items.length-1].w;
+        const totalW = items.reduce((s,i) => s+i.w, 0);
+        const gap = (maxX - minX - totalW) / (items.length - 1);
+        let cx = minX;
+        items.forEach(i => { i.x = Math.round(cx); _syncWidget(i); cx += i.w + gap; });
+    } else {
+        items.sort((a,b) => a.y - b.y);
+        const minY = items[0].y, maxY = items[items.length-1].y + items[items.length-1].h;
+        const totalH = items.reduce((s,i) => s+i.h, 0);
+        const gap = (maxY - minY - totalH) / (items.length - 1);
+        let cy = minY;
+        items.forEach(i => { i.y = Math.round(cy); _syncWidget(i); cy += i.h + gap; });
+    }
+    updateGroupBox();
+    ctxMenu.style.display='none';
+}
+
+// 밀착
+function ctxTighten(axis) {
+    const items = _getSelectedEls();
+    if (items.length < 2) return;
+    const gap = GRID;
+    if (axis === 'h') {
+        items.sort((a,b) => a.x - b.x);
+        let cx = items[0].x;
+        items.forEach(i => { i.x = cx; _syncWidget(i); cx += i.w + gap; });
+    } else {
+        items.sort((a,b) => a.y - b.y);
+        let cy = items[0].y;
+        items.forEach(i => { i.y = cy; _syncWidget(i); cy += i.h + gap; });
+    }
+    updateGroupBox();
+    ctxMenu.style.display='none';
+}
+
+// 크기 맞춤
+function ctxResize(mode) {
+    const items = _getSelectedEls();
+    if (items.length < 2) return;
+    const ws = items.map(i=>i.w), hs = items.map(i=>i.h);
+    switch(mode) {
+        case 'sameW':  { const v=ws[0]; items.forEach(i=>{i.w=v;_syncWidget(i);}); break; }
+        case 'sameH':  { const v=hs[0]; items.forEach(i=>{i.h=v;_syncWidget(i);}); break; }
+        case 'sameWH': { const vw=ws[0],vh=hs[0]; items.forEach(i=>{i.w=vw;i.h=vh;_syncWidget(i);}); break; }
+        case 'minW':   { const v=Math.min(...ws); items.forEach(i=>{i.w=v;_syncWidget(i);}); break; }
+        case 'maxW':   { const v=Math.max(...ws); items.forEach(i=>{i.w=v;_syncWidget(i);}); break; }
+        case 'minH':   { const v=Math.min(...hs); items.forEach(i=>{i.h=v;_syncWidget(i);}); break; }
+        case 'maxH':   { const v=Math.max(...hs); items.forEach(i=>{i.h=v;_syncWidget(i);}); break; }
+    }
+    updateGroupBox();
+    ctxMenu.style.display='none';
+}
+
+// 그리드 스냅
+function ctxGridSnap() {
+    const items = _getSelectedEls();
+    items.forEach(i => {
+        i.x = Math.round(i.x/GRID)*GRID;
+        i.y = Math.round(i.y/GRID)*GRID;
+        i.w = Math.max(60, Math.round(i.w/GRID)*GRID);
+        i.h = Math.max(40, Math.round(i.h/GRID)*GRID);
+        _syncWidget(i);
+    });
+    updateGroupBox();
+    ctxMenu.style.display='none';
+}
+
+// 선택 삭제
+function ctxDeleteSelected() {
+    if (!confirm(selectedWidgets.size + '개 위젯을 삭제하시겠습니까?')) return;
+    [...selectedWidgets].forEach(el => removeWidget(el.id));
+    clearSelection();
+    ctxMenu.style.display='none';
+}
+
 loadWidgetDefs().then(()=>loadLayout());
 </script>
+
 </body>
 </html>

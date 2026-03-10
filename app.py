@@ -2405,9 +2405,45 @@ def widget_error_kiosks():
 @login_required
 def widget_no_heartbeat():
     db = get_monitor_db()
-    rows = db.execute("SELECT hosp_cd, kiosk_id, status, agent_version, last_heartbeat FROM kiosk_status WHERE last_heartbeat < datetime('now','-1 hour') ORDER BY last_heartbeat").fetchall()
+    rows = db.execute("""SELECT hosp_cd, kiosk_id, status, agent_version, last_heartbeat 
+        FROM kiosk_status 
+        WHERE status != 'online' OR last_heartbeat < datetime('now','-30 minutes')
+        ORDER BY last_heartbeat""").fetchall()
     db.close()
-    return jsonify({'data': [{'hosp': r[0], 'kiosk': r[1], 'status': r[2], 'version': r[3], 'time': r[4][:16] if r[4] else ''} for r in rows]})
+    # 병원명 매핑
+    hosp_names = {}
+    try:
+        conn = get_db()
+        codes = list(set(r[0] for r in rows))
+        if codes:
+            placeholders = ','.join(['?' for _ in codes])
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT HOSP_CD, HOSP_NM FROM KIOSK_HOSP_INFO WHERE HOSP_CD IN ({placeholders})", codes)
+            for hr in cursor.fetchall():
+                hosp_names[hr[0]] = hr[1]
+        conn.close()
+    except:
+        pass
+    result = []
+    from datetime import datetime as _dt
+    _now = _dt.now()
+    for r in rows:
+        hname = hosp_names.get(r[0], r[0])
+        elapsed = ''
+        if r[4]:
+            try:
+                last = _dt.strptime(r[4][:19], '%Y-%m-%d %H:%M:%S')
+                diff = int((_now - last).total_seconds() / 60)
+                if diff < 60:
+                    elapsed = f'{diff}분 전'
+                elif diff < 1440:
+                    elapsed = f'{diff//60}시간 전'
+                else:
+                    elapsed = f'{diff//1440}일 전'
+            except:
+                elapsed = r[4][:16]
+        result.append({'hosp': hname, 'hosp_cd': r[0], 'kiosk': r[1], 'status': r[2], 'version': r[3], 'time': elapsed, 'raw_time': r[4][:16] if r[4] else ''})
+    return jsonify({'data': result})
 
 @app.route('/api/widget-data/top10_today')
 @login_required
