@@ -2830,11 +2830,22 @@ def tv_dashboard():
 
 @app.route('/api/tv-data')
 def api_tv_data():
-    """TV 전용 대시보드 데이터 (로그인 불필요)"""
+    """TV 전용 대시보드 데이터 (로그인 불필요) - 3화면 순환용"""
     try:
         conn = get_db()
         cur = conn.cursor()
         today = date.today().strftime('%Y-%m-%d')
+        yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+        this_month = date.today().strftime('%Y-%m')
+        prev_month = (date.today().replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
+        this_year = str(date.today().year)
+        prev_year = str(date.today().year - 1)
+
+        CS = """ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
+                ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
+                ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
+                ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
+                ISNULL(c.COUNT_13,0)"""
 
         # KPI: 가동병원, 전체키오스크
         cur.execute(f"SELECT COUNT(*) FROM KIOSK_HOSP_INFO WHERE USER_YN='Y' AND EMR_COMPANY NOT IN {EXCLUDE_ISV}")
@@ -2842,120 +2853,229 @@ def api_tv_data():
         cur.execute(f"SELECT ISNULL(SUM(CAST(KIOSK_CNT AS INT)),0) FROM KIOSK_HOSP_INFO WHERE KIOSK_CNT IS NOT NULL AND EMR_COMPANY NOT IN {EXCLUDE_ISV}")
         total_kiosk = cur.fetchone()[0]
 
-        # KPI: 오늘이용건수
+        # 오늘 수납건수 + 가동병원수
         cur.execute(f"""
-            SELECT COUNT(DISTINCT c.HOSP_CD),
-                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
-                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
-                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
-                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
-                   ISNULL(c.COUNT_13,0))
-            FROM KIOSK_HOSP_COUNT c
-            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
-            WHERE c.COUNT_DATE = ? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            SELECT COUNT(DISTINCT c.HOSP_CD), SUM({CS})
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
         """, today)
-        today_row = cur.fetchone()
-        today_hosps = today_row[0] or 0
-        today_count = today_row[1] or 0
+        tr = cur.fetchone()
+        today_hosps, today_count = tr[0] or 0, tr[1] or 0
         today_rate = round(today_hosps / active_hosp * 100, 1) if active_hosp > 0 else 0
 
-        # 주간 이용 추이 (7일)
+        # 전일 수납건수 + 가동병원수
         cur.execute(f"""
-            SELECT TOP 7 c.COUNT_DATE,
-                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
-                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
-                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
-                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
-                   ISNULL(c.COUNT_13,0))
-            FROM KIOSK_HOSP_COUNT c
-            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            SELECT COUNT(DISTINCT c.HOSP_CD), SUM({CS})
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+        """, yesterday)
+        yr = cur.fetchone()
+        yesterday_hosps, yesterday_count = yr[0] or 0, yr[1] or 0
+
+        # 주간 수납 추이 (7일)
+        cur.execute(f"""
+            SELECT TOP 7 c.COUNT_DATE, SUM({CS})
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
             WHERE h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
             GROUP BY c.COUNT_DATE ORDER BY c.COUNT_DATE DESC
         """)
         weekly = [{'date': r[0], 'count': r[1] or 0} for r in reversed(cur.fetchall())]
 
-        # 월별 이용 추이 (12개월)
+        # 월별 데이터 (전년+금년 비교용)
         cur.execute(f"""
-            SELECT LEFT(c.COUNT_DATE,7) as month,
-                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
-                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
-                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
-                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
-                   ISNULL(c.COUNT_13,0))
-            FROM KIOSK_HOSP_COUNT c
-            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
+            SELECT LEFT(c.COUNT_DATE,7) as month, SUM({CS})
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
             WHERE h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
             GROUP BY LEFT(c.COUNT_DATE,7) ORDER BY month DESC
         """)
-        monthly = [{'month': r[0], 'count': r[1] or 0} for r in reversed(cur.fetchall()[:12])]
+        all_monthly = {r[0]: r[1] or 0 for r in cur.fetchall()}
+        monthly_keys = sorted(all_monthly.keys())[-12:]
+        monthly = [{'month': k, 'count': all_monthly[k]} for k in monthly_keys]
+
+        monthly_comparison = {'labels': [], 'current': [], 'previous': []}
+        for m in range(1, 13):
+            mm = f'{m:02d}'
+            monthly_comparison['labels'].append(f'{m}월')
+            monthly_comparison['current'].append(all_monthly.get(f'{this_year}-{mm}', 0))
+            monthly_comparison['previous'].append(all_monthly.get(f'{prev_year}-{mm}', 0))
+
+        month_total = all_monthly.get(this_month, 0)
+        prev_month_total = all_monthly.get(prev_month, 0)
 
         # ISV 분포
         cur.execute(f"SELECT EMR_COMPANY, COUNT(*) as cnt FROM KIOSK_HOSP_INFO WHERE EMR_COMPANY NOT IN {EXCLUDE_ISV} GROUP BY EMR_COMPANY ORDER BY cnt DESC")
         isv_dist = [{'isv': r[0], 'count': r[1]} for r in cur.fetchall()]
 
-        # 시간대별 이용현황
+        # 시간대별 사용현황
         cur.execute(f"""
-            SELECT ISNULL(SUM(c.COUNT_01),0), ISNULL(SUM(c.COUNT_02),0), ISNULL(SUM(c.COUNT_03),0),
-                   ISNULL(SUM(c.COUNT_04),0), ISNULL(SUM(c.COUNT_05),0), ISNULL(SUM(c.COUNT_06),0),
-                   ISNULL(SUM(c.COUNT_07),0), ISNULL(SUM(c.COUNT_08),0), ISNULL(SUM(c.COUNT_09),0),
-                   ISNULL(SUM(c.COUNT_10),0), ISNULL(SUM(c.COUNT_11),0), ISNULL(SUM(c.COUNT_12),0),
+            SELECT ISNULL(SUM(c.COUNT_01),0),ISNULL(SUM(c.COUNT_02),0),ISNULL(SUM(c.COUNT_03),0),
+                   ISNULL(SUM(c.COUNT_04),0),ISNULL(SUM(c.COUNT_05),0),ISNULL(SUM(c.COUNT_06),0),
+                   ISNULL(SUM(c.COUNT_07),0),ISNULL(SUM(c.COUNT_08),0),ISNULL(SUM(c.COUNT_09),0),
+                   ISNULL(SUM(c.COUNT_10),0),ISNULL(SUM(c.COUNT_11),0),ISNULL(SUM(c.COUNT_12),0),
                    ISNULL(SUM(c.COUNT_13),0)
-            FROM KIOSK_HOSP_COUNT c
-            JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD = h.HOSP_CD
-            WHERE c.COUNT_DATE = ? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
         """, today)
         hr = cur.fetchone()
         hourly = [hr[i] or 0 for i in range(13)]
 
-        # ISV별 오늘 이용 테이블
+        # ISV별 오늘 수납 테이블
         cur.execute(f"""
-            SELECT h.EMR_COMPANY,
+            SELECT h2.EMR_COMPANY,
                    COUNT(DISTINCT h2.HOSP_CD) as total_hosps,
                    COUNT(DISTINCT c.HOSP_CD) as active_hosps,
-                   SUM(ISNULL(c.COUNT_01,0)+ISNULL(c.COUNT_02,0)+ISNULL(c.COUNT_03,0)+
-                   ISNULL(c.COUNT_04,0)+ISNULL(c.COUNT_05,0)+ISNULL(c.COUNT_06,0)+
-                   ISNULL(c.COUNT_07,0)+ISNULL(c.COUNT_08,0)+ISNULL(c.COUNT_09,0)+
-                   ISNULL(c.COUNT_10,0)+ISNULL(c.COUNT_11,0)+ISNULL(c.COUNT_12,0)+
-                   ISNULL(c.COUNT_13,0)) as total_count
+                   ISNULL(SUM({CS}),0) as total_count
             FROM KIOSK_HOSP_INFO h2
-            LEFT JOIN KIOSK_HOSP_COUNT c ON h2.HOSP_CD = c.HOSP_CD AND c.COUNT_DATE = ?
-            LEFT JOIN KIOSK_HOSP_INFO h ON h2.HOSP_CD = h.HOSP_CD
-            WHERE h2.EMR_COMPANY NOT IN {EXCLUDE_ISV} AND h2.USER_YN = 'Y'
-            GROUP BY h.EMR_COMPANY ORDER BY total_count DESC
+            LEFT JOIN KIOSK_HOSP_COUNT c ON h2.HOSP_CD=c.HOSP_CD AND c.COUNT_DATE=?
+            WHERE h2.EMR_COMPANY NOT IN {EXCLUDE_ISV} AND h2.USER_YN='Y'
+            GROUP BY h2.EMR_COMPANY ORDER BY total_count DESC
         """, today)
         isv_today = []
         for r in cur.fetchall():
-            total_h = r[1] or 0
-            active_h = r[2] or 0
-            rate = round(active_h / total_h * 100, 1) if total_h > 0 else 0
-            isv_today.append({'isv': r[0], 'hosps': total_h, 'count': r[3] or 0, 'rate': rate})
+            th, ah = r[1] or 0, r[2] or 0
+            isv_today.append({'isv': r[0], 'hosps': th, 'count': r[3] or 0,
+                              'rate': round(ah / th * 100, 1) if th > 0 else 0})
+
+        # 병원 TOP 8
+        cur.execute(f"""
+            SELECT TOP 8 h.HOSP_NM, c.HOSP_CD, ISNULL(CAST(h.KIOSK_CNT AS INT),0),
+                   COUNT(DISTINCT c.KIOSK_ID), SUM({CS}) as total
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            GROUP BY h.HOSP_NM, c.HOSP_CD, h.KIOSK_CNT ORDER BY total DESC
+        """, today)
+        top_hospitals = []
+        for i, r in enumerate(cur.fetchall()):
+            tk = r[2] or 1
+            ak = r[3] or 0
+            top_hospitals.append({'rank': i+1, 'name': r[0], 'code': r[1],
+                                  'kiosks': r[2], 'count': r[4] or 0,
+                                  'rate': round(ak / tk * 100, 1) if tk > 0 else 0})
+
+        # 병원별 전일 건수 (수납 급감 감지용)
+        cur.execute(f"""
+            SELECT c.HOSP_CD, h.HOSP_NM, SUM({CS}) as total
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            GROUP BY c.HOSP_CD, h.HOSP_NM
+        """, yesterday)
+        hosp_yesterday = {r[0]: {'name': r[1], 'count': r[2] or 0} for r in cur.fetchall()}
+
+        cur.execute(f"""
+            SELECT c.HOSP_CD, SUM({CS}) as total
+            FROM KIOSK_HOSP_COUNT c JOIN KIOSK_HOSP_INFO h ON c.HOSP_CD=h.HOSP_CD
+            WHERE c.COUNT_DATE=? AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            GROUP BY c.HOSP_CD
+        """, today)
+        hosp_today_map = {r[0]: r[1] or 0 for r in cur.fetchall()}
+
+        # 병원명 매핑
+        cur.execute(f"SELECT HOSP_CD, HOSP_NM FROM KIOSK_HOSP_INFO WHERE EMR_COMPANY NOT IN {EXCLUDE_ISV}")
+        hosp_names = {r[0]: r[1] for r in cur.fetchall()}
+
+        # 병원 규모별 분포
+        cur.execute(f"""
+            SELECT grp, COUNT(*) FROM (
+                SELECT CASE WHEN CAST(h.KIOSK_CNT AS INT)=1 THEN '1대'
+                            WHEN CAST(h.KIOSK_CNT AS INT)=2 THEN '2대'
+                            ELSE '3대 이상' END grp
+                FROM KIOSK_HOSP_INFO h
+                WHERE h.USER_YN='Y' AND h.KIOSK_CNT IS NOT NULL AND CAST(h.KIOSK_CNT AS INT)>0
+                  AND h.EMR_COMPANY NOT IN {EXCLUDE_ISV}
+            ) sub GROUP BY grp ORDER BY grp
+        """)
+        scale_dist = [{'group': r[0], 'count': r[1]} for r in cur.fetchall()]
 
         conn.close()
 
-        # 에이전트 상태 (SQLite)
+        # === SQLite: 에이전트 상태 + 메뉴 사용 ===
+        kiosk_list = []
+        alerts = []
+        menu_usage = []
+        agent_online = agent_offline = 0
+
         try:
             db = get_monitor_db()
-            agent_total = db.execute("SELECT COUNT(*) FROM kiosk_status").fetchone()[0]
-            agent_online = db.execute("SELECT COUNT(*) FROM kiosk_status WHERE status='online'").fetchone()[0]
-            agent_error = db.execute("SELECT COUNT(*) FROM kiosk_status WHERE status='error'").fetchone()[0]
+            rows = db.execute("SELECT hosp_cd, kiosk_id, status, last_heartbeat, agent_version FROM kiosk_status ORDER BY status DESC, last_heartbeat DESC").fetchall()
+            for r in rows:
+                hb = r[3] or ''
+                elapsed = ''
+                is_offline = r[2] != 'online'
+                if hb:
+                    try:
+                        hb_dt = datetime.strptime(hb[:19], '%Y-%m-%d %H:%M:%S')
+                        diff_min = int((datetime.utcnow() - hb_dt).total_seconds() / 60)
+                        if diff_min >= 30:
+                            is_offline = True
+                        if diff_min < 60:
+                            elapsed = f'{diff_min}분 전'
+                        elif diff_min < 1440:
+                            elapsed = f'{diff_min // 60}시간 전'
+                        else:
+                            elapsed = f'{diff_min // 1440}일 전'
+                    except Exception:
+                        pass
+                st = 'offline' if is_offline else 'online'
+                kiosk_list.append({
+                    'hosp_cd': r[0], 'hosp_name': hosp_names.get(r[0], r[0]),
+                    'kiosk_id': r[1], 'status': st,
+                    'last_heartbeat': hb[:16] if hb else '', 'elapsed': elapsed
+                })
+
+            agent_online = sum(1 for k in kiosk_list if k['status'] == 'online')
+            agent_offline = sum(1 for k in kiosk_list if k['status'] == 'offline')
+
+            # 오프라인 알림
+            for k in kiosk_list:
+                if k['status'] == 'offline':
+                    alerts.append({'type': 'offline', 'hosp_name': k['hosp_name'],
+                                   'kiosk_id': k['kiosk_id'],
+                                   'message': f"{k['hosp_name']} {k['kiosk_id']} 오프라인 ({k['elapsed']})",
+                                   'severity': 'critical'})
+
+            # 메뉴별 사용현황
+            menu_rows = db.execute("""
+                SELECT window_title, COUNT(*) FROM usage_event_log
+                WHERE work_date=? AND status='START' GROUP BY window_title ORDER BY 2 DESC
+            """, (today,)).fetchall()
+            menu_counts = {}
+            for r in menu_rows:
+                title = r[0] or ''
+                menu = title.split('_', 1)[0] if '_' in title else title
+                if menu and menu not in ('기타', 'Bluswell') and _is_biz_menu.match(menu):
+                    menu_counts[menu] = menu_counts.get(menu, 0) + r[1]
+            menu_usage = [{'menu': k, 'count': v} for k, v in sorted(menu_counts.items(), key=lambda x: x[1], reverse=True)]
+
             db.close()
         except Exception:
-            agent_total, agent_online, agent_error = 0, 0, 0
+            pass
+
+        # 수납 급감 병원 알림 (전일 대비 30% 이상 감소)
+        drop_count = 0
+        for hcd, yd in hosp_yesterday.items():
+            if yd['count'] > 10:
+                tc = hosp_today_map.get(hcd, 0)
+                if tc < yd['count'] * 0.7:
+                    drop_count += 1
+                    alerts.append({'type': 'drop', 'hosp_name': yd['name'], 'kiosk_id': '',
+                                   'message': f"{yd['name']} 수납 급감 ({yd['count']}→{tc})",
+                                   'severity': 'warning'})
 
         return jsonify({
             'kpi': {
-                'active_hosp': active_hosp,
-                'total_kiosk': total_kiosk,
-                'today_count': today_count,
+                'active_hosp': active_hosp, 'total_kiosk': total_kiosk,
+                'today_count': today_count, 'yesterday_count': yesterday_count,
+                'today_hosps': today_hosps, 'yesterday_hosps': yesterday_hosps,
                 'today_rate': today_rate,
-                'agent_online': agent_online,
-                'agent_error': agent_error
+                'agent_online': agent_online, 'agent_offline': agent_offline
             },
-            'weekly': weekly,
-            'monthly': monthly,
-            'isv_dist': isv_dist,
-            'hourly': hourly,
-            'isv_today': isv_today
+            'weekly': weekly, 'monthly': monthly,
+            'monthly_comparison': monthly_comparison,
+            'isv_dist': isv_dist, 'hourly': hourly,
+            'isv_today': isv_today, 'top_hospitals': top_hospitals,
+            'kiosk_list': kiosk_list, 'alerts': alerts,
+            'scale_dist': scale_dist, 'menu_usage': menu_usage,
+            'month_total': month_total, 'prev_month_total': prev_month_total
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
