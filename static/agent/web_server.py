@@ -1,4 +1,4 @@
-import os
+import os, sys
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,7 +7,7 @@ app = FastAPI(title="Kiosk Monitor Agent")
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return open(os.path.join(os.path.dirname(__file__),"templates","dashboard.html")).read()
+    return open(os.path.join(os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.abspath(__file__)),"templates","dashboard.html"), encoding="utf-8").read()
 
 @app.get("/api/status")
 async def api_status():

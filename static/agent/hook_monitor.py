@@ -1,10 +1,10 @@
-import time, os, configparser, ctypes, ctypes.wintypes
+import sys, time, os, configparser, ctypes, ctypes.wintypes
 from db_manager import insert_event
 
 class HookMonitor:
     def __init__(self):
         config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
+        config.read(os.path.join(os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
         raw = config.get('MONITOR','target_process',fallback='')
         self.targets = [x.strip().lower() for x in raw.split(',') if x.strip()]
         self.exclude_procs = [x.strip().lower() for x in config.get('MONITOR','exclude_process',fallback='').split(',') if x.strip()]
@@ -33,6 +33,19 @@ class HookMonitor:
         tl = (title or '').lower()
         return any(ep in pn for ep in self.exclude_procs) or any(et in tl for et in self.exclude_titles)
 
+    def _get_child_titles(self, hwnd):
+        titles = []
+        EnumChildWindows = ctypes.windll.user32.EnumChildWindows
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+        def callback(child_hwnd, lparam):
+            buf = ctypes.create_unicode_buffer(512)
+            ctypes.windll.user32.GetWindowTextW(child_hwnd, buf, 512)
+            if buf.value.strip():
+                titles.append(buf.value.strip())
+            return True
+        EnumChildWindows(hwnd, WNDENUMPROC(callback), 0)
+        return titles
+
     def _poll(self):
         import psutil
         hwnd = ctypes.windll.user32.GetForegroundWindow()
@@ -54,7 +67,15 @@ class HookMonitor:
         buf = ctypes.create_unicode_buffer(512)
         ctypes.windll.user32.GetWindowTextW(hwnd, buf, 512)
         title = buf.value
-        if not title or self._is_excluded(proc_name, title):
+
+        if not title:
+            child_titles = self._get_child_titles(hwnd)
+            if child_titles:
+                title = child_titles[0]
+            else:
+                title = proc_name
+
+        if self._is_excluded(proc_name, title):
             return
 
         if title != self.last_title:

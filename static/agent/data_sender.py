@@ -1,25 +1,29 @@
-import threading, time, os, configparser, requests
+import sys, threading, time, os, configparser, requests
 from db_manager import get_unsent_dates, get_daily_send_data, save_send_result
 
 SERVER_URL = ''
 KIOSK_ID = ''
-SEND_TIME = '08:00'
+HOSP_CD = ''
+KIOSK_NAME = ''
+SEND_INTERVAL = 60
 RETRY = 300
 
 def load_config():
-    global SERVER_URL, KIOSK_ID, SEND_TIME, RETRY
+    global SERVER_URL, KIOSK_ID, HOSP_CD, KIOSK_NAME, SEND_INTERVAL, RETRY
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
+    config.read(os.path.join(os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
     SERVER_URL = config.get('SERVER','server_url',fallback='')
     KIOSK_ID = config.get('SERVER','kiosk_id',fallback='')
-    SEND_TIME = config.get('SERVER','send_time',fallback='08:00')
+    HOSP_CD = config.get("SERVER","hosp_cd",fallback="")
+    KIOSK_NAME = config.get("SERVER","kiosk_name",fallback="")
+    SEND_INTERVAL = config.getint('SERVER','send_interval',fallback=60)
     RETRY = config.getint('SERVER','retry_interval',fallback=300)
     print(f"[Sender] server: {SERVER_URL}")
-    print(f"[Sender] kiosk: {KIOSK_ID}, time: {SEND_TIME}")
+    print(f"[Sender] kiosk: {KIOSK_ID}, interval: {SEND_INTERVAL}s")
 
 def send_one_date(work_date):
     data = get_daily_send_data(work_date)
-    payload = {'kiosk_id': KIOSK_ID, 'work_date': work_date, 'summary': data['summary'], 'logs': data['logs']}
+    payload = {'kiosk_id': KIOSK_ID, 'hosp_cd': HOSP_CD, 'kiosk_name': KIOSK_NAME, 'work_date': work_date, 'summary': data['summary'], 'logs': data['logs']}
     try:
         resp = requests.post(SERVER_URL, json=payload, timeout=30)
         result = resp.json().get('result','ERROR')
@@ -34,11 +38,11 @@ def send_one_date(work_date):
 def send_all():
     dates = get_unsent_dates()
     if not dates:
-        print("[Sender] no unsent data")
-        return
+        return False
     for d in dates:
         send_one_date(d)
         time.sleep(1)
+    return True
 
 def sender_loop():
     load_config()
@@ -47,11 +51,8 @@ def sender_loop():
         return
     send_all()
     while True:
-        now = time.strftime('%H:%M')
-        if now == SEND_TIME:
-            send_all()
-            time.sleep(61)
-        time.sleep(30)
+        time.sleep(SEND_INTERVAL)
+        send_all()
 
 def start_sender_thread():
     t = threading.Thread(target=sender_loop, daemon=True)

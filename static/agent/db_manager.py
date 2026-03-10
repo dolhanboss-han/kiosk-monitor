@@ -1,6 +1,6 @@
-import sqlite3, os, time, configparser
+import sqlite3, os, sys, time, configparser
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'monitor.db')
+DB_PATH = os.path.join(os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.abspath(__file__)), 'monitor.db')
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
@@ -35,7 +35,7 @@ def init_db():
 
 def cleanup_old_data():
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
+    config.read(os.path.join(os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.abspath(__file__)),'config.ini'), encoding='utf-8')
     days = config.getint('MONITOR','retention_days',fallback=30)
     conn = get_conn()
     conn.execute("DELETE FROM event_log WHERE date(timestamp) < date('now',?)", (f'-{days} days',))
@@ -68,7 +68,7 @@ def get_unsent_dates():
     conn = get_conn()
     rows = conn.execute("""
         SELECT DISTINCT date(timestamp) as d FROM event_log
-        WHERE date(timestamp) < date('now','localtime')
+        WHERE date(timestamp) <= date('now','localtime')
         AND date(timestamp) NOT IN (SELECT work_date FROM send_history WHERE status='OK')
         ORDER BY d
     """).fetchall()

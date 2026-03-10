@@ -476,6 +476,8 @@ def usage_receive():
         hosp_cd = data.get("hosp_cd", "")
         work_date = data['work_date']
         hosp_cd = data.get('hosp_cd', '')
+        hosp_name = data.get('hosp_name', '')
+        kiosk_name = data.get('kiosk_name', kiosk_id)
         summary = data.get('summary', {})
         logs = data.get('logs', [])
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -502,7 +504,7 @@ def usage_receive():
               summary.get('total_complete', 0),
               summary.get('total_cancel', 0),
               summary.get('complete_rate', 0),
-              now, hosp_cd))
+              now))
 
         # 이벤트 로그 저장
         for log in logs:
@@ -518,16 +520,15 @@ def usage_receive():
                   log.get('class_name', ''),
                   log.get('status', ''),
                   log.get('elapsed_sec'),
-                  now, hosp_cd))
+                  now))
 
         # 키오스크 마스터 업데이트
         db.execute("""
             INSERT OR REPLACE INTO usage_kiosk_master
-                (kiosk_id, kiosk_name, location, hosp_cd, last_received_dt)
-            VALUES (?, COALESCE((SELECT kiosk_name FROM usage_kiosk_master WHERE kiosk_id=?), ?),
-                    COALESCE((SELECT location FROM usage_kiosk_master WHERE kiosk_id=?), ''),
-                    ?, ?)
-        """, (kiosk_id, kiosk_id, kiosk_id, kiosk_id, hosp_cd, now))
+                (kiosk_id, kiosk_name, location, hosp_cd, hosp_name, last_received_dt)
+            VALUES (?, ?, COALESCE((SELECT location FROM usage_kiosk_master WHERE kiosk_id=?), ''),
+                    ?, ?, ?)
+        """, (kiosk_id, kiosk_name, kiosk_id, hosp_cd, hosp_name, now))
 
         db.commit()
         db.close()
@@ -890,13 +891,13 @@ def usage_hospital_list_api():
     """행동분석용 병원 목록 API"""
     db = get_monitor_db()
     rows = db.execute("""
-        SELECT DISTINCT hosp_cd FROM usage_kiosk_master
+        SELECT DISTINCT hosp_cd, hosp_name FROM usage_kiosk_master
         WHERE hosp_cd IS NOT NULL AND hosp_cd != ''
         ORDER BY hosp_cd
     """).fetchall()
     db.close()
 
-    hospitals = [{'hosp_cd': r[0], 'hosp_nm': r[0]} for r in rows]
+    hospitals = [{'hosp_cd': r[0], 'hosp_nm': r[1] if r[1] else r[0]} for r in rows]
 
     # MSSQL에서 병원명 매핑 시도
     try:
