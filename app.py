@@ -1478,6 +1478,38 @@ def save_page_sections():
     db.close()
     return jsonify({'status': 'saved'})
 
+
+import re as _re
+
+def _parse_teamview(raw_text, kiosk_count):
+    """TEAM_VIEW 텍스트에서 키오스크별 TeamViewer ID 파싱"""
+    if not raw_text:
+        return {}
+    result = {}
+    # K 1 : 1234567890 패턴
+    pattern = _re.compile(r'K\s*(\d+)\s*[:\s]+(\d{6,12})')
+    for m in pattern.finditer(raw_text):
+        k_num = int(m.group(1))
+        tv_id = m.group(2)
+        kiosk_key = f'KIOSK{k_num:02d}'
+        result[kiosk_key] = tv_id
+    # KM1, KM2 패턴
+    pattern2 = _re.compile(r'KM\s*(\d+)\s*[:\s]+(\d{6,12})')
+    for m in pattern2.finditer(raw_text):
+        k_num = int(m.group(1))
+        tv_id = m.group(2)
+        kiosk_key = f'KIOSK{k_num:02d}'
+        if kiosk_key not in result:
+            result[kiosk_key] = tv_id
+    # 원무, 외래 등 위치명 패턴
+    pattern3 = _re.compile(r'(원무|외래|재활|산부인과|본관|신관)[^:]*[:\s]+(\d{6,12})')
+    for i, m in enumerate(pattern3.finditer(raw_text)):
+        tv_id = m.group(2)
+        kiosk_key = f'KIOSK{i+1:02d}'
+        if kiosk_key not in result:
+            result[kiosk_key] = tv_id
+    return result
+
 @app.route('/api/kiosk-monitor')
 @login_required
 def api_kiosk_monitor():
@@ -1538,15 +1570,16 @@ def api_kiosk_monitor():
     
     # 병원명 매핑 (MSSQL에서)
     try:
-        conn = get_mssql_connection()
+        conn = get_db()
         cursor = conn.cursor()
         codes = list(hospitals.keys())
         if codes:
             placeholders = ','.join(['?' for _ in codes])
-            cursor.execute(f"SELECT HOSP_CD, HOSP_NAME FROM KIOSK_HOSP_INFO WHERE HOSP_CD IN ({placeholders})", codes)
+            cursor.execute(f"SELECT HOSP_CD, HOSP_NM, TEAM_VIEW FROM KIOSK_HOSP_INFO WHERE HOSP_CD IN ({placeholders})", codes)
             for row in cursor.fetchall():
                 if row[0] in hospitals:
                     hospitals[row[0]]['hosp_name'] = row[1]
+                    hospitals[row[0]]['team_view_raw'] = row[2] or ''
         conn.close()
     except:
         pass
@@ -1559,27 +1592,114 @@ def api_kiosk_monitor():
         '120': '삼성미래병원', '130': '서울나우병원', '140': '아주좋은병원',
         '150': '연세한마음병원'}
     result = list(hospitals.values())
+    # TeamViewer ID 매칭
+    for h in result:
+        tv_raw = h.pop('team_view_raw', '')
+        tv_map = _parse_teamview(tv_raw, len(h['kiosks']))
+        for k in h['kiosks']:
+            kid = k['kiosk_id'].upper()
+            # KIOSK01, KIOSK02 형식으로 매칭
+            if kid in tv_map:
+                k['teamviewer_id'] = tv_map[kid]
+            else:
+                # 숫자만 추출해서 매칭 시도
+                nums = _re.findall(r'\d+', kid)
+                if nums:
+                    tkey = f'KIOSK{int(nums[-1]):02d}'
+                    k['teamviewer_id'] = tv_map.get(tkey, '')
+                else:
+                    k['teamviewer_id'] = ''
     for h in result:
         if 'hosp_name' not in h:
             h['hosp_name'] = default_names.get(h['hosp_cd'], h['hosp_cd'])
-    
+
+    # 이상 감지 alerts 생성
+    alerts = []
+    from datetime import datetime as _dt
+    _now = _dt.now()
+    for h in result:
+        for k in h['kiosks']:
+            hname = h.get('hosp_name', h['hosp_cd'])
+            kid = k['kiosk_id']
+            # 오프라인 감지 (30분 이상)
+            if k.get('last_heartbeat'):
+                try:
+                    lhb = _dt.strptime(k['last_heartbeat'][:19], '%Y-%m-%d %H:%M:%S')
+                    elapsed_min = (_now - lhb).total_seconds() / 60
+                    k['elapsed_min'] = round(elapsed_min)
+                    if elapsed_min > 30:
+                        sev = 'critical' if elapsed_min > 1440 else 'warning'
+                        alerts.append({'type': 'offline', 'hosp_cd': h['hosp_cd'], 'hosp_name': hname,
+                            'kiosk_id': kid, 'message': f'{hname} {kid}: {int(elapsed_min)}분 통신 없음',
+                            'severity': sev, 'elapsed_min': int(elapsed_min)})
+                except:
+                    k['elapsed_min'] = -1
+            else:
+                k['elapsed_min'] = -1
+            # 토너 부족
+            pd = k.get('printer_detail', {})
+            toner_pct = pd.get('toner_black', {}).get('pct', 100)
+            if toner_pct <= 20:
+                sev = 'critical' if toner_pct <= 10 else 'warning'
+                alerts.append({'type': 'toner_low', 'hosp_cd': h['hosp_cd'], 'hosp_name': hname,
+                    'kiosk_id': kid, 'message': f'{hname} {kid}: 토너 {toner_pct}%',
+                    'severity': sev, 'value': toner_pct})
+            # 용지 부족 (트레이1=tray2, 트레이2=tray3)
+            for tkey, tname in [('tray2', '트레이1'), ('tray3', '트레이2')]:
+                tray_pct = pd.get(tkey, {}).get('pct', 100)
+                if tray_pct <= 20:
+                    sev = 'critical' if tray_pct <= 0 else 'warning'
+                    alerts.append({'type': 'paper_low', 'hosp_cd': h['hosp_cd'], 'hosp_name': hname,
+                        'kiosk_id': kid, 'message': f'{hname} {kid}: {tname} 용지 {tray_pct}%',
+                        'severity': sev, 'value': tray_pct})
+            # 장치 오류
+            for dev, dname in [('printer_a4','A4프린터'),('printer_thermal','영수증프린터'),('card_reader','카드리더'),('barcode_reader','바코드리더')]:
+                if k.get(dev) == 'error':
+                    alerts.append({'type': 'device_error', 'hosp_cd': h['hosp_cd'], 'hosp_name': hname,
+                        'kiosk_id': kid, 'message': f'{hname} {kid}: {dname} 오류',
+                        'severity': 'critical'})
+
+    # 병원별 심각도 점수 (문제 병원 상단 우선)
+    def hosp_severity(h):
+        score = 0
+        for k in h['kiosks']:
+            if k['status'] == 'error': score += 100
+            elif k['status'] != 'online': score += 50
+            if k.get('elapsed_min', 0) > 1440: score += 80
+            elif k.get('elapsed_min', 0) > 30: score += 30
+        return -score
+    result.sort(key=hosp_severity)
+
     # 통계
     total_kiosks = sum(len(h['kiosks']) for h in result)
     online = sum(1 for h in result for k in h['kiosks'] if k['status'] == 'online')
-    printer_warn = sum(1 for h in result for k in h['kiosks'] 
+    printer_warn = sum(1 for h in result for k in h['kiosks']
                        if k.get('printer_detail',{}).get('toner_black',{}).get('pct',100) <= 20
-                       or any(k.get('printer_detail',{}).get(t,{}).get('pct',100) <= 0 for t in ['tray1_mp','tray2','tray3']))
-    
+                       or any(k.get('printer_detail',{}).get(t,{}).get('pct',100) <= 0 for t in ['tray2','tray3']))
+    device_errors = sum(1 for h in result for k in h['kiosks']
+                        if any(k.get(d) == 'error' for d in ['printer_a4','printer_thermal','card_reader','barcode_reader']))
+    critical_cnt = sum(1 for a in alerts if a['severity'] == 'critical')
+    warning_cnt = sum(1 for a in alerts if a['severity'] == 'warning')
+
+    # alerts 심각도순 정렬
+    sev_order = {'critical': 0, 'warning': 1, 'info': 2}
+    alerts.sort(key=lambda a: sev_order.get(a['severity'], 9))
+
     return jsonify({
         'hospitals': result,
+        'alerts': alerts,
         'stats': {
             'total_hospitals': len(result),
             'total_kiosks': total_kiosks,
             'online': online,
             'offline': total_kiosks - online,
-            'printer_warnings': printer_warn
+            'printer_warnings': printer_warn,
+            'device_errors': device_errors,
+            'critical_alerts': critical_cnt,
+            'warning_alerts': warning_cnt
         }
     })
+
 
 
 @app.route('/api/printer-daily/<hosp_cd>/<kiosk_id>')
