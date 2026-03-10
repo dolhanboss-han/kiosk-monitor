@@ -7,178 +7,355 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0e1a;color:#fff;font-family:'Segoe UI','맑은 고딕',sans-serif}
-.wrap{width:1920px;height:1080px;padding:20px;display:flex;flex-direction:column;gap:12px}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0e1a;color:#fff;font-family:'Segoe UI','맑은 고딕',sans-serif;font-size:0.85rem}
+.wrap{position:relative;width:1920px;height:1080px}
 
-/* 상단 헤더 */
-.header{display:flex;align-items:center;justify-content:space-between;height:50px;flex-shrink:0}
-.logo{font-size:1.6rem;font-weight:800;letter-spacing:2px}
-.logo-bs{color:#00d4ff}
-.logo-eye{color:#eee}
-.logo-sub{font-size:0.85rem;color:#888;margin-left:12px;font-weight:400}
-.clock{font-size:1.1rem;color:#aaa;font-variant-numeric:tabular-nums}
+/* 슬라이드 */
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;padding:20px;display:flex;flex-direction:column;gap:10px;opacity:0;transition:opacity 0.5s;pointer-events:none}
+.slide.active{opacity:1;pointer-events:auto}
 
-/* KPI 카드 */
-.kpi-row{display:flex;gap:12px;flex-shrink:0;height:80px}
-.kpi-card{flex:1;background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
-.kpi-label{font-size:0.75rem;color:#888;margin-bottom:4px}
-.kpi-value{font-size:2rem;font-weight:700;color:#fff;line-height:1}
+/* 헤더 */
+.header{display:flex;align-items:center;height:44px;flex-shrink:0;gap:16px}
+.logo{font-size:1.5rem;font-weight:800;letter-spacing:2px}
+.logo-bs{color:#00d4ff}.logo-eye{color:#eee}
+.page-title{font-size:1rem;color:#00d4ff;border:1px solid #00d4ff33;border-radius:20px;padding:2px 14px;font-weight:600}
+.hdr-spacer{flex:1}
+.clock{font-size:1rem;color:#aaa;font-variant-numeric:tabular-nums}
+.indicators{display:flex;gap:6px;margin-left:12px}
+.dot{width:10px;height:10px;border-radius:50%;background:#333;transition:background 0.3s}
+.dot.on{background:#00d4ff}
 
-/* 차트 영역 */
-.mid-row{display:flex;gap:12px;flex:45}
-.bot-row{display:flex;gap:12px;flex:40}
-.chart-box{background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;padding:14px;display:flex;flex-direction:column}
-.chart-box .chart-title{font-size:0.9rem;color:#00d4ff;margin-bottom:8px;font-weight:600}
-.chart-canvas-wrap{position:relative;flex:1;min-height:0}
+/* KPI */
+.kpi-row{display:flex;gap:10px;flex-shrink:0;height:90px}
+.kpi-card{flex:1;background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 8px;position:relative;transition:border-color 0.3s}
+.kpi-label{font-size:0.8rem;color:#888;margin-bottom:2px}
+.kpi-value{font-size:2.5rem;font-weight:700;color:#fff;line-height:1}
+.kpi-sub{font-size:0.75rem;color:#666;margin-top:2px}
+.kpi-sub .up{color:#00ff88}.kpi-sub .down{color:#ff4444}.kpi-sub .warn{color:#ffaa00}
+.kpi-card.alert-border{border-color:#ff4444;box-shadow:0 0 8px #ff444444}
+.kpi-card.warn-border{border-color:#ffaa00;box-shadow:0 0 8px #ffaa0044}
+.kpi-badge{font-size:0.7rem;padding:1px 8px;border-radius:10px;margin-top:2px;font-weight:600}
+.badge-ok{background:#00ff8822;color:#00ff88}
+.badge-err{background:#ff444422;color:#ff4444}
 
-.mid-left{flex:6}
-.mid-center{flex:3}
-.mid-right{flex:3}
-.bot-left{flex:6}
-.bot-right{flex:4}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.blink{animation:blink 1s infinite}
+
+/* 행 레이아웃 */
+.row{display:flex;gap:10px}
+.mid-row{flex:45}.bot-row{flex:40}
+.chart-box{background:#131a2e;border:1px solid #1e2a3a;border-radius:10px;padding:12px;display:flex;flex-direction:column}
+.chart-title{font-size:1rem;color:#00d4ff;margin-bottom:6px;font-weight:600}
+.ccw{position:relative;flex:1;min-height:0}
+
+.f6{flex:6}.f5{flex:5}.f4{flex:4}.f3{flex:3}
 
 /* 테이블 */
 .tv-table{width:100%;border-collapse:collapse;font-size:0.85rem}
-.tv-table thead th{background:#1e2a3a;padding:8px 10px;text-align:left;color:#aaa;font-weight:600;position:sticky;top:0}
+.tv-table thead th{background:#1e2a3a;padding:6px 8px;text-align:left;color:#aaa;font-weight:600}
 .tv-table tbody tr{background:#0d1117;border-bottom:1px solid #1a2332}
 .tv-table tbody tr:hover{background:#1a2332}
-.tv-table tbody td{padding:7px 10px;color:#ddd}
-.table-wrap{flex:1;overflow:hidden}
+.tv-table tbody td{padding:5px 8px;color:#ddd}
+.tv-table .low-rate{color:#ff4444;font-weight:600}
+.tbl-wrap{flex:1;overflow:hidden}
+
+/* 이상 요약 바 */
+.alert-bar{height:32px;background:#1a1a2e;border-radius:8px;overflow:hidden;display:flex;align-items:center;flex-shrink:0}
+.alert-bar-inner{white-space:nowrap;color:#ffaa00;font-size:0.8rem;font-weight:600;padding:0 20px;animation:marquee 30s linear infinite}
+@keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+/* === 슬라이드2: 키오스크 모니터링 === */
+.status-summary{display:flex;gap:20px;align-items:center;height:36px;flex-shrink:0;padding:0 8px;font-size:0.95rem}
+.status-summary span{font-weight:600}
+.st-on{color:#00ff88}.st-off{color:#ff4444}
+
+.kiosk-sections{flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.k-section{border-radius:10px;padding:10px;overflow:hidden}
+.k-section-title{font-size:0.9rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.k-section-title .dot-icon{width:8px;height:8px;border-radius:50%;display:inline-block}
+.k-grid{display:flex;flex-wrap:wrap;gap:8px}
+
+.k-card{width:200px;height:90px;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;font-size:0.78rem;border:1px solid transparent}
+.k-card.offline{background:#1a1020;border-color:#cc3333}
+.k-card.offline.blink-border{animation:blink-border 1.5s infinite}
+@keyframes blink-border{0%,100%{border-color:#cc3333;box-shadow:0 0 6px #cc333366}50%{border-color:#ff6666;box-shadow:0 0 12px #ff666688}}
+.k-card.warning{background:#1a1a10;border-color:#997700}
+.k-card.normal{background:#131a2e55;border-color:#1e2a3a;opacity:0.6}
+.k-card .k-hosp{font-weight:600;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-card .k-id{color:#888}
+.k-card .k-time{color:#666;font-size:0.72rem}
+
+.alert-ticker{height:32px;background:#1a1020;border-radius:8px;overflow:hidden;display:flex;align-items:center;flex-shrink:0}
+.alert-ticker-inner{white-space:nowrap;color:#ff6666;font-size:0.8rem;font-weight:600;padding:0 20px;animation:marquee 25s linear infinite}
+
+/* === 슬라이드3: 운영 통계 === */
+.month-kpi{display:flex;align-items:center;justify-content:center;gap:40px;height:80px;flex-shrink:0;background:#131a2e;border-radius:10px;border:1px solid #1e2a3a}
+.month-kpi .big-num{font-size:2.8rem;font-weight:800;color:#00d4ff}
+.month-kpi .mk-label{font-size:0.9rem;color:#888}
+.month-kpi .mk-change{font-size:1.1rem;font-weight:700}
+
+.badge-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:center;padding:10px}
+.menu-badge{display:flex;flex-direction:column;align-items:center;gap:4px}
+.menu-circle{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:#fff}
+.menu-name{font-size:0.75rem;color:#aaa;text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 순환 인디케이터(하단) */
+.slide-nav{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <!-- 상단 헤더 -->
+
+<!-- ========== 화면 1: 종합 현황 ========== -->
+<div class="slide active" id="slide-1">
   <div class="header">
-    <div class="logo"><span class="logo-bs">BS</span><span class="logo-eye">EYE</span><span class="logo-sub">실시간 모니터링</span></div>
-    <div class="clock" id="clock"></div>
+    <div class="logo"><span class="logo-bs">BS</span><span class="logo-eye">EYE</span></div>
+    <div class="page-title">종합 현황</div>
+    <div class="hdr-spacer"></div>
+    <div class="clock" id="clock1"></div>
+    <div class="indicators"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
   </div>
-
-  <!-- KPI 카드 -->
-  <div class="kpi-row">
-    <div class="kpi-card"><div class="kpi-label">가동병원</div><div class="kpi-value" id="kpi-hosp">-</div></div>
-    <div class="kpi-card"><div class="kpi-label">전체 키오스크</div><div class="kpi-value" id="kpi-kiosk">-</div></div>
-    <div class="kpi-card"><div class="kpi-label">오늘 이용건수</div><div class="kpi-value" id="kpi-count">-</div></div>
-    <div class="kpi-card"><div class="kpi-label">오늘 가동율</div><div class="kpi-value" id="kpi-rate">-</div></div>
-    <div class="kpi-card"><div class="kpi-label">온라인 에이전트</div><div class="kpi-value" id="kpi-online">-</div></div>
-    <div class="kpi-card"><div class="kpi-label">장애 에이전트</div><div class="kpi-value" id="kpi-error">-</div></div>
+  <div class="kpi-row" id="kpi1"></div>
+  <div class="row mid-row">
+    <div class="chart-box f6"><div class="chart-title">주간 수납 건수 추이</div><div class="ccw"><canvas id="c1Weekly"></canvas></div></div>
+    <div class="chart-box f4"><div class="chart-title">ISV별 수납 현황</div><div class="ccw"><canvas id="c1Isv"></canvas></div></div>
   </div>
-
-  <!-- 중단: 차트 3개 -->
-  <div class="mid-row">
-    <div class="chart-box mid-left">
-      <div class="chart-title">주간 이용 추이</div>
-      <div class="chart-canvas-wrap"><canvas id="chartWeekly"></canvas></div>
-    </div>
-    <div class="chart-box mid-center">
-      <div class="chart-title">월별 이용 추이</div>
-      <div class="chart-canvas-wrap"><canvas id="chartMonthly"></canvas></div>
-    </div>
-    <div class="chart-box mid-right">
-      <div class="chart-title">ISV 분포</div>
-      <div class="chart-canvas-wrap"><canvas id="chartIsv"></canvas></div>
+  <div class="row bot-row">
+    <div class="chart-box f5"><div class="chart-title">시간대별 사용 현황</div><div class="ccw"><canvas id="c1Hourly"></canvas></div></div>
+    <div class="chart-box f5">
+      <div class="chart-title">병원별 수납 건수 TOP 8</div>
+      <div class="tbl-wrap"><table class="tv-table"><thead><tr><th>#</th><th>병원명</th><th>키오스크</th><th>수납건수</th><th>가동률</th></tr></thead><tbody id="topBody"></tbody></table></div>
     </div>
   </div>
+  <div class="alert-bar"><div class="alert-bar-inner" id="alertBar"></div></div>
+</div>
 
-  <!-- 하단: 차트 + 테이블 -->
-  <div class="bot-row">
-    <div class="chart-box bot-left">
-      <div class="chart-title">시간대별 이용현황</div>
-      <div class="chart-canvas-wrap"><canvas id="chartHourly"></canvas></div>
-    </div>
-    <div class="chart-box bot-right">
-      <div class="chart-title">ISV별 오늘 이용</div>
-      <div class="table-wrap">
-        <table class="tv-table">
-          <thead><tr><th>ISV</th><th>병원수</th><th>이용건수</th><th>가동율</th></tr></thead>
-          <tbody id="isvBody"></tbody>
-        </table>
-      </div>
-    </div>
+<!-- ========== 화면 2: 키오스크 모니터링 ========== -->
+<div class="slide" id="slide-2">
+  <div class="header">
+    <div class="logo"><span class="logo-bs">BS</span><span class="logo-eye">EYE</span></div>
+    <div class="page-title">키오스크 모니터링</div>
+    <div class="hdr-spacer"></div>
+    <div class="status-summary" id="statusSummary"></div>
+    <div class="clock" id="clock2"></div>
+    <div class="indicators"><div class="dot"></div><div class="dot on"></div><div class="dot"></div></div>
+  </div>
+  <div class="kiosk-sections" id="kioskSections"></div>
+  <div class="alert-ticker"><div class="alert-ticker-inner" id="alertTicker"></div></div>
+</div>
+
+<!-- ========== 화면 3: 운영 통계 ========== -->
+<div class="slide" id="slide-3">
+  <div class="header">
+    <div class="logo"><span class="logo-bs">BS</span><span class="logo-eye">EYE</span></div>
+    <div class="page-title">운영 통계</div>
+    <div class="hdr-spacer"></div>
+    <div class="clock" id="clock3"></div>
+    <div class="indicators"><div class="dot"></div><div class="dot"></div><div class="dot on"></div></div>
+  </div>
+  <div class="month-kpi" id="monthKpi"></div>
+  <div class="row mid-row">
+    <div class="chart-box f5"><div class="chart-title">월별 수납 추이 (전년 vs 금년)</div><div class="ccw"><canvas id="c3Monthly"></canvas></div></div>
+    <div class="chart-box f5"><div class="chart-title">ISV 파트너 성과</div><div class="ccw"><canvas id="c3Isv"></canvas></div></div>
+  </div>
+  <div class="row bot-row">
+    <div class="chart-box f5"><div class="chart-title">병원 규모별 분포</div><div class="ccw"><canvas id="c3Scale"></canvas></div></div>
+    <div class="chart-box f5"><div class="chart-title">메뉴별 사용 현황</div><div class="badge-row" id="menuBadges"></div></div>
   </div>
 </div>
 
+<div class="slide-nav" id="slideNav">
+  <div class="dot on" onclick="goSlide(0)"></div>
+  <div class="dot" onclick="goSlide(1)"></div>
+  <div class="dot" onclick="goSlide(2)"></div>
+</div>
+</div>
+
 <script>
-// === 시계 ===
+// ===== 시계 =====
 function tickClock(){
-  const d=new Date();
-  const pad=n=>String(n).padStart(2,'0');
-  document.getElementById('clock').textContent=
-    d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const s=d.getFullYear()+'.'+p(d.getMonth()+1)+'.'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  document.getElementById('clock1').textContent=s;
+  document.getElementById('clock2').textContent=s;
+  document.getElementById('clock3').textContent=s;
 }
 setInterval(tickClock,1000);tickClock();
 
-// === Chart.js 공통 설정 ===
-Chart.defaults.color='#888';
-Chart.defaults.borderColor='#1e2a3a';
-Chart.defaults.font.size=11;
-
-const ISV_COLORS=['#00d4ff','#ff6b6b','#ffd93d','#6bcb77','#a66cff','#ff9a3c','#4ecdc4','#f067b4','#58d68d','#e74c3c','#3498db','#e67e22'];
-
-let chartWeekly=null, chartMonthly=null, chartIsv=null, chartHourly=null;
-
-const CHART_OPTS={responsive:true,maintainAspectRatio:false,animation:{duration:600}};
-
-function makeChart(prev,id,type,data,opts){
-  if(prev) prev.destroy();
-  return new Chart(document.getElementById(id),{type,data,options:{...CHART_OPTS,...opts}});
+// ===== 슬라이드 순환 =====
+let currentSlide=0;
+const SLIDE_COUNT=3;
+function goSlide(n){
+  currentSlide=n;
+  document.querySelectorAll('.slide').forEach((el,i)=>el.classList.toggle('active',i===n));
+  document.querySelectorAll('.slide-nav .dot').forEach((el,i)=>el.classList.toggle('on',i===n));
+  document.querySelectorAll('.indicators').forEach(ind=>{
+    ind.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===n));
+  });
 }
+setInterval(()=>goSlide((currentSlide+1)%SLIDE_COUNT),30000);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')goSlide((currentSlide+1)%SLIDE_COUNT);
+  if(e.key==='ArrowLeft')goSlide((currentSlide-1+SLIDE_COUNT)%SLIDE_COUNT);
+});
 
-function numFmt(n){return n!=null?n.toLocaleString():'-'}
+// ===== Chart.js =====
+Chart.defaults.color='#888';Chart.defaults.borderColor='#1e2a3a';Chart.defaults.font.size=11;
+const CO={responsive:true,maintainAspectRatio:false,animation:{duration:400}};
+const ISV_C=['#00d4ff','#ff6b6b','#ffd93d','#6bcb77','#a66cff','#ff9a3c','#4ecdc4','#f067b4','#58d68d','#e74c3c','#3498db','#e67e22'];
+const MENU_C=['#3498db','#27ae60','#e67e22','#9b59b6','#e74c3c','#1abc9c','#f39c12','#2980b9'];
+let charts={};
+function mc(prev,id,type,data,opts){if(prev)prev.destroy();return new Chart(document.getElementById(id),{type,data,options:{...CO,...opts}});}
+function nf(n){return n!=null?n.toLocaleString():'-';}
+function rc(v){return v>=90?'#00ff88':v>=70?'#ffaa00':'#ff4444';}
+function pctChange(cur,prev){if(!prev)return '';const p=Math.round((cur-prev)/prev*100);return p>0?`<span class="up">↑${p}%</span>`:p<0?`<span class="down">↓${Math.abs(p)}%</span>`:'<span>-</span>';}
 
-function rateColor(v){return v>=90?'#00ff88':v>=70?'#ffaa00':'#ff4444'}
-
+// ===== 데이터 로드 =====
 function loadData(){
   fetch('/api/tv-data').then(r=>r.json()).then(d=>{
-    if(d.error)return;
-
-    // KPI
-    const k=d.kpi;
-    document.getElementById('kpi-hosp').textContent=numFmt(k.active_hosp);
-    document.getElementById('kpi-kiosk').textContent=numFmt(k.total_kiosk);
-    document.getElementById('kpi-count').textContent=numFmt(k.today_count);
-    const rateEl=document.getElementById('kpi-rate');
-    rateEl.textContent=k.today_rate+'%';
-    rateEl.style.color=rateColor(k.today_rate);
-    document.getElementById('kpi-online').textContent=numFmt(k.agent_online);
-    const errEl=document.getElementById('kpi-error');
-    errEl.textContent=numFmt(k.agent_error);
-    errEl.style.color=k.agent_error>0?'#ff4444':'#00ff88';
-
-    // 주간 라인차트 (destroy & recreate)
-    chartWeekly=makeChart(chartWeekly,'chartWeekly','line',
-      {labels:d.weekly.map(r=>r.date.slice(5)),datasets:[{data:d.weekly.map(r=>r.count),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.15)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#00d4ff',borderWidth:2}]},
-      {plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
-    );
-
-    // 월별 바차트
-    chartMonthly=makeChart(chartMonthly,'chartMonthly','bar',
-      {labels:d.monthly.map(r=>r.month.slice(2)),datasets:[{data:d.monthly.map(r=>r.count),backgroundColor:'#00d4ff',borderRadius:4,maxBarThickness:28}]},
-      {plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
-    );
-
-    // ISV 도넛차트
-    chartIsv=makeChart(chartIsv,'chartIsv','doughnut',
-      {labels:d.isv_dist.map(r=>r.isv),datasets:[{data:d.isv_dist.map(r=>r.count),backgroundColor:ISV_COLORS,borderWidth:0}]},
-      {plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8,font:{size:11},color:'#ccc'}}},cutout:'55%'}
-    );
-
-    // 시간대별 바차트
-    chartHourly=makeChart(chartHourly,'chartHourly','bar',
-      {labels:d.hourly.map((_,i)=>'구간'+(i+1)),datasets:[{data:d.hourly,backgroundColor:'rgba(0,212,255,0.7)',borderRadius:3,maxBarThickness:36}]},
-      {plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a'}}}}
-    );
-
-    // ISV 테이블
-    const tbody=document.getElementById('isvBody');
-    tbody.innerHTML='';
-    d.isv_today.slice(0,8).forEach(r=>{
-      const rc=rateColor(r.rate);
-      tbody.innerHTML+=`<tr><td>${r.isv}</td><td>${r.hosps}</td><td>${numFmt(r.count)}</td><td style="color:${rc};font-weight:600">${r.rate}%</td></tr>`;
-    });
-  }).catch(e=>console.error('TV data fetch error:',e));
+    if(d.error){console.error(d.error);return;}
+    renderSlide1(d);
+    renderSlide2(d);
+    renderSlide3(d);
+  }).catch(e=>console.error('fetch error:',e));
 }
 
+// ===== 화면 1: 종합 현황 =====
+function renderSlide1(d){
+  const k=d.kpi;
+  const countChange=k.yesterday_count?Math.round((k.today_count-k.yesterday_count)/k.yesterday_count*100):0;
+  const countWarn=countChange<=-30;
+  const offlineAlert=k.agent_offline>0;
+  const rateAlert=k.today_rate<70;
+
+  let kh='';
+  // 가동 병원
+  kh+=`<div class="kpi-card"><div class="kpi-label">가동 병원</div><div class="kpi-value">${nf(k.today_hosps)}</div><div class="kpi-sub">전일 ${nf(k.yesterday_hosps)} ${k.today_hosps>=k.yesterday_hosps?'<span class="up">↑'+(k.today_hosps-k.yesterday_hosps)+'</span>':'<span class="down">↓'+(k.yesterday_hosps-k.today_hosps)+'</span>'}</div></div>`;
+  // 전체 키오스크
+  kh+=`<div class="kpi-card"><div class="kpi-label">전체 키오스크</div><div class="kpi-value">${nf(k.total_kiosk)}</div><div class="kpi-sub">&nbsp;</div></div>`;
+  // 오늘 수납 건수
+  kh+=`<div class="kpi-card ${countWarn?'warn-border':''}"><div class="kpi-label">오늘 수납 건수</div><div class="kpi-value">${nf(k.today_count)}</div><div class="kpi-sub">전일 ${nf(k.yesterday_count)} ${pctChange(k.today_count,k.yesterday_count)}</div></div>`;
+  // 가동률
+  kh+=`<div class="kpi-card ${rateAlert?'alert-border':''}"><div class="kpi-label">가동률</div><div class="kpi-value" style="color:${rc(k.today_rate)}">${k.today_rate}%</div><div class="kpi-sub">${rateAlert?'⚠ 기준 미달':''}</div></div>`;
+  // 온라인
+  kh+=`<div class="kpi-card"><div class="kpi-label">온라인</div><div class="kpi-value" style="color:#00ff88">${nf(k.agent_online)}</div><div class="kpi-sub">&nbsp;</div></div>`;
+  // 오프라인
+  kh+=`<div class="kpi-card ${offlineAlert?'alert-border':''}"><div class="kpi-label">오프라인</div><div class="kpi-value ${offlineAlert?'blink':''}" style="color:${offlineAlert?'#ff4444':'#00ff88'}">${nf(k.agent_offline)}</div><div class="kpi-sub">${offlineAlert?'<span class="badge-err kpi-badge">'+k.agent_offline+'대 장애</span>':'<span class="badge-ok kpi-badge">정상</span>'}</div></div>`;
+  document.getElementById('kpi1').innerHTML=kh;
+
+  // 주간 라인차트
+  charts.c1w=mc(charts.c1w,'c1Weekly','line',
+    {labels:d.weekly.map(r=>r.date.slice(5)),datasets:[{data:d.weekly.map(r=>r.count),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.12)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#00d4ff',borderWidth:2}]},
+    {plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a22'}}}}
+  );
+
+  // ISV 수평 바차트
+  const isvData=d.isv_today.filter(r=>r.count>0).slice(0,10);
+  charts.c1i=mc(charts.c1i,'c1Isv','bar',
+    {labels:isvData.map(r=>r.isv),datasets:[{data:isvData.map(r=>r.count),backgroundColor:ISV_C.slice(0,isvData.length),borderRadius:4,maxBarThickness:22}]},
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#1e2a3a22'}},y:{grid:{display:false}}}}
+  );
+
+  // 시간대별 바차트
+  charts.c1h=mc(charts.c1h,'c1Hourly','bar',
+    {labels:d.hourly.map((_,i)=>'구간'+(i+1)),datasets:[{data:d.hourly,backgroundColor:'rgba(0,212,255,0.65)',borderRadius:3,maxBarThickness:40}]},
+    {plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a22'}}}}
+  );
+
+  // TOP 8 테이블
+  let tb='';
+  d.top_hospitals.forEach(h=>{
+    const rcl=h.rate<70?'low-rate':'';
+    tb+=`<tr><td>${h.rank}</td><td>${h.name}</td><td>${h.kiosks}</td><td>${nf(h.count)}</td><td class="${rcl}" style="color:${rc(h.rate)};font-weight:600">${h.rate}%</td></tr>`;
+  });
+  document.getElementById('topBody').innerHTML=tb;
+
+  // 이상 요약 바
+  const al=d.alerts;
+  const offCnt=al.filter(a=>a.type==='offline').length;
+  const dropCnt=al.filter(a=>a.type==='drop').length;
+  let alertParts=[];
+  if(offCnt)alertParts.push('⚠ 오프라인 '+offCnt+'대');
+  if(dropCnt)alertParts.push('수납 급감 '+dropCnt+'개 병원');
+  if(k.today_rate<70)alertParts.push('가동률 저하 주의');
+  document.getElementById('alertBar').textContent=alertParts.length?alertParts.join(' | '):'✓ 현재 이상 없음';
+  document.getElementById('alertBar').style.color=alertParts.length?'#ffaa00':'#00ff88';
+}
+
+// ===== 화면 2: 키오스크 모니터링 =====
+function renderSlide2(d){
+  const k=d.kpi,list=d.kiosk_list;
+  const total=list.length,on=k.agent_online,off=k.agent_offline;
+  document.getElementById('statusSummary').innerHTML=`총 <span>${total}</span>대 | <span class="st-on">온라인 ${on}대</span> | <span class="st-off">오프라인 ${off}대</span>`;
+
+  const offList=list.filter(k=>k.status==='offline');
+  const onList=list.filter(k=>k.status==='online');
+
+  let html='';
+  // 장애 섹션
+  if(offList.length){
+    html+=`<div class="k-section" style="background:#1a101855"><div class="k-section-title"><span class="dot-icon" style="background:#ff4444"></span> 장애 (${offList.length}대)</div><div class="k-grid">`;
+    offList.forEach(k=>{
+      html+=`<div class="k-card offline blink-border"><div class="k-hosp">${k.hosp_name}</div><div class="k-id">${k.kiosk_id}</div><div class="k-time">${k.last_heartbeat} (${k.elapsed})</div></div>`;
+    });
+    html+='</div></div>';
+  }
+  // 정상 섹션
+  html+=`<div class="k-section" style="background:#0d111755"><div class="k-section-title"><span class="dot-icon" style="background:#00ff88"></span> 정상 (${onList.length}대)</div><div class="k-grid">`;
+  onList.forEach(k=>{
+    html+=`<div class="k-card normal"><div class="k-hosp">${k.hosp_name}</div><div class="k-id">${k.kiosk_id}</div><div class="k-time">${k.last_heartbeat}</div></div>`;
+  });
+  html+='</div></div>';
+  document.getElementById('kioskSections').innerHTML=html;
+
+  // 장애 알림 티커
+  const alOff=d.alerts.filter(a=>a.type==='offline').slice(0,5);
+  document.getElementById('alertTicker').textContent=alOff.length?alOff.map(a=>a.message).join('    |    '):'장애 없음';
+  document.getElementById('alertTicker').style.color=alOff.length?'#ff6666':'#00ff8888';
+}
+
+// ===== 화면 3: 운영 통계 =====
+function renderSlide3(d){
+  const mt=d.month_total,pmt=d.prev_month_total;
+  const chg=pmt?Math.round((mt-pmt)/pmt*100):0;
+  document.getElementById('monthKpi').innerHTML=`
+    <div><div class="mk-label">이번달 총 수납건수</div><div class="big-num">${nf(mt)}</div></div>
+    <div style="text-align:center"><div class="mk-label">전월 대비</div><div class="mk-change" style="color:${chg>=0?'#00ff88':'#ff4444'}">${chg>=0?'↑':'↓'}${Math.abs(chg)}%</div><div style="color:#666;font-size:0.8rem">전월 ${nf(pmt)}</div></div>`;
+
+  // 월별 비교 차트
+  const mc_=d.monthly_comparison;
+  charts.c3m=mc(charts.c3m,'c3Monthly','bar',
+    {labels:mc_.labels,datasets:[
+      {label:new Date().getFullYear()-1+'년',data:mc_.previous,backgroundColor:'#ffffff22',borderRadius:3,maxBarThickness:20},
+      {label:new Date().getFullYear()+'년',data:mc_.current,backgroundColor:'#00d4ff',borderRadius:3,maxBarThickness:20}
+    ]},
+    {plugins:{legend:{position:'top',labels:{boxWidth:12,color:'#aaa'}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#1e2a3a22'}}}}
+  );
+
+  // ISV 도넛
+  charts.c3i=mc(charts.c3i,'c3Isv','doughnut',
+    {labels:d.isv_dist.map(r=>r.isv),datasets:[{data:d.isv_dist.map(r=>r.count),backgroundColor:ISV_C,borderWidth:0}]},
+    {plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8,font:{size:11},color:'#ccc'}}},cutout:'50%'}
+  );
+
+  // 규모별 분포
+  charts.c3s=mc(charts.c3s,'c3Scale','pie',
+    {labels:d.scale_dist.map(r=>r.group),datasets:[{data:d.scale_dist.map(r=>r.count),backgroundColor:['#3498db','#e67e22','#2ecc71','#e74c3c'],borderWidth:0}]},
+    {plugins:{legend:{position:'right',labels:{boxWidth:12,padding:10,font:{size:12},color:'#ccc'}}}}
+  );
+
+  // 메뉴 배지
+  const menus=d.menu_usage.slice(0,8);
+  let bh='';
+  menus.forEach((m,i)=>{
+    const c=MENU_C[i%MENU_C.length];
+    bh+=`<div class="menu-badge"><div class="menu-circle" style="background:${c}">${nf(m.count)}</div><div class="menu-name">${m.menu}</div></div>`;
+  });
+  if(!menus.length)bh='<div style="color:#666;padding:20px">데이터 없음</div>';
+  document.getElementById('menuBadges').innerHTML=bh;
+}
+
+// ===== 초기 로드 + 자동 갱신 =====
 loadData();
 setInterval(loadData,300000);
 </script>
