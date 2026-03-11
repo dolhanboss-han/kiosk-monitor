@@ -70,25 +70,16 @@ body.light .header .user{color:#666}
     </div>
 </div>
 <div id="canvas"></div>
-<div id="dash-indicator" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.3'" style="position:fixed;bottom:14px;right:18px;z-index:9999;display:flex;gap:14px;align-items:center;background:rgba(10,10,30,0.92);border:1px solid #444;border-radius:12px;padding:12px 18px;color:#eee;opacity:0.3;transition:opacity 0.3s ease">
-<span style="color:#888;font-size:1rem">배율</span>
-<button onclick="changeScale(-0.01)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">−</button>
-<span id="scale-display" style="color:#00d4ff;font-weight:bold;font-size:1.1rem;min-width:60px;text-align:center">x1.00</span>
-<button onclick="changeScale(0.01)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">+</button>
-<span style="color:#444;font-size:1.2rem;margin:0 2px">|</span>
-<span style="color:#888;font-size:1rem">갱신</span>
-<button onclick="changeInterval(-10)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">−</button>
-<span id="refresh-timer" style="color:#00ff88;font-weight:bold;font-size:1.1rem;min-width:60px;text-align:center">60초</span>
-<button onclick="changeInterval(10)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">+</button>
-</div>
 
 <script src="/static/js/widget-render.js"></script>
 <script>
 const canvas = document.getElementById('canvas');
 let WIDGET_DEFS = {};
+fetch('/api/widgets').then(r=>r.json()).then(d=>{
+    d.widgets.forEach(w=>{ WIDGET_DEFS[w.key]={w:w.w,h:w.h,label:w.name}; });
+});
 
-
-function renderWidget(el, type) {
+function renderWidget(el, type, baseW, baseH) {
     const header = el.querySelector('.w-header');
     const body = el.querySelector('.w-body');
     if(!header||!body) return;
@@ -101,22 +92,11 @@ function renderWidget(el, type) {
     });
 }
 
-let _manualScale = Math.min(1, window.innerWidth / 1920);
-if(_manualScale < 0.5) _manualScale = 1;
-_manualScale = Math.round(_manualScale * 100) / 100;
-
 function layoutScale(){
-    if(window.innerWidth < 768) return 1;
-    return _manualScale;
-}
-
-function changeScale(delta){
-    _manualScale = Math.round((_manualScale + delta) * 100) / 100;
-    if(_manualScale < 0.25) _manualScale = 0.25;
-    if(_manualScale > 2.0) _manualScale = 2.0;
-    const sd=document.getElementById('scale-display');
-    if(sd) sd.textContent='x'+_manualScale.toFixed(2);
-    if(_layoutData) renderLayout(_layoutData);
+    const vw=window.innerWidth;
+    if(vw>=1920) return 1;
+    if(vw<768) return 1;
+    return vw/1920;
 }
 
 function renderLayout(layout){
@@ -144,14 +124,10 @@ function renderLayout(layout){
         canvas.appendChild(div);
         renderWidget(div, w.type);
     });
-    const sd=document.getElementById('scale-display');
-    if(sd) sd.textContent='x'+_manualScale.toFixed(2);
 }
 
 let _layoutData = null;
-fetch('/api/widgets').then(r=>r.json()).then(d=>{
-    d.widgets.forEach(w=>{ WIDGET_DEFS[w.key]={w:w.w,h:w.h,label:w.name}; });
-}).then(()=>{
+window.addEventListener('load', ()=>{
     fetch('/api/layout').then(r=>r.json()).then(layout=>{
         _layoutData = layout;
         renderLayout(_layoutData);
@@ -167,26 +143,10 @@ window.addEventListener('resize', ()=>{
     }, 300);
 });
 
-// 자동 새로고침 (10~300초 조절)
-let _refreshInterval = 60;
-let _refreshSec = _refreshInterval;
-
-function changeInterval(delta){
-    _refreshInterval = Math.max(10, Math.min(300, _refreshInterval + delta));
-    _refreshSec = Math.min(_refreshSec, _refreshInterval);
-    const rt=document.getElementById('refresh-timer');
-    if(rt) rt.textContent=_refreshInterval+'초';
-}
-
+// 1분마다 자동 새로고침
 setInterval(()=>{
-    _refreshSec--;
-    if(_refreshSec <= 0){
-        _refreshSec = _refreshInterval;
-        if(_layoutData) renderLayout(_layoutData);
-    }
-    const rt=document.getElementById('refresh-timer');
-    if(rt) rt.textContent=_refreshSec+'초';
-}, 1000);
+    if(_layoutData) renderLayout(_layoutData);
+}, 60000);
 
 // 테마 (로컬스토리지에서 복원)
 if(localStorage.getItem('theme')==='light') document.body.classList.add('light');

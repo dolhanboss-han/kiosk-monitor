@@ -72,9 +72,9 @@ body.light .header .user{color:#666}
 <div id="canvas"></div>
 <div id="dash-indicator" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.3'" style="position:fixed;bottom:14px;right:18px;z-index:9999;display:flex;gap:14px;align-items:center;background:rgba(10,10,30,0.92);border:1px solid #444;border-radius:12px;padding:12px 18px;color:#eee;opacity:0.3;transition:opacity 0.3s ease">
 <span style="color:#888;font-size:1rem">배율</span>
-<button onclick="changeScale(-0.01)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">−</button>
+<button onclick="changeScale(-0.05)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">−</button>
 <span id="scale-display" style="color:#00d4ff;font-weight:bold;font-size:1.1rem;min-width:60px;text-align:center">x1.00</span>
-<button onclick="changeScale(0.01)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">+</button>
+<button onclick="changeScale(0.05)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">+</button>
 <span style="color:#444;font-size:1.2rem;margin:0 2px">|</span>
 <span style="color:#888;font-size:1rem">갱신</span>
 <button onclick="changeInterval(-10)" style="width:36px;height:36px;background:#333;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:1.2rem;font-weight:bold;display:flex;align-items:center;justify-content:center">−</button>
@@ -103,7 +103,7 @@ function renderWidget(el, type) {
 
 let _manualScale = Math.min(1, window.innerWidth / 1920);
 if(_manualScale < 0.5) _manualScale = 1;
-_manualScale = Math.round(_manualScale * 100) / 100;
+_manualScale = Math.round(_manualScale * 20) / 20;
 
 function layoutScale(){
     if(window.innerWidth < 768) return 1;
@@ -111,7 +111,7 @@ function layoutScale(){
 }
 
 function changeScale(delta){
-    _manualScale = Math.round((_manualScale + delta) * 100) / 100;
+    _manualScale = Math.round((_manualScale + delta) * 20) / 20;
     if(_manualScale < 0.25) _manualScale = 0.25;
     if(_manualScale > 2.0) _manualScale = 2.0;
     const sd=document.getElementById('scale-display');
