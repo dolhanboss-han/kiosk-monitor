@@ -11,3 +11,8 @@ node_modules/
 *.swo
 *~
 *.exe
+*.bak
+*.bak2
+*.bak3
+*.bak4
+*.bak5

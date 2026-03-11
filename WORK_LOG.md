@@ -1,97 +1,75 @@
-# BSEYE Kiosk Monitor — Claude Code 작업 지시 이력
-> 최종 업데이트: 2026-03-08
+# 작업 로그
+
+## 2026-03-11 완료 사항
+
+### 1. 공통 구조 구축
+- `widget-render.js` - 위젯 렌더링 공통 JS (LABELS, renderWidgetContent, applyWidgetScale)
+- `widget-common.css` - 위젯 CSS 공통 (테마 변수, 위젯, 헤더, KPI, 테이블, 뱃지)
+- `applyWidgetScale(el)` 파라미터 없이 WIDGET_DEFS 내부 자동 참조
+- 에디터/대시보드 모두 동일한 공통 파일 사용
+
+### 2. 에디터 UI 개선
+- 팔레트 위젯 글자크기 확대 (name 1.0rem, desc 0.8rem, cat 0.7rem)
+- 툴바 버튼/링크 글자크기 1.5배 (0.95rem → 1.4rem)
+- 드롭다운(select) 글자크기 확대 (0.8rem → 1.4rem)
+- 툴바 높이 44px → 56px
+- 카테고리 탭 글자크기/색상 개선
+- 다크모드 텍스트 색상 밝게 (CSS 변수 활용)
+- 캔버스 영역 1400px → 1920px, 자동 확장(autoResizeCanvas)
+
+### 3. 대시보드 UI 개선
+- 캔버스 왼쪽 정렬 (margin auto → 0)
+- 헤더 네비게이션 글자크기 1.5배 (nav.html nav_style 수정)
+- 로고/사용자정보 글자크기 확대
+- 헤더 높이 48px → 60px
+- WIDGET_DEFS 로드 추가 (fetch /api/widgets)
+- 테마 localStorage 복원
+- layoutScale() 반응형 적용
+- window.load 후 레이아웃 로드
+
+### 4. 위젯 공통 개선
+- 위젯 헤더 글자크기 확대 (0.85rem → 1.1rem)
+- 위젯 헤더 한글 제목 표시 (LABELS[type] 우선)
+- KPI 제목 복원 (hdr.style.display='none' 제거)
+- 위젯 리사이즈 시 내부 글자크기 연동 (applyWidgetScale)
+- 화이트 모드 KPI 숫자색 검정+빨간색만
+
+### 5. 차트 개선
+- ISV 분포: 도넛 → 가로 바 차트
+- 차트 그리드 라인 제거
+- 차트 축/범례 글자색 #fff, 크기 12px+
+- ISV 차트 y축 글자 14px bold
+- 화이트 모드 차트 채도/대비 증가
+
+### 6. 장비이상현황 위젯
+- 숫자 3개만 크게 표시 (오프라인/장치오류/프린터경고)
+- 이슈 리스트 제거 (간결화)
+- 0보다 큰 값 깜박임 애니메이션 (eq-blink)
+- 클릭 시 모니터링 페이지 이동
+
+### 7. 미응답 키오스크 위젯
+- 10개 제한 + 스크롤
+- 총 건수 표시
+- 좌측 정렬
+
+### 8. 시계 위젯
+- 위젯 크기에 따라 자동 스케일링
 
 ---
 
-## Phase 1: 모바일 @media 반응형 추가 (5개 파일)
+## 2026-03-12 할 일 (미해결)
 
-### 지시 1 — 모바일 반응형 신규/보강
-- 대상: alarms.html, tickets.html, admin_users.html, ticket_detail.html, ticket_form.html
-- 내용: @media(max-width:768px) 블록 추가/보강, 테이블 카드 변환, data-label 속성, 터치 타겟 36~44px
-- 규칙: 데스크톱 CSS/HTML 변경 금지, executive.html 스타일 참조
-- 커밋: 파일당 1커밋, "mobile: {파일명} 모바일 반응형 추가"
+### 우선순위 높음
+1. **차트 x축 라벨 안 보임** - 에디터에서 주간이용추이, 월별이용추이, 시간대별 이용현황의 x축 표시 안됨 (대시보드에서는 일부 보임). 리사이즈 중에만 잠깐 보였다가 사라지는 현상
+2. **위젯 리사이즈 시 장비이상현황 제목 크기 미연동** - 다른 위젯은 되는데 장비이상현황만 리사이즈 시 제목 크기 변화 없음
 
-## Phase 2: 모바일 레이아웃 수정 (5개 파일)
+### 우선순위 중간
+3. **화이트 모드 차트 가독성** - 밝은 배경에서 차트 색상이 연해서 잘 안 보이는 문제 재확인
+4. **에디터-대시보드 미세 차이 점검** - 위젯 크기/위치 외 렌더링 차이 최종 확인
 
-### 지시 2 — 세부 모바일 레이아웃 문제 수정
-- 대상: alarms.html, tickets.html, index.html, usage.html, setup_monitor.html
-- alarms/tickets: 헤더 링크 숨김, thead 강제 숨김
-- index: KPI 그리드 1열, 차트 max-width:100%
-- usage: 탭 메뉴 가로 스크롤, 테이블 카드 변환
-- setup_monitor: 스텝탭 텍스트 숨김
-
-## Phase 3: 모바일 헤더 통일 (16개 파일)
-
-### 지시 3 — 헤더 스타일 + 시계 통일
-- 기준: executive.html (로고+한글메뉴명+햄버거+시계)
-- 배경: linear-gradient(135deg,#0d1220,#131a2e), border #1a2340
-- 시계: clk ID, tick() JS, YYYY.MM.DD 오후 HH:MM:SS
-- 숨김: .user-info, 로그아웃, 비밀번호변경 링크
-
-## Phase 4: 행동분석 3단계 뷰
-
-### 지시 5 — app.py hosp_cd 필터 추가
-- 수정 API: dashboard, daily, funnel, kiosks, receive (5개)
-- 신규 API: /api/kiosk-usage/hospitals
-- DB: usage_daily_summary, usage_event_log에 hosp_cd 컬럼 추가
-
-### 지시 6 — usage.html 3단계 뷰
-- 병원 드롭다운, 키오스크 드롭다운, 빵가루 내비게이션
-- 병원 순위 테이블 클릭 드릴다운, 키오스크 클릭 드릴다운
-
-## Phase 5: 행동분석 기능 강화
-
-### 지시 7 — 기간선택 + 차트 개선
-- 단일 날짜를 시작일/종료일로 변경 (기본 14일)
-- 시간대 차트: 14일 평균 + 선택기간 이중 바
-- 퍼널: 수평 스택 바, 이탈 히트맵: 색 농도
-
-### 지시 8 — 퍼널 세션 파싱 + UI 6개 항목
-- app.py: window_title '_' 기준 메뉴/단계 분리
-- 날짜 입력 색상, 선택영역 위치, 키오스크 드롭다운 전체 유지
-- 시간대 차트 연동, 퍼널 독립 카드, 이탈 바 차트
-
-### 지시 9 — 깔때기 + 워터폴 2단계 차트
-- 메인: CSS 깔때기 (사다리꼴, 위=넓고 아래=좁음)
-- 상세: Chart.js 워터폴 (스택 막대)
-
-## Phase 6: 최종 다듬기 (예정, 미실행)
-
-### 지시 10 — 7개 항목
-1. 퍼널 API 시스템 이벤트 제외 (기타, Bluswell)
-2. 조회 필수 조건 (기간+병원 필수)
-3. 키오스크 클릭 시 드롭다운 변경 안 함
-4. 메뉴별 이탈율 깔때기형
-5. 각 탭 KPI에 기간 표시 "YYYY.MM.DD ~ YYYY.MM.DD (N일간)"
-6. 깔때기 색상 톤다운 (#0a7ea8, #0a8a5a, #cc3333)
-7. 모바일 대응
+### 점검 필요
+5. **COMMON_RULES.md 기반 전체 검증** - 모든 공통 원칙이 실제로 지켜지고 있는지 코드 레벨 점검
+6. **git commit** - 오늘 작업 전체 커밋
 
 ---
-
-## 서버 직접 수정 이력
-
-| 날짜 | 파일 | 내용 | 커밋 |
-|------|------|------|------|
-| 03-08 | executive.html | 모바일 한글 메뉴명 유지 | cb9d161 |
-| 03-08 | maintenance.html | 헤더 두께 통일 | f901bd8 |
-| 03-08 | maintenance.html | 배경색+시계 경영진 통일 | 4fffb8f |
-| 03-08 | app.py | hosp_cd 컬럼 추가 + receive API 수정 | d873d6b |
-
-## 핵심 규칙
-
-1. 데스크톱 CSS/HTML 변경 금지 — @media(max-width:768px)에서만 작업
-2. </style> 바로 위에 @media 배치
-3. 스타일 기준 executive.html
-4. 파일 1개마다 git commit, push는 전체 완료 후 1회
-5. nav.html 수정 시 22개 페이지 영향 주의
-6. 문제 시 원복: git checkout HEAD~1 -- 파일명
-
-## 데이터 구조 메모
-
-### window_title: 메뉴명_단계명 형식
-- 업무: 재진접수, 도착확인, 진료수납, 진료예약, 번호표발행
-- 제외: 뒤로(&B), Bluswell_kiosk_app
-
-### 퍼널 세션 규칙
-- menu 변경 시 새 세션 시작
-- 마지막 step에 완료 포함 시 completed=True
+마지막 업데이트: 2026-03-11

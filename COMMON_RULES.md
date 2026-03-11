@@ -1,0 +1,25 @@
+# 공통 적용 원칙
+
+## 기본 원칙
+1. **에디터 = 대시보드 동일 표시** - 공통 파일(widget-render.js, widget-common.css)로 관리, 코드 중복 금지
+2. **다크/화이트 모드 통일** - 양쪽 모드에서 글자크기·스타일 동일 기준 적용
+3. **위젯 리사이즈 시 내부 글자크기 연동** - 모든 위젯에서 제목+내용 함께 리사이즈
+4. **화이트 모드 숫자색은 검정+빨간색만**
+5. **코드 중복 금지** - 한 곳 수정하면 양쪽 반영
+6. **파일 수정 전 반드시 백업** - `cp 파일명 파일명.bak` 후 작업. 실수 시 즉시 복구 가능하도록
+
+## 파일 구조
+- `/static/js/widget-render.js` - 위젯 렌더링 공통 JS (LABELS, renderWidgetContent, applyWidgetScale)
+- `/static/css/widget-common.css` - 위젯 CSS 공통 (테마 변수, 위젯, 헤더, KPI, 테이블, 뱃지, 라이트 모드)
+- `/templates/editor.html` - 에디터 고유 레이아웃만
+- `/templates/index.html` - 대시보드 고유 레이아웃만
+
+## 추가 원칙
+8. **차트 축/범례 글자는 항상 밝고(#fff) 크게(12px 이상)** - 흐리게 보이지 않도록
+
+---
+마지막 업데이트: 2026-03-11
+
+## 8. 작업 종료 시 Git Push
+- 하루 작업 정리 시 반드시 `git add -A && git commit && git push`까지 수행
+- .bak 파일은 커밋에 포함하지 않음 (.gitignore에 추가)

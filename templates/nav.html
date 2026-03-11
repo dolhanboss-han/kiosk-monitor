@@ -1,7 +1,7 @@
 {# 공통 네비게이션 - 권한별 메뉴 표시 #}
 {% set role = session.get('user_role', '') %}
 {% set ot = session.get('org_type', '') %}
-{% set nav_style = "color:#999;text-decoration:none;font-size:0.78rem;padding:4px 10px;border:1px solid #333;border-radius:6px;white-space:nowrap" %}
+{% set nav_style = "color:#999;text-decoration:none;font-size:1.15rem;padding:6px 12px;border:1px solid #333;border-radius:6px;white-space:nowrap" %}
 
 <style>
 #nav-links{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;flex:1}

@@ -1,0 +1,61 @@
+/* widget-common.css - 에디터/대시보드 공통 위젯 스타일 */
+
+/* 테마 변수 */
+:root{
+    --bg:#0f0f2a;--bg2:#1a1a3e;--bg3:#16163a;--bg4:#222250;
+    --border:#2a2a5a;--border2:#333;
+    --text:#fff;--text2:#ccc;--text3:#999;--text4:#888;--text5:#88a;
+    --grid:#333;--hover:#00d4ff22;
+    --widget-bg:linear-gradient(135deg,#1a1a3e,#16163a);
+    --header-bg:linear-gradient(135deg,#0d1220,#131a2e);
+    --table-border:#222;
+}
+body.light{
+    --bg:#eef1f5;--bg2:#ffffff;--bg3:#f5f7fa;--bg4:#e2e6ec;
+    --border:#d0d5dd;--border2:#c0c5cc;
+    --text:#1a1a2e;--text2:#333;--text3:#555;--text4:#777;--text5:#556;
+    --grid:#dde;--hover:#2563eb11;
+    --widget-bg:linear-gradient(135deg,#ffffff,#f7f8fc);
+    --header-bg:linear-gradient(135deg,#f8f9fc,#eef1f5);
+    --table-border:#e5e7eb;
+}
+
+/* 위젯 공통 */
+.widget{position:absolute;background:var(--bg2);border:2px solid var(--border2);border-radius:8px;overflow:hidden}
+.widget .w-header{background:#222250;padding:8px 14px;font-size:1.1rem;color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.widget .w-body{padding:4px 6px;font-size:0.75rem;color:#ccc;overflow:auto;height:calc(100% - 40px)}
+.widget .w-body::-webkit-scrollbar{width:4px}
+.widget .w-body::-webkit-scrollbar-track{background:#111}
+.widget .w-body::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.widget .w-body::-webkit-scrollbar-thumb:hover{background:#555}
+
+/* KPI */
+.kpi-val{font-size:2.5rem;font-weight:bold;color:#00d4ff;text-align:center;margin:0}
+.kpi-val.green{color:#00ff88}.kpi-val.red{color:#ff4444}.kpi-val.yellow{color:#ffaa00}
+
+/* 테이블 */
+.w-body table{width:100%;border-collapse:collapse}
+.w-body th{text-align:left;color:#888;font-size:0.6rem;padding:1px 3px;border-bottom:1px solid #333}
+.w-body td{font-size:0.65rem;padding:1px 3px;border-bottom:1px solid #1a1a2e}
+.w-body td a{color:#00d4ff;text-decoration:none}
+
+/* 뱃지 */
+.mini-badge{padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:bold}
+.mini-badge.ok,.mini-badge.online,.mini-badge.resolved{background:#00ff8822;color:#00ff88}
+.mini-badge.error,.mini-badge.critical,.mini-badge.open{background:#ff444422;color:#ff4444}
+.mini-badge.warning,.mini-badge.in_progress,.mini-badge.acknowledged{background:#ffaa0022;color:#ffaa00}
+
+/* 라이트 모드 위젯 */
+body.light .widget{background:#fff!important;border-color:#d0d5dd!important;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+body.light .widget .w-header{background:#e8ecf4;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e5e7eb}
+body.light .widget .w-body{color:#333}
+body.light .widget .w-body canvas{filter:saturate(1.4) contrast(1.1)}
+body.light .widget .w-body table th{color:#1a1a2e;background:#f5f7fa;border-bottom:2px solid #d0d5dd}
+body.light .widget .w-body table td{color:#444;border-bottom:1px solid #eee}
+body.light .kpi-val{color:#111!important}
+body.light .kpi-val.green{color:#111!important}
+body.light .kpi-val.red{color:#cc0000!important}
+body.light .kpi-val.yellow{color:#cc0000!important}
+
+@keyframes eqBlink{0%,100%{opacity:1}50%{opacity:0.3}}
+.eq-blink{animation:eqBlink 1.2s ease-in-out infinite}
