@@ -12,21 +12,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;ov
 
 .header{
     position:fixed;top:0;left:0;right:0;z-index:1000;
-    background:#111130;padding:8px 20px;
+    background:var(--bg2);padding:8px 20px;
     display:flex;align-items:center;justify-content:space-between;
-    border-bottom:1px solid #333;height:60px;
+    border-bottom:1px solid var(--border);height:60px;
 }
 .header .logo{font-size:1.9rem;font-weight:700;color:#eee;white-space:nowrap}
-.header .logo em{color:#00d4ff;font-style:normal}
+.header .logo em{color:var(--status-cyan);font-style:normal}
 .header .nav{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
 .header .nav a{
-    color:#999;text-decoration:none;font-size:1.15rem;
+    color:var(--text3);text-decoration:none;font-size:1.15rem;
     padding:4px 10px;border:1px solid #333;border-radius:6px;
     white-space:nowrap;transition:all 0.2s;
 }
-.header .nav a:hover,.header .nav a.active{color:#00d4ff;border-color:#00d4ff}
+.header .nav a:hover,.header .nav a.active{color:var(--status-cyan);border-color:var(--status-cyan)}
 .header .right{display:flex;gap:10px;align-items:center}
-.header .user{color:#aaa;font-size:1.15rem;white-space:nowrap}
+.header .user{color:var(--text3);font-size:1.15rem;white-space:nowrap}
 .header .user a{color:#ff6b6b;text-decoration:none;margin-left:8px;font-size:1.1rem}
 
 #canvas{
@@ -35,7 +35,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;ov
     background:var(--bg);border-radius:8px;
 }
 
-body.light .header{background:linear-gradient(135deg,#f8f9fc,#eef1f5)!important;border-bottom:1px solid #d0d5dd!important;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+body.light .header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 body.light .header .logo{color:#1a1a2e}
 body.light .header .nav a{color:#555}
 body.light .header .nav a:hover{color:#2563eb}
@@ -61,9 +61,9 @@ body.light .header .user{color:#666}
 <body>
 
 <div class="header">
-    <span class="logo"><em style="color:#00d4ff;font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">대시보드</span></span>
+    <span class="logo"><em style="color:var(--status-cyan);font-style:normal">BS</em>EYE <span style="font-size:0.82rem;font-weight:400;color:#a0b0c0;margin-left:6px">대시보드</span></span>
     {% include 'nav.html' %}
-    <span class="clk" id="clk" style="font-size:0.7rem;color:#a0b0c0;white-space:nowrap"></span>
+    <span class="clk" id="clk" style="font-size:0.7rem;color:var(--text3);white-space:nowrap"></span>
     <div class="right">
         <span class="user">{{ session.get('user_name', '') }} ({{ session.get('user_role', '') }})</span>
         <span class="user"><a href="/change-password">비밀번호</a> <a href="/logout">로그아웃</a></span>

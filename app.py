@@ -1977,25 +1977,39 @@ def agent_heartbeat():
         db.execute("""UPDATE kiosk_status SET
             status=?, cpu_usage=?, memory_usage=?, disk_usage=?,
             printer_a4=?, printer_thermal=?, card_reader=?, barcode_reader=?,
-            network_speed=?, emr_connection=?, network_printers=?, agent_version=?, last_heartbeat=CURRENT_TIMESTAMP
+            network_speed=?, emr_connection=?, network_printers=?, agent_version=?,
+            monitor_hdmi=?, monitor_touch=?, monitor_model=?,
+            van_agent_status=?, thermal_paper=?, thermal_detail=?,
+            last_heartbeat=CURRENT_TIMESTAMP
             WHERE hosp_cd=? AND kiosk_id=?""",
             (data.get('status','online'), data.get('cpu',0), data.get('memory',0), data.get('disk',0),
              data.get('printer_a4','unknown'), data.get('printer_thermal','unknown'),
              data.get('card_reader','unknown'), data.get('barcode_reader','unknown'),
              data.get('network_speed',0), data.get('emr_connection','unknown'),
-             json.dumps(data.get('network_printers',{})), data.get('agent_version',''), data['hosp_cd'], data['kiosk_id']))
+             json.dumps(data.get('network_printers',{})), data.get('agent_version',''),
+             data.get('monitor_hdmi','unknown'), data.get('monitor_touch','unknown'),
+             data.get('monitor_model',''),
+             json.dumps(data.get('van_agent_status',{})), data.get('thermal_paper','unknown'),
+             json.dumps(data.get('thermal_detail',{})),
+             data['hosp_cd'], data['kiosk_id']))
     else:
         db.execute("""INSERT INTO kiosk_status
             (hosp_cd, kiosk_id, status, cpu_usage, memory_usage, disk_usage,
              printer_a4, printer_thermal, card_reader, barcode_reader,
-             network_speed, emr_connection, network_printers, agent_version, last_heartbeat)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+             network_speed, emr_connection, network_printers, agent_version,
+             monitor_hdmi, monitor_touch, monitor_model,
+             van_agent_status, thermal_paper, thermal_detail, last_heartbeat)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
             (data['hosp_cd'], data['kiosk_id'], data.get('status','online'),
              data.get('cpu',0), data.get('memory',0), data.get('disk',0),
              data.get('printer_a4','unknown'), data.get('printer_thermal','unknown'),
              data.get('card_reader','unknown'), data.get('barcode_reader','unknown'),
              data.get('network_speed',0), data.get('emr_connection','unknown'),
-             json.dumps(data.get('network_printers',{})), data.get('agent_version','')))
+             json.dumps(data.get('network_printers',{})), data.get('agent_version',''),
+             data.get('monitor_hdmi','unknown'), data.get('monitor_touch','unknown'),
+             data.get('monitor_model',''),
+             json.dumps(data.get('van_agent_status',{})), data.get('thermal_paper','unknown'),
+             json.dumps(data.get('thermal_detail',{}))))
 
     # 장비 마스터 자동 등록/업데이트
     dev = db.execute("SELECT id FROM kiosk_devices WHERE hosp_cd=? AND kiosk_id=?",

@@ -1,35 +1,26 @@
 # 공통 적용 원칙
 
 ## 기본 원칙
-1. **에디터 = 대시보드 동일 표시** - 공통 파일(widget-render.js, widget-common.css)로 관리, 코드 중복 금지
-2. **다크/화이트 모드 통일** - 양쪽 모드에서 글자크기·스타일 동일 기준 적용
-3. **위젯 리사이즈 시 내부 글자크기 연동** - 모든 위젯에서 제목+내용 함께 리사이즈
-4. **화이트 모드 숫자색은 검정+빨간색만**
-5. **코드 중복 금지** - 한 곳 수정하면 양쪽 반영
-6. **파일 수정 전 반드시 백업** - `cp 파일명 파일명.bak` 후 작업. 실수 시 즉시 복구 가능하도록
+1. **파일 수정 전 반드시 백업** - `cp 파일명 파일명.bak` 후 작업
+2. **요청한 작업만 수행** - 관련 없는 코드 절대 건드리지 않음, 기존 기능 깨뜨리지 않음
+3. **코드 중복 금지** - 한 곳 수정하면 양쪽 반영
+4. **작업 종료 시 Git Push** - `git add -A && git commit && git push`, .bak 파일 제외
+5. **작업 전 WORK_LOG.md, COMMON_RULES.md 확인 필수**
 
-## 파일 구조
-- `/static/js/widget-render.js` - 위젯 렌더링 공통 JS (LABELS, renderWidgetContent, applyWidgetScale)
-- `/static/css/widget-common.css` - 위젯 CSS 공통 (테마 변수, 위젯, 헤더, KPI, 테이블, 뱃지, 라이트 모드)
-- `/templates/editor.html` - 에디터 고유 레이아웃만
-- `/templates/index.html` - 대시보드 고유 레이아웃만
+## 프로젝트 구조
+- **프론트엔드**: Next.js (v0 디자인) → `/home/ubuntu/v0_design/` (포트 3000)
+- **백엔드 API**: Flask (app.py) → `/home/ubuntu/kiosk-monitor/` (포트 5000)
+- **Agent**: `/home/ubuntu/kiosk-monitor/agent/bseye_agent.py` (Windows 키오스크에 설치)
+- **Nginx**: HTTPS → Flask(/), Next.js(/v0/), 정적파일(/_next/)
 
-## 추가 원칙
-8. **차트 축/범례 글자는 항상 밝고(#fff) 크게(12px 이상)** - 흐리게 보이지 않도록
+## 키오스크 하드웨어 구성
+- PC, 모니터(27/32인치 터치), 카드리더, Thermal Printer, A4 프린터
+- Agent 수집 항목: CPU, 메모리, 디스크, HDMI신호, 터치상태, 모니터모델, VAN Agent 프로세스, Thermal Printer(용지/상태), A4 프린터(SNMP), 네트워크, EMR연결
+
+## 프로젝트 방향
+- **1축**: 중소병원 클라우드 (Supabase + AWS)
+- **2축**: 대형병원 온프레미스 (병원당 30~150대, 80개 병원)
+- 하드웨어 모니터링은 양쪽 공통
 
 ---
-마지막 업데이트: 2026-03-11
-
-## 8. 작업 종료 시 Git Push
-- 하루 작업 정리 시 반드시 `git add -A && git commit && git push`까지 수행
-- .bak 파일은 커밋에 포함하지 않음 (.gitignore에 추가)
-
-## 9. 요청한 작업만 수행
-- 요청한 부분만 정확히 수정하고, 관련 없는 코드는 절대 건드리지 않음
-- 기존에 정상 동작하는 기능을 깨뜨리지 않음
-- 수정 전 영향 범위를 먼저 확인하고 설명
-
-## 9. 요청한 작업만 수행
-- 요청한 부분만 정확히 수정하고, 관련 없는 코드는 절대 건드리지 않음
-- 기존에 정상 동작하는 기능을 깨뜨리지 않음
-- 수정 전 영향 범위를 먼저 확인하고 설명
+마지막 업데이트: 2026-03-12

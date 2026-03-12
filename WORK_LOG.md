@@ -1,75 +1,30 @@
 # 작업 로그
 
-## 2026-03-11 완료 사항
+## 2026-03-11 완료
+- 공통 위젯 파일 구축 (widget-render.js, widget-common.css)
+- 에디터/대시보드 UI 개선 (팔레트, 툴바, 헤더, KPI, 차트, 테이블)
+- 장비이상현황 위젯 (숫자 3개, 깜박임)
+- 미응답 키오스크 위젯 (10개 제한, 스크롤)
+- 시계 위젯 스케일링
 
-### 1. 공통 구조 구축
-- `widget-render.js` - 위젯 렌더링 공통 JS (LABELS, renderWidgetContent, applyWidgetScale)
-- `widget-common.css` - 위젯 CSS 공통 (테마 변수, 위젯, 헤더, KPI, 테이블, 뱃지)
-- `applyWidgetScale(el)` 파라미터 없이 WIDGET_DEFS 내부 자동 참조
-- 에디터/대시보드 모두 동일한 공통 파일 사용
+## 2026-03-12 완료
+- 서버 이전: Lightsail 4GB RAM 인스턴스 (bseye-monitor-4gb)
+- DNS 변경: monitor.blueswell.co.kr → 43.200.102.115
+- SSL 인증서 재발급 (Let's Encrypt)
+- v0 디자인 배포: Next.js 빌드 → /v0/ 경로로 서빙
+- Nginx 설정: Flask(/), Next.js(/v0/), 정적파일(/_next/)
+- 하드웨어 모니터링 DB 확장: kiosk_status에 6개 컬럼 추가 (monitor_hdmi, monitor_touch, monitor_model, van_agent_status, thermal_paper, thermal_detail)
+- heartbeat API 수정: 새 하드웨어 필드 수신/저장
+- Agent 업데이트 (v1.1.0): HDMI신호, 터치상태, 모니터모델, VAN Agent 프로세스 감시, Thermal Printer 상태 수집 함수 추가
+- config.ini 샘플 생성 (VAN Agent 감시 목록)
+- COMMON_RULES.md 정리 (중복 제거, 프로젝트 구조 추가)
 
-### 2. 에디터 UI 개선
-- 팔레트 위젯 글자크기 확대 (name 1.0rem, desc 0.8rem, cat 0.7rem)
-- 툴바 버튼/링크 글자크기 1.5배 (0.95rem → 1.4rem)
-- 드롭다운(select) 글자크기 확대 (0.8rem → 1.4rem)
-- 툴바 높이 44px → 56px
-- 카테고리 탭 글자크기/색상 개선
-- 다크모드 텍스트 색상 밝게 (CSS 변수 활용)
-- 캔버스 영역 1400px → 1920px, 자동 확장(autoResizeCanvas)
-
-### 3. 대시보드 UI 개선
-- 캔버스 왼쪽 정렬 (margin auto → 0)
-- 헤더 네비게이션 글자크기 1.5배 (nav.html nav_style 수정)
-- 로고/사용자정보 글자크기 확대
-- 헤더 높이 48px → 60px
-- WIDGET_DEFS 로드 추가 (fetch /api/widgets)
-- 테마 localStorage 복원
-- layoutScale() 반응형 적용
-- window.load 후 레이아웃 로드
-
-### 4. 위젯 공통 개선
-- 위젯 헤더 글자크기 확대 (0.85rem → 1.1rem)
-- 위젯 헤더 한글 제목 표시 (LABELS[type] 우선)
-- KPI 제목 복원 (hdr.style.display='none' 제거)
-- 위젯 리사이즈 시 내부 글자크기 연동 (applyWidgetScale)
-- 화이트 모드 KPI 숫자색 검정+빨간색만
-
-### 5. 차트 개선
-- ISV 분포: 도넛 → 가로 바 차트
-- 차트 그리드 라인 제거
-- 차트 축/범례 글자색 #fff, 크기 12px+
-- ISV 차트 y축 글자 14px bold
-- 화이트 모드 차트 채도/대비 증가
-
-### 6. 장비이상현황 위젯
-- 숫자 3개만 크게 표시 (오프라인/장치오류/프린터경고)
-- 이슈 리스트 제거 (간결화)
-- 0보다 큰 값 깜박임 애니메이션 (eq-blink)
-- 클릭 시 모니터링 페이지 이동
-
-### 7. 미응답 키오스크 위젯
-- 10개 제한 + 스크롤
-- 총 건수 표시
-- 좌측 정렬
-
-### 8. 시계 위젯
-- 위젯 크기에 따라 자동 스케일링
+## 미해결
+- 차트 x축 라벨 안 보임 (에디터)
+- 장비이상현황 리사이즈 시 제목 크기 미연동
+- v0 디자인 → Flask 대시보드 완전 전환 (진행중)
+- Supabase 마스터 DB 연동
+- 카카오 알림톡 연동
 
 ---
-
-## 2026-03-12 할 일 (미해결)
-
-### 우선순위 높음
-1. **차트 x축 라벨 안 보임** - 에디터에서 주간이용추이, 월별이용추이, 시간대별 이용현황의 x축 표시 안됨 (대시보드에서는 일부 보임). 리사이즈 중에만 잠깐 보였다가 사라지는 현상
-2. **위젯 리사이즈 시 장비이상현황 제목 크기 미연동** - 다른 위젯은 되는데 장비이상현황만 리사이즈 시 제목 크기 변화 없음
-
-### 우선순위 중간
-3. **화이트 모드 차트 가독성** - 밝은 배경에서 차트 색상이 연해서 잘 안 보이는 문제 재확인
-4. **에디터-대시보드 미세 차이 점검** - 위젯 크기/위치 외 렌더링 차이 최종 확인
-
-### 점검 필요
-5. **COMMON_RULES.md 기반 전체 검증** - 모든 공통 원칙이 실제로 지켜지고 있는지 코드 레벨 점검
-6. **git commit** - 오늘 작업 전체 커밋
-
----
-마지막 업데이트: 2026-03-11
+마지막 업데이트: 2026-03-12

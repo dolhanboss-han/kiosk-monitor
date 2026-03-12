@@ -2,18 +2,24 @@
 
 /* 테마 변수 */
 :root{
-    --bg:#0f0f2a;--bg2:#1a1a3e;--bg3:#16163a;--bg4:#222250;
-    --border:#2a2a5a;--border2:#333;
-    --text:#fff;--text2:#ccc;--text3:#999;--text4:#888;--text5:#88a;
+    --bg:#0a0a1a;--bg2:#1a1a3e;--bg3:#252550;--bg4:#2a2a4e;
+    --border:#333355;--border2:#333355;
+    --text:#fff;--text2:#eee;--text3:#999;--text4:#999;--text5:#88a;
+    --status-online:#00ff88;--status-offline:#ff6b6b;--status-warning:#ffd700;--status-cyan:#00d4ff;
+    --chart-1:#00d4ff;--chart-2:#00ff88;--chart-3:#ffd700;--chart-4:#ff8c00;--chart-5:#ff6b6b;
+    --widget-header-bg:#252550;
     --grid:#333;--hover:#00d4ff22;
     --widget-bg:linear-gradient(135deg,#1a1a3e,#16163a);
     --header-bg:linear-gradient(135deg,#0d1220,#131a2e);
     --table-border:#222;
 }
 body.light{
-    --bg:#eef1f5;--bg2:#ffffff;--bg3:#f5f7fa;--bg4:#e2e6ec;
-    --border:#d0d5dd;--border2:#c0c5cc;
-    --text:#1a1a2e;--text2:#333;--text3:#555;--text4:#777;--text5:#556;
+    --bg:#f4f6f9;--bg2:#ffffff;--bg3:#f1f5f9;--bg4:#e2e8f0;
+    --border:#cbd5e1;--border2:#cbd5e1;
+    --text:#1e293b;--text2:#475569;--text3:#64748b;--text4:#94a3b8;--text5:#556;
+    --status-online:#16a34a;--status-offline:#dc2626;--status-warning:#d97706;--status-cyan:#0284c7;
+    --chart-1:#0284c7;--chart-2:#16a34a;--chart-3:#ca8a04;--chart-4:#ea580c;--chart-5:#dc2626;
+    --widget-header-bg:#f1f5f9;
     --grid:#dde;--hover:#2563eb11;
     --widget-bg:linear-gradient(135deg,#ffffff,#f7f8fc);
     --header-bg:linear-gradient(135deg,#f8f9fc,#eef1f5);
@@ -22,7 +28,7 @@ body.light{
 
 /* 위젯 공통 */
 .widget{position:absolute;background:var(--bg2);border:2px solid var(--border2);border-radius:8px;overflow:hidden}
-.widget .w-header{background:#222250;padding:8px 14px;font-size:1.1rem;color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.widget .w-header{background:var(--widget-header-bg);padding:8px 14px;font-size:1.1rem;color:#fff;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .widget .w-body{padding:4px 6px;font-size:0.75rem;color:#ccc;overflow:auto;height:calc(100% - 40px)}
 .widget .w-body::-webkit-scrollbar{width:4px}
 .widget .w-body::-webkit-scrollbar-track{background:#111}
