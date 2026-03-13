@@ -116,3 +116,58 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 
 ## Git
 - https://github.com/dolhanboss-han/kiosk-monitor.git (main)
+
+## 2026-03-13 오후 작업 (Agent v3.0.0 테스트 및 수정)
+
+### 완료 항목
+1. A4 프린터 SNMP 모니터링 완성
+   - 프린터 IP: 192.168.0.25 (Kyocera ECOSYS P3145dn)
+   - 토너(TK-3165KS): 44%, 시리얼: RTN1Z06537
+   - 카세트 OID 수정: tray1=MP트레이(사용안함), tray2=상단, tray3=하단
+   - 용지 잔량은 프린터 펌웨어 추정치 (용지 보충 시 꽉 채워야 정확)
+
+2. 바코드 스캐너 감지 완성
+   - POS HID 바코드 스캐너 (VID_0C2E, Honeywell)
+   - USB + HIDClass 모두 검색하도록 수정
+
+3. 대시보드(bseye-agent-viewer.html) 수정
+   - 카세트 표기: Upper(상단) / Lower(하단)
+   - 게이지 색상 역전: 토너/카세트는 낮을수록 빨강 (gaugeColorReverse, setGaugeR)
+   - 한글 깨짐 수정
+
+4. 터치스크린 감지 수정 (PowerShell $_ 누락 수정)
+5. config.ini 프린터 IP 설정 (192.168.0.25)
+6. 전체 장치 활성화 (pc, monitor, printer_a4, printer_thermal, card_reader, barcode_scanner)
+7. EMR 체크 비활성화 (불필요)
+
+### 미완료 (다음 작업)
+1. HDMI 감지 로직 수정 (Win32_DesktopMonitor ScreenWidth → Win32_VideoController)
+2. Thermal 프린터 DLL 로드 문제 (64bit EXE ↔ 32bit DLL 호환성)
+3. 서버 app.py Supabase upsert 필드 매핑 수정 (v3 필드 반영)
+4. 구버전 에이전트 중지 후 v3 Supabase 검증
+5. EXE 자동 업데이트 기능
+6. Next.js 서버 대시보드
+7. C#/PowerBuilder 연동
+8. 카카오 알림톡
+
+### 키오스크 테스트 결과
+- PC: CPU 0.5%, 메모리 52.1%, 디스크 19.2% - 정상
+- A4 프린터: idle, 토너 44%, 상단 30%, 하단 70% - 정상
+- 바코드: POS HID Barcode scanner - 정상
+- VAN Agent: KocesICPos.exe running - 정상
+- 윈도우 타이틀 감시: kiosk_msys.exe 전체 흐름 기록 완벽
+  (Main→수납KeyPad→환자정보→수납방법선택→할부개월선택→수납확인및결제→영수증및처방전출력→Main)
+- monitor_hdmi: disconnected (수정 필요)
+- monitor_touch: unknown (수정 완료, 재테스트 필요)
+- printer_thermal: dll_not_found (수정 필요)
+
+### 파일 현황 (D:\BSEYE\agent-build)
+- bseye_agent.py: 진입점 + Windows 서비스
+- hw_monitor.py: 하드웨어 모니터링 (SNMP, DLL, PowerShell)
+- hook_monitor.py: 윈도우 타이틀 감시
+- data_sender.py: 서버 데이터 전송
+- device_checker.py: 장치 점검 (웹 API용)
+- db_manager.py: 로컬 SQLite 관리
+- web_server.py: FastAPI 로컬 대시보드
+- config.ini: 설정 파일
+- templates/bseye-agent-viewer.html: 대시보드 HTML
