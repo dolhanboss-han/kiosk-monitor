@@ -7,6 +7,13 @@ import sqlite3
 import re
 from datetime import date, datetime, timedelta
 from config import get_connection_string
+from supabase import create_client
+import json, os
+
+# Supabase 연결
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+supa = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'bseye-monitor-secret-2026'
@@ -2089,6 +2096,48 @@ def agent_heartbeat():
     except:
         pass
 
+    # Supabase에도 저장
+    try:
+        van_status = data.get('van_agent_status', {})
+        thermal_det = data.get('thermal_detail', {})
+        if isinstance(van_status, str):
+            van_status = json.loads(van_status) if van_status else {}
+        if isinstance(thermal_det, str):
+            thermal_det = json.loads(thermal_det) if thermal_det else {}
+        
+        supa.table('mon_kiosk_status').upsert({
+            'hosp_cd': data['hosp_cd'],
+            'kiosk_id': data['kiosk_id'],
+            'status': 'online',
+            'cpu_usage': data.get('cpu', 0),
+            'memory_usage': data.get('memory', 0),
+            'disk_usage': data.get('disk', 0),
+            'printer_a4': data.get('printer_a4', 'unknown'),
+            'printer_thermal': data.get('printer_thermal', 'unknown'),
+            'card_reader': data.get('card_reader', 'unknown'),
+            'barcode_reader': data.get('barcode_reader', 'unknown'),
+            'network_speed': data.get('network_speed', 0),
+            'emr_connection': data.get('emr_connection', 'unknown'),
+            'network_printers': json.dumps(data.get('network_printers', []), ensure_ascii=False) if isinstance(data.get('network_printers'), list) else data.get('network_printers', ''),
+            'monitor_hdmi': data.get('monitor_hdmi', 'unknown'),
+            'monitor_touch': data.get('monitor_touch', 'unknown'),
+            'monitor_model': data.get('monitor_model', ''),
+            'van_agent_status': van_status,
+            'thermal_paper': data.get('thermal_paper', 'unknown'),
+            'thermal_detail': thermal_det,
+            'agent_version': data.get('agent_version', ''),
+            'last_heartbeat': datetime.utcnow().isoformat()
+        }, on_conflict='hosp_cd,kiosk_id').execute()
+        
+        supa.table('mon_heartbeat_log').insert({
+            'hosp_cd': data['hosp_cd'],
+            'kiosk_id': data['kiosk_id'],
+            'agent_version': data.get('agent_version', ''),
+            'ip_address': request.remote_addr
+        }).execute()
+    except Exception as e:
+        app.logger.error(f'Supabase sync error: {e}')
+    
     return jsonify({'status': 'ok', 'alerts': len(alerts)})
 
 @app.route('/api/agent/status')

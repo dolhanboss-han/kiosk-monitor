@@ -17,3 +17,4 @@ node_modules/
 *.bak4
 *.bak5
 *.bak*
+.env
