@@ -171,3 +171,22 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 - web_server.py: FastAPI 로컬 대시보드
 - config.ini: 설정 파일
 - templates/bseye-agent-viewer.html: 대시보드 HTML
+
+## 2026-03-14 작업
+
+### 완료
+1. V0 대시보드 완성 (Next.js 16 + Supabase) - 6단계 + 세션 퍼널
+2. API Routes 8개 (dashboard, kiosks, hospitals, alerts, stats, isv-summary, events, settings)
+3. ISV 공급현황 차트 + 진입/이탈 퍼널 차트
+4. Supabase Pro 업그레이드, usg_session_log/usg_step_log 테이블 생성
+5. Agent hook_monitor.py 세션 로직 추가, EXE 빌드 완료
+6. SQLite→Supabase 이벤트 이관 (usg_event_log)
+
+### 미완료
+1. 키오스크 새 EXE 배포
+2. data_sender.py 세션 데이터 전송
+3. app.py 필드 매핑 수정
+4. HDMI/Thermal/터치 이슈
+5. Vercel 배포
+6. C#/PowerBuilder 연동
+7. 카카오 알림톡
