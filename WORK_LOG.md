@@ -182,11 +182,76 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 5. Agent hook_monitor.py 세션 로직 추가, EXE 빌드 완료
 6. SQLite→Supabase 이벤트 이관 (usg_event_log)
 
-### 미완료
-1. 키오스크 새 EXE 배포
-2. data_sender.py 세션 데이터 전송
-3. app.py 필드 매핑 수정
-4. HDMI/Thermal/터치 이슈
-5. Vercel 배포
-6. C#/PowerBuilder 연동
-7. 카카오 알림톡
+### 오후 추가 완료
+7. app.py Supabase upsert 필드 매핑 수정 (v3 8컬럼 추가) - 완료
+8. mon_kiosk_status 컬럼 8개 추가 (printer_a4_toner 등) - 완료
+9. 키오스크 EXE 배포 및 테스트 - 완료
+   - HDMI: connected (정상)
+   - 터치스크린: ok - HID-compliant touch screen (정상)
+   - A4 프린터: idle, 토너44%, 상단30%, 하단70% (정상)
+   - 바코드: POS HID Barcode scanner (정상)
+   - VAN Agent: KocesICPos.exe running (정상)
+   - Thermal: dll_load_failed (미해결 - 32bit DLL + 64bit EXE 문제)
+   - EMR: disconnected (COM DLL 방식이라 TCP 체크 부정확)
+10. hw_monitor.py HDMI/터치/Thermal DLL 로드 로직 수정 + EXE 재빌드
+11. data_sender.py 세션 전송 로직 추가 (_send_sessions, _supabase_upsert)
+12. config.ini VAN Agent = KocesICPos.exe 변경
+13. SNMP 용지걸림 감지 방법 확인 (hrPrinterDetectedErrorState 비트5)
+14. PowerBuilder EMR COM DLL 연동 구조 파악 (prjAUTORCPTK.clsAUTORCPTK)
+
+### 미완료 (향후)
+- [ ] Thermal DLL 문제 해결 (32bit 별도 프로세스 또는 별도 EXE 방안)
+- [ ] EMR 상태 모니터링 방식 결정 (COM DLL 체크 vs 로그 모니터링, 협의 필요)
+- [ ] 세션 로직 실사용 테스트 (수납 진행 시 session_log 기록 확인)
+- [ ] SNMP 용지걸림 감지 + 알람 + 키오스크 차단 연동
+- [ ] Vercel 대시보드 배포
+- [ ] 미배정 병원 24건 코드 발급
+- [ ] Agent 자동 업데이트 기능 검증
+- [ ] C#/PowerBuilder usage_log 연동
+- [ ] 카카오 알림톡 연동
+- [ ] 전체 병원 450대 순차 배포
+
+
+### 2026-03-14 오후 추가 완료
+7. app.py Supabase upsert 필드 매핑 수정 (v3 8컬럼 추가)
+8. mon_kiosk_status 컬럼 8개 추가 (printer_a4_toner, cassette_upper/lower, total/today_pages, os_version, local_ip, barcode_scanner)
+9. /api/agent/events 엔드포인트 추가 (이벤트 수신 + SQLite + Supabase 동기화)
+10. /api/agent/sessions 엔드포인트 추가 (세션 수신 + Supabase upsert)
+11. 키오스크 EXE 배포 및 테스트 결과:
+    - HDMI: connected (정상)
+    - 터치스크린: ok - HID-compliant touch screen (정상)
+    - A4 프린터: idle, 토너44%, 상단30%, 하단70%, 누적4193매 (정상)
+    - 바코드: POS HID Barcode scanner (정상)
+    - VAN Agent: KocesICPos.exe running (정상)
+    - Thermal: dll_load_failed (미해결 - PyInstaller frozen 환경)
+    - EMR: disconnected (COM DLL 방식이라 TCP 체크 부정확)
+12. hw_monitor.py 수정:
+    - HDMI: Win32_VideoController VideoModeDescription 사용
+    - 터치: *touch*/*터치* 매칭
+    - Thermal: os.add_dll_directory + winmode=0 (여전히 실패)
+    - SNMP 용지걸림 감지 추가 (hrPrinterDetectedErrorState 비트마스크 파싱)
+    - 프린터 상태 폴링 스레드 (printing 시 2초간격, jammed 즉시 알람)
+13. data_sender.py 세션 전송 로직 추가 (_send_sessions, _supabase_upsert)
+14. config.ini VAN Agent = KocesICPos.exe 변경
+15. 수납 플로우 완벽 기록 확인:
+    Main→수납KeyPad→환자정보→수납KeyPad→할부개월→수납확인결제(19초)→영수증출력(15초)→Main
+16. PowerBuilder EMR COM DLL 구조 파악 (prjAUTORCPTK.clsAUTORCPTK / GetChargeInfo)
+
+### 새로 확인된 요구사항
+- Windows Server PC 모니터링: 자동순번(bs_number.exe) + 전자처방전
+  - device_type=server, MSSQL TCP 1433 체크
+  - 대형병원 100%, 중소병원 15% (전자처방전 의무화로 확대 중)
+- 프린터 출력 매수 검증 (방안B): PowerBuilder→Agent API에 출력장수 전달, 전후 누적매수 비교
+
+### 미완료 (향후 우선순위)
+- [ ] 키오스크 Agent 재시작 → [Sender] events OK 확인
+- [ ] Thermal DLL 해결 (별도 subprocess 또는 32bit EXE 분리)
+- [ ] Vercel 대시보드 배포
+- [ ] 세션 로직 실사용 테스트 (session_log 완료/이탈 기록 확인)
+- [ ] Windows Server PC Agent 모드 구현 (device_type=server)
+- [ ] SNMP 용지걸림 → 카카오 알림톡 연동
+- [ ] 프린터 출력 매수 검증 (방안B, PowerBuilder 연동)
+- [ ] 미배정 병원 24건 코드 발급
+- [ ] Agent 자동 업데이트 기능 검증
+- [ ] C#/PowerBuilder usage_log 직접 연동
+- [ ] 전체 병원 450대 순차 배포
