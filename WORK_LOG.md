@@ -255,3 +255,51 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 - [ ] Agent 자동 업데이트 기능 검증
 - [ ] C#/PowerBuilder usage_log 직접 연동
 - [ ] 전체 병원 450대 순차 배포
+
+## 프린터 출력 매수 검증 설계
+
+### 문제
+- 키오스크 수납 시 영수증/처방전 등 3장 출력 요청
+- 2장만 나오고 1장이 걸리면 고객이 모르고 계속 진행 -> 부작용 발생
+- 가장 빈번한 유지보수 이슈
+
+### SNMP로 확인 가능한 정보
+- 누적 출력 매수: prtMarkerLifeCount (OID 1.3.6.1.2.1.43.10.2.1.4.1.1)
+- 프린터 상태: hrPrinterStatus (1=other, 2=unknown, 3=idle, 4=printing, 5=warmup)
+- 에러 상태: hrPrinterDetectedErrorState (비트마스크)
+  - Bit 0: lowPaper, Bit 1: noPaper, Bit 2: lowToner, Bit 3: noToner
+  - Bit 4: doorOpen, Bit 5: jammed, Bit 6: offline, Bit 7: serviceRequested
+
+### 방안 A: 프린터 상태 폴링 (현재 구현됨)
+- 키오스크 프로그램 연동 불필요
+- Agent가 hrPrinterStatus를 평시 30초, printing 감지 시 2초 간격 폴링
+- printing(4) 시작 -> 누적매수 기록 -> idle(3) 복귀 -> 누적매수 재조회 -> 증가분 기록
+- 중간에 jammed 감지 시 즉시 알람 생성
+- 한계: 원래 몇 장이어야 하는지 모름 -> 부족분 감지 불가
+- 용지 걸림(jammed)만 즉시 감지 가능
+
+### 방안 B: 키오스크 프로그램 연동 (정확한 감지, 향후 구현)
+- PowerBuilder/C#에서 출력 시 Agent 로컬 API에 출력 정보 전달
+- API: POST http://localhost:8080/api/print-job
+- 요청 본문 예시:
+  job_type: receipt
+  expected_pages: 3
+  patient_id: 12345
+  timestamp: 2026-03-14 18:34:21
+- Agent 처리 흐름:
+  1. 요청 수신 -> SNMP로 현재 누적매수 기록 (예: 4193)
+  2. 프린터 상태 2초 간격 폴링 시작
+  3. idle 복귀 -> 누적매수 재조회 (예: 4195)
+  4. 증가분(2) vs 요청(3) 비교 -> 1장 부족 감지
+  5. 부족 시 알람 생성 + 카카오 알림톡 발송
+  6. 결과 저장: print_job_log 테이블
+- 필요 작업: PowerBuilder에 HTTP POST 호출 코드 추가
+- PowerBuilder 예시: OLEObject MSXML2.XMLHTTP -> Open POST localhost:8080/api/print-job -> Send JSON
+
+### 현재 상태
+- 방안 A 구현 완료 (hw_monitor.py _monitor_print_job 스레드)
+- 방안 B는 C#/PowerBuilder 연동 시 구현 예정
+- 병원 전산실/ISV와 협의 필요
+
+### 관련 테이블 (향후 추가)
+- print_job_log: job_id, kiosk_id, job_type, expected_pages, actual_pages, result(ok/shortage/jammed), timestamp
