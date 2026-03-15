@@ -430,3 +430,20 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 3. 카카오 알림톡 연동
 4. 미배정 병원 24건 코드 발급
 5. 전체 병원 450대 순차 배포
+
+
+### 결정사항
+- Vercel 대시보드 작업을 Claude Code로 통합 (토큰 효율화)
+- v0에서 만든 디자인 스타일(Next.js 16 + shadcn/ui + Recharts 6)을 Claude Code에서 유지하며 개발
+- 프로젝트 경로: D:\BSEYE\ZIP\20260314_DASHBOARD
+- 대시보드 추가 반영 항목:
+  1. device_type (kiosk/server) 구분 표시
+  2. printer_a4_errors, printer_a4_jammed 표시
+  3. thermal_cover, thermal_paper, thermal_error 표시
+  4. emr_status 표시
+  5. server_processes, server_db_status (서버PC)
+  6. 출력 매수 검증 결과
+  7. 알림 목록 페이지 (jammed, shortage 등)
+  8. 서버PC 현황 페이지
+  9. 설치 현황 (병원별 Agent 버전, 마지막 heartbeat)
+  10. 출력 매수 검증 로그 페이지
