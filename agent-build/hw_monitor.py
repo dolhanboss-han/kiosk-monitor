@@ -15,6 +15,7 @@ class HWMonitor:
         self.kiosk_id = config.get('SERVER', 'kiosk_id', fallback='')
         self.interval = config.getint('SERVER', 'heartbeat_interval', fallback=30)
         self.version = '3.0.0'
+        self.device_type = config.get('KIOSK_INFO', 'device_type', fallback='kiosk')
 
         # DEVICE_CHECK on/off
         self.chk_pc = config.getboolean('DEVICE_CHECK', 'pc', fallback=True)
@@ -44,22 +45,30 @@ class HWMonitor:
         data = {
             'hosp_cd': self.hosp_cd,
             'kiosk_id': self.kiosk_id,
-            'agent_version': self.version
+            'agent_version': self.version,
+            'device_type': self.device_type
         }
         if self.chk_pc:
             data.update(self._check_pc())
-        if self.chk_monitor:
-            data.update(self._check_monitor())
-        if self.chk_printer_a4:
-            data.update(self._check_printer_a4())
-        if self.chk_printer_thermal:
-            data.update(self._check_printer_thermal())
-        if self.chk_card_reader:
-            data.update(self._check_card_reader())
-        if self.chk_barcode:
-            data.update(self._check_barcode())
-        # VAN Agent
-        data['van_agent_status'] = self._check_van_agent()
+
+        if self.device_type == 'server':
+            # 서버PC: 프로세스 + DB 체크만
+            data.update(self._check_server_processes())
+            data.update(self._check_server_db())
+        else:
+            # 키오스크: 기존 장치 체크
+            if self.chk_monitor:
+                data.update(self._check_monitor())
+            if self.chk_printer_a4:
+                data.update(self._check_printer_a4())
+            if self.chk_printer_thermal:
+                data.update(self._check_printer_thermal())
+            if self.chk_card_reader:
+                data.update(self._check_card_reader())
+            if self.chk_barcode:
+                data.update(self._check_barcode())
+            # VAN Agent
+            data['van_agent_status'] = self._check_van_agent()
         return data
 
     # ??? [PC] CPU, 硫붾え由? ?붿뒪?? OS, IP, ?ㅽ듃?뚰겕 ???
@@ -322,6 +331,56 @@ class HWMonitor:
         return result
 
     # ??? [CARD READER] USB ?μ튂 媛먯? ???
+    # ─── [SERVER] 프로세스 실행 여부 체크 ───
+    def _check_server_processes(self):
+        result = {}
+        process_list = self.config.get('SERVER_MONITOR', 'process_list', fallback='')
+        targets = [p.strip() for p in process_list.split(',') if p.strip()]
+        if not targets:
+            return result
+
+        try:
+            out = subprocess.check_output(
+                'tasklist /FO CSV /NH', shell=True, timeout=10
+            ).decode('utf-8', errors='replace')
+            running_names = set()
+            for line in out.strip().split('\n'):
+                line = line.strip()
+                if line:
+                    name = line.split(',')[0].strip('"').lower()
+                    running_names.add(name)
+
+            proc_status = {}
+            for target in targets:
+                proc_status[target] = 'running' if target.lower() in running_names else 'stopped'
+            result['server_processes'] = proc_status
+        except Exception as e:
+            result['server_processes'] = {t: 'check_error' for t in targets}
+            print(f"[HW] server process check error: {e}")
+
+        return result
+
+    # ─── [SERVER] DB 연결 체크 ───
+    def _check_server_db(self):
+        result = {}
+        db_check = self.config.getboolean('SERVER_MONITOR', 'db_check', fallback=False)
+        if not db_check:
+            return result
+
+        db_host = self.config.get('SERVER_MONITOR', 'db_host', fallback='localhost')
+        db_port = self.config.getint('SERVER_MONITOR', 'db_port', fallback=1433)
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5)
+            s.connect((db_host, db_port))
+            s.close()
+            result['server_db_status'] = 'connected'
+        except Exception:
+            result['server_db_status'] = 'disconnected'
+
+        return result
+
     # ─── [PRINTER A4] SNMP 폴링: 인쇄 감지 + 잼 알람 ───
     def _get_snmp_fn(self):
         """pysnmp 기반 snmp_get 함수 반환 (import 1회)"""
