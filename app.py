@@ -1989,14 +1989,20 @@ def agent_heartbeat():
             van_agent_status=?, thermal_paper=?, thermal_detail=?,
             last_heartbeat=CURRENT_TIMESTAMP
             WHERE hosp_cd=? AND kiosk_id=?""",
-            (data.get('status','online'), data.get('cpu',0), data.get('memory',0), data.get('disk',0),
+            (data.get('status','online'),
+             data.get('cpu_usage', data.get('cpu',0)),
+             data.get('memory_usage', data.get('memory',0)),
+             data.get('disk_usage', data.get('disk',0)),
              data.get('printer_a4','unknown'), data.get('printer_thermal','unknown'),
              data.get('card_reader','unknown'), data.get('barcode_reader','unknown'),
-             data.get('network_speed',0), data.get('emr_connection','unknown'),
-             json.dumps(data.get('network_printers',{})), data.get('agent_version',''),
+             data.get('network_latency', data.get('network_speed',0)),
+             data.get('emr_status', data.get('emr_connection','unknown')),
+             json.dumps(data.get('network_printers',{})),
+             data.get('agent_version',''),
              data.get('monitor_hdmi','unknown'), data.get('monitor_touch','unknown'),
              data.get('monitor_model',''),
-             json.dumps(data.get('van_agent_status',{})), data.get('thermal_paper','unknown'),
+             json.dumps(data.get('van_agent_status',{})),
+             data.get('thermal_paper','unknown'),
              json.dumps(data.get('thermal_detail',{})),
              data['hosp_cd'], data['kiosk_id']))
     else:
@@ -2109,15 +2115,15 @@ def agent_heartbeat():
             'hosp_cd': data['hosp_cd'],
             'kiosk_id': data['kiosk_id'],
             'status': 'online',
-            'cpu_usage': data.get('cpu', 0),
-            'memory_usage': data.get('memory', 0),
-            'disk_usage': data.get('disk', 0),
+            'cpu_usage': data.get('cpu_usage', data.get('cpu', 0)),
+            'memory_usage': data.get('memory_usage', data.get('memory', 0)),
+            'disk_usage': data.get('disk_usage', data.get('disk', 0)),
             'printer_a4': data.get('printer_a4', 'unknown'),
             'printer_thermal': data.get('printer_thermal', 'unknown'),
             'card_reader': data.get('card_reader', 'unknown'),
-            'barcode_reader': data.get('barcode_reader', 'unknown'),
-            'network_speed': data.get('network_speed', 0),
-            'emr_connection': data.get('emr_connection', 'unknown'),
+            'barcode_reader': data.get('barcode_scanner', data.get('barcode_reader', 'unknown')),
+            'network_speed': float(str(data.get('network_latency', data.get('network_speed', 0))).replace('ms','').replace('timeout','0') or 0),
+            'emr_connection': data.get('emr_status', data.get('emr_connection', 'unknown')),
             'network_printers': json.dumps(data.get('network_printers', []), ensure_ascii=False) if isinstance(data.get('network_printers'), list) else data.get('network_printers', ''),
             'monitor_hdmi': data.get('monitor_hdmi', 'unknown'),
             'monitor_touch': data.get('monitor_touch', 'unknown'),
@@ -2126,6 +2132,14 @@ def agent_heartbeat():
             'thermal_paper': data.get('thermal_paper', 'unknown'),
             'thermal_detail': thermal_det,
             'agent_version': data.get('agent_version', ''),
+            'printer_a4_toner': data.get('printer_a4_toner'),
+            'printer_a4_cassette_upper': data.get('printer_a4_cassette_upper'),
+            'printer_a4_cassette_lower': data.get('printer_a4_cassette_lower'),
+            'printer_a4_total_pages': data.get('printer_a4_total_pages'),
+            'printer_a4_today_pages': data.get('printer_a4_today_pages'),
+            'os_version': data.get('os_version', ''),
+            'local_ip': data.get('local_ip', data.get('ip_local', '')),
+            'barcode_scanner': data.get('barcode_scanner', 'unknown'),
             'last_heartbeat': datetime.utcnow().isoformat()
         }, on_conflict='hosp_cd,kiosk_id').execute()
         
@@ -2139,6 +2153,89 @@ def agent_heartbeat():
         app.logger.error(f'Supabase sync error: {e}')
     
     return jsonify({'status': 'ok', 'alerts': len(alerts)})
+
+
+
+# === Agent 이벤트 수신 API ===
+@app.route('/api/agent/events', methods=['POST'])
+def agent_events():
+    token = request.headers.get('X-Agent-Token', '')
+    if token != 'bseye-agent-2026':
+        return jsonify({'error': 'unauthorized'}), 401
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
+    hosp_cd = data.get('hosp_cd', '')
+    kiosk_id = data.get('kiosk_id', '')
+    events = data.get('events', [])
+    inserted = 0
+    for ev in events:
+        try:
+            db = get_db()
+            db.execute("""INSERT OR IGNORE INTO usage_event_log
+                (kiosk_id, work_date, log_dt, proc_name, window_title, class_name, status, elapsed_sec, hosp_cd)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (kiosk_id, ev.get('work_date',''), ev.get('log_dt',''), ev.get('proc_name',''),
+                 ev.get('window_title',''), ev.get('class_name',''), ev.get('status',''),
+                 ev.get('elapsed_sec'), hosp_cd))
+            db.commit()
+            inserted += 1
+        except Exception as e:
+            print(f"[agent_events] insert error: {e}")
+    # Supabase 동기화
+    try:
+        for ev in events:
+            supa.table('usg_event_log').insert({
+                'hosp_cd': hosp_cd, 'kiosk_id': kiosk_id,
+                'work_date': ev.get('work_date',''), 'log_dt': ev.get('log_dt',''),
+                'proc_name': ev.get('proc_name',''), 'window_title': ev.get('window_title',''),
+                'class_name': ev.get('class_name',''), 'status': ev.get('status',''),
+                'elapsed_sec': ev.get('elapsed_sec')
+            }).execute()
+    except Exception as e:
+        print(f"[agent_events] supabase error: {e}")
+    return jsonify({'status': 'ok', 'inserted': inserted})
+
+# === Agent 세션 수신 API ===
+@app.route('/api/agent/sessions', methods=['POST'])
+def agent_sessions():
+    token = request.headers.get('X-Agent-Token', '')
+    if token != 'bseye-agent-2026':
+        return jsonify({'error': 'unauthorized'}), 401
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
+    hosp_cd = data.get('hosp_cd', '')
+    kiosk_id = data.get('kiosk_id', '')
+    sessions = data.get('sessions', [])
+    inserted = 0
+    for sess in sessions:
+        try:
+            supa.table('usg_session_log').upsert({
+                'hosp_cd': hosp_cd, 'kiosk_id': kiosk_id,
+                'work_date': sess.get('work_date',''),
+                'session_id': sess.get('session_id',''),
+                'menu_code': sess.get('menu_code',''),
+                'start_dt': sess.get('start_dt',''),
+                'end_dt': sess.get('end_dt',''),
+                'elapsed_sec': sess.get('elapsed_sec'),
+                'result': sess.get('result',''),
+                'cancel_step': sess.get('cancel_step','')
+            }, on_conflict='session_id').execute()
+            for step in sess.get('steps', []):
+                supa.table('usg_step_log').insert({
+                    'hosp_cd': hosp_cd, 'kiosk_id': kiosk_id,
+                    'session_id': sess.get('session_id',''),
+                    'step_order': step.get('step_order'),
+                    'step_name': step.get('step_name',''),
+                    'start_dt': step.get('start_dt',''),
+                    'end_dt': step.get('end_dt',''),
+                    'elapsed_sec': step.get('elapsed_sec')
+                }).execute()
+            inserted += 1
+        except Exception as e:
+            print(f"[agent_sessions] error: {e}")
+    return jsonify({'status': 'ok', 'inserted': inserted})
 
 @app.route('/api/agent/status')
 @login_required

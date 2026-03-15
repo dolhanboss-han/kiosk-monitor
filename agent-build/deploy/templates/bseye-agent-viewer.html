@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BS-EYE Agent Viewer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',sans-serif; background:#1a1a2e; color:#e0e0e0; padding:16px; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:12px 16px; background:#16213e; border-radius:8px; }
+.header h1 { font-size:18px; color:#00d4ff; }
+.header .info { font-size:12px; color:#888; }
+.header .status-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+.header .status-dot.ok { background:#00ff88; }
+.header .status-dot.err { background:#ff4444; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:16px; }
+.card { background:#16213e; border-radius:8px; padding:14px; border:1px solid #2a2a4a; }
+.card-title { font-size:13px; font-weight:600; color:#00d4ff; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.card-title .icon { font-size:16px; }
+.item-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; }
+.item-label { color:#aaa; }
+.item-value { font-weight:500; }
+.item-value.ok { color:#00ff88; }
+.item-value.warn { color:#ffaa00; }
+.item-value.error { color:#ff4444; }
+.item-value.unknown { color:#666; }
+.gauge { width:100%; height:8px; background:#2a2a4a; border-radius:4px; overflow:hidden; margin-top:2px; }
+.gauge-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+.gauge-fill.green { background:linear-gradient(90deg,#00ff88,#00cc66); }
+.gauge-fill.yellow { background:linear-gradient(90deg,#ffaa00,#ff8800); }
+.gauge-fill.red { background:linear-gradient(90deg,#ff4444,#cc0000); }
+.gauge-row { margin-bottom:8px; }
+.gauge-header { display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px; }
+.section-title { font-size:15px; font-weight:600; color:#fff; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid #2a2a4a; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { background:#0f3460; color:#00d4ff; padding:8px; text-align:left; position:sticky; top:0; }
+td { padding:6px 8px; border-bottom:1px solid #1a1a3e; }
+tr:hover { background:#1a2744; }
+.log-container { max-height:300px; overflow-y:auto; background:#16213e; border-radius:8px; border:1px solid #2a2a4a; }
+.badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+.badge.start { background:#0a3d62; color:#00d4ff; }
+.badge.end { background:#1e3a2f; color:#00ff88; }
+.btn { padding:6px 14px; border:1px solid #00d4ff; background:transparent; color:#00d4ff; border-radius:4px; cursor:pointer; font-size:12px; }
+.btn:hover { background:#00d4ff22; }
+.btn.active { background:#00d4ff; color:#1a1a2e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>BS-EYE Agent Viewer</h1>
+    <span class="info" id="agentInfo">Loading...</span>
+  </div>
+  <div>
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">-</span>
+    <button class="btn" onclick="fetchAll()" style="margin-left:12px;">Refresh</button>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- PC -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?íª</span> PC</div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>CPU</span><span id="cpuVal">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="cpuBar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>Memory</span><span id="memVal">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="memBar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>Disk</span><span id="diskVal">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="diskBar" style="width:0%"></div></div>
+    </div>
+    <div class="item-row"><span class="item-label">OS</span><span class="item-value" id="osVal">-</span></div>
+    <div class="item-row"><span class="item-label">IP</span><span class="item-value" id="ipVal">-</span></div>
+  </div>
+
+  <!-- Network -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?åê</span> Network</div>
+    <div class="item-row"><span class="item-label">Server Latency</span><span class="item-value" id="latencyVal">-</span></div>
+    <div class="item-row"><span class="item-label">EMR</span><span class="item-value" id="emrVal">-</span></div>
+  </div>
+
+  <!-- Monitor -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?ñ•Ô∏?/span> Monitor</div>
+    <div class="item-row"><span class="item-label">HDMI</span><span class="item-value" id="hdmiVal">-</span></div>
+    <div class="item-row"><span class="item-label">Touch</span><span class="item-value" id="touchVal">-</span></div>
+    <div class="item-row"><span class="item-label">Model</span><span class="item-value" id="monitorModel">-</span></div>
+  </div>
+
+  <!-- A4 Printer -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?ñ®Ô∏?/span> Printer (A4)</div>
+    <div class="item-row"><span class="item-label">Status</span><span class="item-value" id="a4Status">-</span></div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>Toner</span><span id="a4Toner">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="a4TonerBar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>Upper(?ÅÎã®)</span><span id="a4Cas1">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="a4Cas1Bar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-row">
+      <div class="gauge-header"><span>Lower(?òÎã®)</span><span id="a4Cas2">-</span></div>
+      <div class="gauge"><div class="gauge-fill" id="a4Cas2Bar" style="width:0%"></div></div>
+    </div>
+    <div class="item-row"><span class="item-label">Total Pages</span><span class="item-value" id="a4Total">-</span></div>
+    <div class="item-row"><span class="item-label">Today</span><span class="item-value" id="a4Today">-</span></div>
+  </div>
+
+  <!-- Thermal Printer -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?ßæ</span> Printer (Thermal)</div>
+    <div class="item-row"><span class="item-label">Status</span><span class="item-value" id="thermalStatus">-</span></div>
+    <div class="item-row"><span class="item-label">Paper</span><span class="item-value" id="thermalPaper">-</span></div>
+    <div class="item-row"><span class="item-label">Cover</span><span class="item-value" id="thermalCover">-</span></div>
+  </div>
+
+  <!-- Devices -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?í≥</span> Devices</div>
+    <div class="item-row"><span class="item-label">Card Reader</span><span class="item-value" id="cardVal">-</span></div>
+    <div class="item-row"><span class="item-label">Barcode Scanner</span><span class="item-value" id="barcodeVal">-</span></div>
+  </div>
+
+  <!-- VAN Agent -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?ôÔ∏è</span> VAN Agent</div>
+    <div id="vanList"><span class="item-value unknown">-</span></div>
+  </div>
+
+  <!-- Today Summary -->
+  <div class="card">
+    <div class="card-title"><span class="icon">?ìä</span> Today Summary</div>
+    <div class="item-row"><span class="item-label">Total Events</span><span class="item-value" id="todayTotal">-</span></div>
+    <div class="item-row"><span class="item-label">Starts</span><span class="item-value" id="todayStarts">-</span></div>
+    <div class="item-row"><span class="item-label">Ends</span><span class="item-value" id="todayEnds">-</span></div>
+  </div>
+</div>
+
+<div class="section-title">Window Event Log</div>
+<div class="log-container">
+  <table>
+    <thead><tr><th>Time</th><th>Process</th><th>Window Title</th><th>Status</th><th>Elapsed</th></tr></thead>
+    <tbody id="eventLog"></tbody>
+  </table>
+</div>
+
+<script>
+function gaugeColor(val) {
+  if (val > 90) return 'red';
+  if (val > 70) return 'yellow';
+  return 'green';
+}
+  function gaugeColorReverse(val) {
+    if (val < 10) return 'red';
+    if (val < 30) return 'yellow';
+    return 'green';
+  }
+  function setGaugeR(barId, valId, value, unit='%') {
+    const v = parseFloat(value) || 0;
+    document.getElementById(valId).textContent = v + unit;
+    const bar = document.getElementById(barId);
+    bar.style.width = Math.min(v, 100) + '%';
+    bar.className = 'gauge-fill ' + gaugeColorReverse(v);
+  }
+
+function statusClass(val) {
+  if (!val || val === 'unknown' || val === 'not_configured') return 'unknown';
+  if (val === 'ok' || val === 'connected' || val === 'idle' || val === 'printing' || val === 'running' || val === 'closed') return 'ok';
+  if (val === 'warn' || val === 'warmup' || val === 'not_detected') return 'warn';
+  return 'error';
+}
+
+function setGauge(barId, valId, value, unit='%') {
+  const v = parseFloat(value) || 0;
+  document.getElementById(valId).textContent = v + unit;
+  const bar = document.getElementById(barId);
+  bar.style.width = Math.min(v, 100) + '%';
+  bar.className = 'gauge-fill ' + gaugeColor(v);
+}
+
+function setStatus(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = val || 'Normal';
+  var cls = (!val || val === 'ok' || val === 'connected' || val === 'idle' || val === 'closed' || val === 'no' || val === 'normal') ? 'ok' : (val === 'error' || val === 'disconnected' || val === 'not_detected' || val === 'dll_not_found' || val === 'empty' || val === 'open' || val === 'yes') ? 'error' : (val === 'warn' || val === 'stopped') ? 'warn' : 'unknown';
+    el.className = 'item-value ' + cls;
+}
+
+function fetchAll() {
+  fetch('/api/status')
+    .then(r => r.json())
+    .then(data => {
+      const hw = data.hw || {};
+      const sum = data.summary || {};
+
+      // Header
+      document.getElementById('agentInfo').textContent =
+        'v' + (hw.agent_version||'?') + ' | ' + (hw.hosp_cd||'') + ' / ' + (hw.kiosk_id||'') + ' | Updated: ' + (data.hw_updated||'-');
+      const dot = document.getElementById('statusDot');
+      dot.className = 'status-dot ' + (hw.cpu_usage !== undefined ? 'ok' : 'err');
+      document.getElementById('statusText').textContent = hw.cpu_usage !== undefined ? 'Online' : 'Offline';
+
+      // PC
+      setGauge('cpuBar', 'cpuVal', hw.cpu_usage);
+      setGauge('memBar', 'memVal', hw.memory_usage);
+      setGauge('diskBar', 'diskVal', hw.disk_usage);
+      document.getElementById('osVal').textContent = hw.os_version || '-';
+      document.getElementById('ipVal').textContent = hw.local_ip || '-';
+
+      // Network
+      setStatus('latencyVal', hw.network_latency);
+      setStatus('emrVal', hw.emr_status);
+
+      // Monitor
+      setStatus('hdmiVal', hw.monitor_hdmi);
+      setStatus('touchVal', hw.monitor_touch);
+      document.getElementById('monitorModel').textContent = hw.monitor_model || '-';
+
+      // A4 Printer
+      setStatus('a4Status', hw.printer_a4);
+      if (hw.printer_a4_toner >= 0) setGaugeR('a4TonerBar', 'a4Toner', hw.printer_a4_toner);
+      if (hw.printer_a4_cassette_upper >= 0) setGaugeR('a4Cas1Bar', 'a4Cas1', hw.printer_a4_cassette_upper);
+      if (hw.printer_a4_cassette_lower >= 0) setGaugeR('a4Cas2Bar', 'a4Cas2', hw.printer_a4_cassette_lower);
+      document.getElementById('a4Total').textContent = hw.printer_a4_total_pages != null ? hw.printer_a4_total_pages.toLocaleString() : '-';
+      document.getElementById('a4Today').textContent = hw.printer_a4_today != null ? hw.printer_a4_today.toLocaleString() : '-';
+
+      // Thermal
+      setStatus('thermalStatus', hw.printer_thermal);
+      setStatus('thermalPaper', hw.thermal_paper);
+      setStatus('thermalCover', hw.thermal_cover);
+
+      // Devices
+      setStatus('cardVal', hw.card_reader);
+      setStatus('barcodeVal', hw.barcode_scanner);
+
+      // VAN Agent
+      const vanDiv = document.getElementById('vanList');
+      const van = hw.van_agent_status || {};
+      if (Object.keys(van).length === 0) {
+        vanDiv.innerHTML = '<span class="item-value unknown">No process configured</span>';
+      } else {
+        vanDiv.innerHTML = Object.entries(van).map(([k,v]) =>
+          '<div class="item-row"><span class="item-label">' + k + '</span><span class="item-value ' + statusClass(v) + '">' + v + '</span></div>'
+        ).join('');
+      }
+
+      // Summary
+      document.getElementById('todayTotal').textContent = sum.total || 0;
+      document.getElementById('todayStarts').textContent = sum.starts || 0;
+      document.getElementById('todayEnds').textContent = sum.ends || 0;
+
+      // Event Log
+      const tbody = document.getElementById('eventLog');
+      const events = data.events || [];
+      tbody.innerHTML = events.map(e =>
+        '<tr><td>' + (e.timestamp||'') + '</td><td>' + (e.proc_name||'') + '</td><td>' + (e.window_title||'') +
+        '</td><td><span class="badge ' + (e.status||'').toLowerCase() + '">' + (e.status||'') + '</span></td><td>' +
+        (e.elapsed_sec != null ? e.elapsed_sec + 's' : '-') + '</td></tr>'
+      ).join('');
+    })
+    .catch(err => {
+      document.getElementById('statusDot').className = 'status-dot err';
+      document.getElementById('statusText').textContent = 'Error';
+    });
+}
+
+fetchAll();
+setInterval(fetchAll, 5000);
+</script>
+</body>
+</html>
