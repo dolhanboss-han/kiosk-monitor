@@ -466,3 +466,59 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 3. 대시보드 Claude Code 작업 시작
 4. 출력 매수 검증 실물 테스트
 5. Kakao 알림톡 연동
+
+## 2026-03-15 (4차 - Supabase 구조 정리 및 향후 계획)
+
+### Supabase 구조 확인
+- 프로젝트: supabase-purple-notebook (Pro 플랜)
+- 연결: https://zekxxcjkzqohcikxmibm.supabase.co
+- 구조: 1 프로젝트 = 1 PostgreSQL DB
+- 현재: bseye 테이블 + 홈페이지 테이블이 public 스키마에 혼재
+- Pro 플랜: DB 일시정지 없음, 450대 키오스크 운영 가능
+
+### 스키마 분리 계획
+- bseye 테이블 → bseye 스키마로 이동
+- 홈페이지 테이블 → public 유지 (v0 호환)
+- 향후 새 프로젝트마다 전용 스키마 생성
+- v0 SQL Editor 작업 → 스키마 분리 완료 전까지 중지
+
+### 홈페이지 vs 대시보드 작업 도구
+- 홈페이지: v0 유지 (디자인 중심)
+- 대시보드: Claude Code (데이터 연동)
+
+### 사용건수 연동 계획 (파워빌더 + C# 이중 지원)
+
+#### 입력 방식
+- 파워빌더 (구버전): CSV append → C:\bseye-agent\usage_data.csv
+  - 포맷: 시각,유형,성공여부
+  - 예시: 2026-03-16 09:15:23,receipt,success
+  - 진입/이탈: 윈도우 타이틀 감지 (기존 방식)
+- C# (신버전): POST http://localhost:8080/api/usage JSON
+  - 윈도우 타이틀 없음 → API로 진입/완료/이탈 직접 전송
+  - 예시: {"type":"receipt","action":"complete","result":"success"}
+- 파워빌더 → C# 순차 전환 중
+
+#### config.ini 설정
+- [USAGE_INPUT] kiosk_type = pb / cs
+- [USAGE_INPUT] mode = both / csv / api
+- [USAGE_INPUT] csv_path = C:\bseye-agent\usage_data.csv
+
+#### 검증 방식
+- 진입/이탈 시간 + 건수 시간 매칭 대조 검증
+- 금액 제외 (민감정보)
+- MSSQL 원본 데이터와 건수 대사 가능
+
+#### 구현 필요
+- bseye-agent: CSV 감시 모듈, /api/usage 엔드포인트
+- monitor.db: usage 테이블
+- 서버: usage 수신 API
+- 개발팀 전달: CSV 스펙 (파워빌더), API 스펙 (C#)
+
+### 내일 (03-16) 작업 순서 (수정)
+1. Agent 풀 테스트 (install.bat 전체 흐름)
+2. Agent 사용건수 연동 구현 (CSV 감시 + /api/usage API)
+3. Agent 빌드 및 배포
+4. Supabase 스키마 분리
+5. 대시보드 Claude Code 작업
+6. 출력 매수 검증 실물 테스트
+7. Kakao 알림톡 연동
