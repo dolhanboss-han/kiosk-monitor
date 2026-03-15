@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BSEYE Agent 설치 가이드</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', '맑은 고딕', 'Segoe UI', sans-serif; background: #fff; color: #222; line-height: 1.7; padding: 40px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 26px; border-bottom: 3px solid #333; padding-bottom: 10px; margin-bottom: 24px; }
+  h2 { font-size: 20px; margin-top: 36px; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 6px; }
+  h3 { font-size: 16px; margin-top: 20px; margin-bottom: 8px; color: #333; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 12px 24px; }
+  li { margin-bottom: 4px; }
+  strong { color: #000; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
+  pre { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 14px 16px; margin: 10px 0 16px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 14px; }
+  th { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #ccc; padding: 8px 10px; }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 28px 0; }
+  .section-tag { display: inline-block; background: #e8e8e8; padding: 1px 8px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 14px; font-weight: 600; }
+  @media print {
+    body { padding: 20px; font-size: 12px; }
+    pre { border: 1px solid #999; page-break-inside: avoid; }
+    table { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>BSEYE Agent 설치 가이드</h1>
+
+<h2>1. 개요</h2>
+<p>BSEYE Agent는 키오스크 및 서버PC의 하드웨어 상태를 모니터링하여 중앙 서버로 heartbeat 데이터를 전송하는 Windows 에이전트입니다.</p>
+
+<h3>지원 장치 타입</h3>
+<ul>
+  <li><strong>kiosk</strong> : 키오스크 PC (프린터, 바코드, 카드리더, 모니터 등 체크)</li>
+  <li><strong>server</strong> : 서버 PC (프로세스 실행 여부, DB 연결 체크)</li>
+</ul>
+
+<hr>
+
+<h2>2. 배포 파일 구성</h2>
+<pre>deploy/
+  bseye-agent.exe          # 메인 에이전트 EXE
+  thermal_checker_32.exe   # 감열 프린터 체크 (32비트)
+  config.ini               # 설정 파일
+  templates/               # 웹 템플릿
+  config_kiosk_sample.ini  # 키오스크 설정 예시
+  config_server_sample.ini # 서버PC 설정 예시</pre>
+
+<hr>
+
+<h2>3. 설치 방법</h2>
+
+<h3>3.1 키오스크 설치</h3>
+<ol>
+  <li>deploy 폴더를 USB에 복사</li>
+  <li>키오스크 PC의 원하는 경로에 복사 (예: <code>C:\BSEYE\</code>)</li>
+  <li><code>config.ini</code>를 <code>config_kiosk_sample.ini</code> 참고하여 편집</li>
+  <li>필수 설정:
+<pre>[KIOSK_INFO]
+device_type = kiosk
+
+[SERVER]
+hosp_cd = H001          ; 병원코드
+kiosk_id = KIOSK01      ; 키오스크 고유 ID
+kiosk_name = 1층 접수    ; 표시명</pre>
+  </li>
+  <li>장치별 on/off:
+<pre>[DEVICE_CHECK]
+pc = true
+monitor = true
+printer_a4 = true       ; A4 프린터 (SNMP)
+printer_thermal = true  ; 감열 프린터 (DLL)
+card_reader = false
+barcode_scanner = true</pre>
+  </li>
+  <li><code>bseye-agent.exe</code> 실행</li>
+</ol>
+
+<h3>3.2 서버PC 설치</h3>
+<ol>
+  <li>deploy 폴더를 서버PC에 복사</li>
+  <li><code>config.ini</code>를 <code>config_server_sample.ini</code> 참고하여 편집</li>
+  <li>필수 설정:
+<pre>[KIOSK_INFO]
+device_type = server
+
+[SERVER]
+hosp_cd = H001
+kiosk_id = SVR01
+kiosk_name = 번호발급서버</pre>
+  </li>
+  <li>서버 모니터링 설정:
+<pre>[SERVER_MONITOR]
+; 감시할 프로세스 (쉼표 구분, 여러 개 가능)
+process_list = bs_number.exe
+; DB 연결 체크
+db_type = mssql
+db_host = localhost
+db_port = 1433
+db_check = true</pre>
+  </li>
+  <li><code>bseye-agent.exe</code> 실행</li>
+</ol>
+
+<hr>
+
+<h2>4. config.ini 섹션별 설명</h2>
+
+<h3><span class="section-tag">[KIOSK_INFO]</span></h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>device_type</td><td>장치 타입 (kiosk/server)</td><td>kiosk</td></tr>
+  <tr><td>category</td><td>카테고리</td><td>standard</td></tr>
+  <tr><td>monitor_size</td><td>모니터 크기 (인치)</td><td>27</td></tr>
+  <tr><td>usage_type</td><td>용도 (receipt/payment/certificate/server)</td><td>receipt</td></tr>
+</table>
+
+<h3><span class="section-tag">[SERVER]</span></h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>server_url</td><td>heartbeat API URL</td><td>https://monitor.blueswell.co.kr/api/agent/heartbeat</td></tr>
+  <tr><td>usage_url</td><td>이벤트 API URL</td><td>https://monitor.blueswell.co.kr/api/agent/events</td></tr>
+  <tr><td>agent_token</td><td>인증 토큰</td><td>bseye-agent-2026</td></tr>
+  <tr><td>hosp_cd</td><td>병원코드</td><td>H001</td></tr>
+  <tr><td>kiosk_id</td><td>장치 ID</td><td>KIOSK01</td></tr>
+  <tr><td>heartbeat_interval</td><td>전송 간격 (초)</td><td>30</td></tr>
+</table>
+
+<h3><span class="section-tag">[DEVICE_CHECK]</span> (키오스크 전용)</h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>기본값</th></tr>
+  <tr><td>pc</td><td>CPU/메모리/디스크/네트워크</td><td>true</td></tr>
+  <tr><td>monitor</td><td>HDMI/터치스크린</td><td>true</td></tr>
+  <tr><td>printer_a4</td><td>A4 프린터 (SNMP)</td><td>false</td></tr>
+  <tr><td>printer_thermal</td><td>감열 프린터 (DLL)</td><td>false</td></tr>
+  <tr><td>card_reader</td><td>카드리더기</td><td>false</td></tr>
+  <tr><td>barcode_scanner</td><td>바코드 스캐너</td><td>false</td></tr>
+</table>
+
+<h3><span class="section-tag">[PRINTER_A4]</span></h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>ip</td><td>프린터 IP</td><td>192.168.0.25</td></tr>
+  <tr><td>snmp_community</td><td>SNMP community</td><td>public</td></tr>
+</table>
+
+<h3><span class="section-tag">[PRINTER_THERMAL]</span></h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>dll_path</td><td>HwaUSB.DLL 경로</td><td>C:\Windows\SysWOW64\HwaUSB.DLL</td></tr>
+  <tr><td>model</td><td>프린터 모델</td><td>HMK-072</td></tr>
+</table>
+
+<h3><span class="section-tag">[SERVER_MONITOR]</span> (서버PC 전용)</h3>
+<table>
+  <tr><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>process_list</td><td>감시 프로세스 (쉼표 구분)</td><td>bs_number.exe</td></tr>
+  <tr><td>db_type</td><td>DB 종류 (참고용)</td><td>mssql</td></tr>
+  <tr><td>db_host</td><td>DB 호스트</td><td>localhost</td></tr>
+  <tr><td>db_port</td><td>DB 포트</td><td>1433</td></tr>
+  <tr><td>db_check</td><td>DB 포트 체크 on/off</td><td>true</td></tr>
+</table>
+
+<hr>
+
+<h2>5. heartbeat 데이터 필드</h2>
+
+<h3>공통 필드</h3>
+<ul>
+  <li><code>hosp_cd</code>, <code>kiosk_id</code>, <code>agent_version</code>, <code>device_type</code></li>
+  <li><code>cpu_usage</code>, <code>memory_usage</code>, <code>disk_usage</code>, <code>os_version</code>, <code>local_ip</code></li>
+  <li><code>network_latency</code>, <code>emr_status</code></li>
+</ul>
+
+<h3>키오스크 전용 필드</h3>
+<ul>
+  <li><code>monitor_model</code>, <code>monitor_hdmi</code>, <code>monitor_touch</code></li>
+  <li><code>printer_a4</code>, <code>printer_a4_toner</code>, <code>printer_a4_errors</code></li>
+  <li><code>printer_thermal</code>, <code>thermal_cover</code>, <code>thermal_paper</code></li>
+  <li><code>card_reader</code>, <code>barcode_scanner</code></li>
+  <li><code>van_agent_status</code></li>
+</ul>
+
+<h3>서버PC 전용 필드</h3>
+<ul>
+  <li><code>server_processes</code> : <code>{"bs_number.exe": "running"}</code> 형태</li>
+  <li><code>server_db_status</code> : <code>"connected"</code> 또는 <code>"disconnected"</code></li>
+</ul>
+
+<hr>
+
+<h2>6. 자동 시작 설정</h2>
+<p>Windows 작업 스케줄러에 등록하여 부팅 시 자동 실행:</p>
+<pre>schtasks /create /tn "BSEYE Agent" /tr "C:\BSEYE\bseye-agent.exe" /sc onlogon /rl highest</pre>
+
+<hr>
+
+<h2>7. 문제 해결</h2>
+<table>
+  <tr><th>증상</th><th>원인</th><th>해결</th></tr>
+  <tr><td>thermal: checker_not_found</td><td>thermal_checker_32.exe 없음</td><td>deploy 폴더에서 복사</td></tr>
+  <tr><td>thermal: dll_load_failed</td><td>HwaUSB.DLL 로드 실패</td><td>dll_path 확인, 32비트 DLL 설치</td></tr>
+  <tr><td>printer_a4: offline</td><td>SNMP 통신 실패</td><td>프린터 IP, 네트워크 확인</td></tr>
+  <tr><td>server_db_status: disconnected</td><td>DB 포트 연결 실패</td><td>MSSQL 서비스 상태, 포트 확인</td></tr>
+  <tr><td>server_processes: stopped</td><td>프로세스 미실행</td><td>해당 프로그램 시작</td></tr>
+</table>
+
+</body>
+</html>
