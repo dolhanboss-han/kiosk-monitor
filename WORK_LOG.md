@@ -447,3 +447,22 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
   8. 서버PC 현황 페이지
   9. 설치 현황 (병원별 Agent 버전, 마지막 heartbeat)
   10. 출력 매수 검증 로그 페이지
+
+## 2026-03-15 (4차 - Supabase 구조 정리 및 계획)
+
+### 확인 사항
+- Supabase `supabase-purple-notebook` 프로젝트 = PostgreSQL DB 1개
+- bseye 테이블 + 홈페이지 테이블이 `public` 스키마에 혼재
+- Pro 플랜 사용 중 (DB 일시정지 없음, 450대 운영 가능)
+
+### 결정 사항
+- **스키마 분리**: bseye 테이블 → `bseye` 스키마로 이동, 홈페이지는 `public` 유지
+- v0 SQL Editor 작업 → 스키마 분리 완료 전까지 중지
+- 향후 새 프로젝트마다 전용 스키마 생성 (reservation, billing 등)
+
+### 내일 (03-16) 작업 순서
+1. Agent 풀 테스트 (install.bat → config → debug → localhost:8080 전체 점검)
+2. Supabase 스키마 분리 (bseye 스키마 생성, 테이블 이동, 코드 반영)
+3. 대시보드 Claude Code 작업 시작
+4. 출력 매수 검증 실물 테스트
+5. Kakao 알림톡 연동
