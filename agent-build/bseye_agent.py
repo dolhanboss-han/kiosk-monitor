@@ -8,7 +8,7 @@ else:
 sys.path.insert(0, BASE_DIR)
 os.chdir(BASE_DIR)
 
-VERSION = '3.0.0'
+VERSION = '3.0.2'
 
 def load_config():
     config = configparser.ConfigParser()
@@ -40,7 +40,7 @@ def main():
     # 4. 데이터 전송 스레드
     if config.get('SERVER', 'server_url', fallback=''):
         from data_sender import start_sender_thread
-        start_sender_thread(config)
+        start_sender_thread(config, version=VERSION)
 
     # 5. 로컬 웹서버
     print(f'[Web] http://localhost:{port}')
@@ -55,7 +55,7 @@ try:
     class BseyeService(win32serviceutil.ServiceFramework):
         _svc_name_ = 'BseyeAgent'
         _svc_display_name_ = 'BS-EYE Kiosk Agent'
-        _svc_description_ = 'BS-EYE Kiosk Monitoring Agent v3.0.0'
+        _svc_description_ = 'BS-EYE Kiosk Monitoring Agent v3.0.2'
 
         def __init__(self, args):
             win32serviceutil.ServiceFramework.__init__(self, args)

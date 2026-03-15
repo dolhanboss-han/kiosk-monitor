@@ -1,4 +1,4 @@
-﻿import sys, threading, time, os, json, configparser, requests, urllib.request, urllib.error
+﻿import sys, threading, time, os, json, configparser, requests, urllib.request, urllib.error, shutil
 from db_manager import (
     get_unsent_dates, get_daily_send_data, save_send_result,
     get_unsent_usage, mark_usage_sent,
@@ -6,11 +6,18 @@ from db_manager import (
     get_unsent_sessions, get_session_steps, mark_sessions_sent
 )
 
-SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://xzozycbrkdqoztcxbtwa.supabase.co')
-SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+SUPABASE_URL = 'https://xzozycbrkdqoztcxbtwa.supabase.co'
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+UPDATE_DIR = r'C:\bseye-agent'
 
 class DataSender:
-    def __init__(self, config):
+    def __init__(self, config, version='3.0.0'):
+        self.config = config
         self.server_url = config.get('SERVER', 'server_url', fallback='')
         self.usage_url = config.get('SERVER', 'usage_url', fallback='')
         self.agent_token = config.get('SERVER', 'agent_token', fallback='')
@@ -18,6 +25,7 @@ class DataSender:
         self.kiosk_id = config.get('SERVER', 'kiosk_id', fallback='')
         self.kiosk_name = config.get('SERVER', 'kiosk_name', fallback='')
         self.send_interval = config.getint('SERVER', 'send_interval', fallback=60)
+        self.agent_version = version
         self.headers = {
             'Content-Type': 'application/json',
             'X-Agent-Token': self.agent_token
@@ -46,6 +54,7 @@ class DataSender:
         self._send_usage()
         self._send_sessions()
         self._retry_heartbeats()
+        self._check_update()
 
     # ─── 이벤트 로그 (윈도우 타이틀) 전송 ───
     def _send_events(self):
@@ -239,7 +248,130 @@ class DataSender:
             mark_heartbeat_sent(ok_ids)
             print(f"[Sender] heartbeat retry: {len(ok_ids)}건 성공")
 
-def start_sender_thread(config):
-    sender = DataSender(config)
+    # ─── 자동 업데이트 ───
+    def _check_update(self):
+        """heartbeat API에서 최신 버전 정보를 조회하여 자동 업데이트"""
+        if not self.server_url:
+            return
+        try:
+            update_api = self.server_url.rsplit('/', 1)[0] + '/update-check'
+            payload = {
+                'hosp_cd': self.hosp_cd,
+                'kiosk_id': self.kiosk_id,
+                'agent_version': self.agent_version,
+            }
+            resp = requests.post(update_api, json=payload, headers=self.headers, timeout=15)
+            if resp.status_code != 200:
+                return
+            data = resp.json()
+
+            # 메인 에이전트 업데이트
+            latest = data.get('latest_version', '')
+            download_url = data.get('download_url', '')
+            if latest and latest != self.agent_version and download_url:
+                print(f"[Update] new version available: {self.agent_version} → {latest}")
+                self._do_update(download_url, 'bseye-agent.exe', latest)
+
+            # thermal_checker_32.exe 업데이트
+            tc_latest = data.get('thermal_checker_version', '')
+            tc_url = data.get('thermal_checker_url', '')
+            if tc_latest and tc_url:
+                tc_path = os.path.join(BASE_DIR, 'thermal_checker_32.exe')
+                self._update_file(tc_url, tc_path, 'thermal_checker_32.exe')
+
+        except Exception as e:
+            print(f"[Update] check error: {e}")
+
+    def _do_update(self, download_url, exe_name, new_version):
+        """메인 EXE 다운로드 → 백업 → 교체 → updater.bat으로 재시작"""
+        try:
+            os.makedirs(UPDATE_DIR, exist_ok=True)
+            name_base = os.path.splitext(exe_name)[0]  # 'bseye-agent'
+            new_path = os.path.join(UPDATE_DIR, f'{name_base}_new.exe')
+            old_path = os.path.join(BASE_DIR, f'{name_base}_old.exe')
+            current_path = os.path.join(BASE_DIR, exe_name)
+
+            # 다운로드
+            print(f"[Update] downloading {download_url}")
+            resp = requests.get(download_url, timeout=120, stream=True)
+            resp.raise_for_status()
+            with open(new_path, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"[Update] downloaded → {new_path}")
+
+            # 파일 크기 검증
+            if os.path.getsize(new_path) < 1024:
+                print("[Update] downloaded file too small, aborting")
+                os.remove(new_path)
+                return
+
+            # 백업
+            if os.path.exists(current_path):
+                shutil.copy2(current_path, old_path)
+                print(f"[Update] backup → {old_path}")
+
+            # updater.bat 생성 (현재 프로세스 종료 후 교체 및 재시작)
+            bat_path = os.path.join(UPDATE_DIR, 'updater.bat')
+            with open(bat_path, 'w', encoding='utf-8') as f:
+                f.write('@echo off\n')
+                f.write('echo [Updater] waiting for agent to exit...\n')
+                f.write('timeout /t 3 /nobreak >nul\n')
+                f.write(f'copy /y "{new_path}" "{current_path}"\n')
+                f.write(f'del "{new_path}"\n')
+                f.write(f'echo [Updater] starting {exe_name}\n')
+                f.write(f'start "" "{current_path}"\n')
+                f.write(f'del "%~f0"\n')
+
+            print(f"[Update] updater.bat created, restarting...")
+            os.startfile(bat_path)
+            sys.exit(0)
+
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"[Update] update failed: {e}")
+            # 실패 시 다운로드 파일 정리
+            name_base = os.path.splitext(exe_name)[0]
+            new_path = os.path.join(UPDATE_DIR, f'{name_base}_new.exe')
+            if os.path.exists(new_path):
+                try:
+                    os.remove(new_path)
+                except OSError:
+                    pass
+
+    def _update_file(self, download_url, target_path, name):
+        """thermal_checker 등 보조 파일 업데이트 (교체만, 재시작 불필요)"""
+        try:
+            tmp_path = target_path + '.tmp'
+            resp = requests.get(download_url, timeout=60, stream=True)
+            resp.raise_for_status()
+            with open(tmp_path, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            if os.path.getsize(tmp_path) < 1024:
+                print(f"[Update] {name}: downloaded file too small, aborting")
+                os.remove(tmp_path)
+                return
+
+            # 백업 후 교체
+            if os.path.exists(target_path):
+                backup = target_path + '.old'
+                shutil.copy2(target_path, backup)
+            shutil.move(tmp_path, target_path)
+            print(f"[Update] {name}: updated OK")
+
+        except Exception as e:
+            print(f"[Update] {name}: update failed: {e}")
+            if os.path.exists(target_path + '.tmp'):
+                try:
+                    os.remove(target_path + '.tmp')
+                except OSError:
+                    pass
+
+
+def start_sender_thread(config, version='3.0.0'):
+    sender = DataSender(config, version=version)
     t = threading.Thread(target=sender.run, daemon=True)
     t.start()
