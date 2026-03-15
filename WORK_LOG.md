@@ -345,3 +345,45 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 - [ ] Windows Server PC Agent 모드 (device_type=server)
 - [ ] 카카오 알림톡 연동
 - [ ] 전체 병원 450대 순차 배포
+
+
+## 2026-03-15 (2차 작업)
+
+### 완료
+1. events 404 해결: config.ini usage_url → /api/agent/events 변경
+2. Thermal DLL 32bit 해결: thermal_checker_32.exe 빌드, 64bit 제거
+3. A4 프린터 SNMP 파싱 수정: bytes→int 변환 (printer_a4: idle, errors:[], jammed:false)
+4. 프린터 모델 수정: HMK-825 → HMK-072
+5. 로컬 대시보드 한글 깨짐 수정: 이모지→텍스트, UTF-8 BOM
+6. 프린터 잼 화면차단: printer_status.txt, thermal_status.txt 자동 갱신
+7. 출력 매수 검증: print_request.txt 감지 확인 (실출력 테스트 내일)
+8. EMR 로그 모니터링: log_file 방식 구현, emr_status.txt 생성
+9. 서버 PC Agent 모드: device_type=server, process/DB 체크 구현
+10. 자동 업데이트: update-check API, download API, 3.0.0→3.0.2 자동 업데이트 검증 완료
+11. 설치 스크립트: bseye-installer.bat (서버에서 파일 다운로드+config 설정+서비스 등록)
+12. 서버 API: /api/agent/update-check, /api/agent/download/<filename> 추가
+13. API 추가: /api/printer-status, /api/emr-status, /api/print-result
+
+### Agent v3.0.2 deploy 파일
+- bseye-agent.exe: 22.68 MB
+- thermal_checker_32.exe: 6.49 MB
+- config.ini, config_kiosk_sample.ini, config_server_sample.ini
+- bseye-installer.bat
+- templates/bseye-agent-viewer.html
+
+### 키오스크 최종 상태 (192.168.0.11)
+- Agent: v3.0.2, 자동 업데이트 동작 확인
+- HDMI: connected, 터치: ok
+- A4 프린터: idle, 토너44%, 상단30%, 하단70%, jammed:false
+- 영수증 프린터: ok, paper:normal, cover:closed
+- 바코드: ok, VAN: running
+- EMR: unknown (개발 키오스크)
+- 이벤트 전송: OK
+- 프린터 상태 파일: printer_status.txt=OK, thermal_status.txt=OK
+
+### 내일 작업
+1. 출력 매수 검증 실출력 테스트
+2. Vercel 대시보드 배포
+3. 카카오 알림톡 연동
+4. 미배정 병원 24건 코드 발급
+5. 전체 병원 450대 순차 배포
