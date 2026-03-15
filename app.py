@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash, send_file
 from flask_socketio import SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
@@ -3468,3 +3468,43 @@ def api_hospital_list():
     data = [{"hosp_cd":str(r[0]),"hosp_name":str(r[1] or '')} for r in cur.fetchall()]
     conn.close()
     return jsonify({"hospitals": data})
+
+# ── Agent 자동 업데이트 API ──────────────────────────
+
+AGENT_LATEST_VERSION = '3.0.2'
+AGENT_DEPLOY_DIR = '/home/ubuntu/kiosk-monitor/agent-build/deploy'
+
+@app.route('/api/agent/update-check', methods=['POST'])
+def agent_update_check():
+    """Agent가 현재 버전 전송 → 최신 버전/다운로드 URL 응답"""
+    data = request.get_json(silent=True) or {}
+    current = data.get('agent_version', '0.0.0')
+    base_url = 'https://monitor.blueswell.co.kr/api/agent/download'
+    
+    files = {}
+    import os as _os
+    for fname in _os.listdir(AGENT_DEPLOY_DIR):
+        fpath = _os.path.join(AGENT_DEPLOY_DIR, fname)
+        if _os.path.isfile(fpath):
+            files[fname] = f"{base_url}/{fname}"
+    
+    need_update = current < AGENT_LATEST_VERSION
+    return jsonify({
+        'status': 'ok',
+        'latest_version': AGENT_LATEST_VERSION,
+        'current_version': current,
+        'need_update': need_update,
+        'download_url': f"{base_url}/bseye-agent.exe" if need_update else None,
+        'files': files
+    })
+
+@app.route('/api/agent/download/<filename>', methods=['GET'])
+def agent_download(filename):
+    """EXE, DLL 등 파일 다운로드"""
+    import os as _os
+    safe_name = _os.path.basename(filename)
+    fpath = _os.path.join(AGENT_DEPLOY_DIR, safe_name)
+    if not _os.path.isfile(fpath):
+        return jsonify({'error': 'file not found'}), 404
+    return send_file(fpath, as_attachment=True, download_name=safe_name)
+
