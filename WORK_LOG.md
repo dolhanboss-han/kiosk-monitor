@@ -387,3 +387,46 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 3. 카카오 알림톡 연동
 4. 미배정 병원 24건 코드 발급
 5. 전체 병원 450대 순차 배포
+
+
+## 2026-03-15 (3차 작업 - 설치 자동화)
+
+### 완료
+1. install.bat 생성: 더블클릭 한 번으로 전체 설치 (서버에서 파일 다운로드)
+2. bseye-installer.bat 완성: 20개 설정 항목 입력, CMD echo 방식 config.ini 생성 (BOM 없는 UTF-8)
+3. 서버 API 추가: /api/agent/update-check, /api/agent/download (하위폴더 검색 포함)
+4. 자동 업데이트 검증: 3.0.0 → 3.0.2 자동 다운로드+교체+재시작 성공
+5. data_sender.py: 버전 하드코딩 제거, bseye_agent.py에서 VERSION 전달
+6. 파일명 버그 수정: bseye-agent.exe_new.exe → bseye-agent_new.exe
+7. schtasks 등록: "bseye-agent.exe debug" 파라미터 포함
+8. INSTALL_GUIDE.html 전체 재작성: Step 1~6, 서버PC, 자동업데이트, 문제해결, 파일구성
+9. config 주석 영문 전환 (CMD 인코딩 호환)
+10. install.bat 영문 전환 (CMD 한글 깨짐 해결)
+11. 서버 download API: templates 하위폴더 파일 검색 지원
+
+### 설치 흐름 (최종)
+1. install.bat 더블클릭 (관리자 권한)
+2. 서버에서 파일 자동 다운로드
+3. 20개 설정 입력 (기본값 Enter)
+4. config.ini 자동 생성
+5. schtasks 자동 등록
+6. INSTALL_GUIDE.html 보면서 config 확인
+7. bseye-agent.exe debug 실행
+8. http://localhost:8080 대시보드 확인
+9. 모든 항목 초록색 확인 후 Ctrl+C
+10. PC 재부팅 → 자동 시작 확인
+
+### 배포 파일 목록 (서버 deploy)
+- bseye-agent.exe: 22.68 MB
+- thermal_checker_32.exe: 6.49 MB
+- config.ini, config_kiosk_sample.ini, config_server_sample.ini
+- bseye-installer.bat, install.bat
+- INSTALL_GUIDE.html, INSTALL_GUIDE.md
+- templates/bseye-agent-viewer.html
+
+### 내일 작업
+1. 출력 매수 검증 실출력 테스트
+2. Vercel 대시보드 배포
+3. 카카오 알림톡 연동
+4. 미배정 병원 24건 코드 발급
+5. 전체 병원 450대 순차 배포
