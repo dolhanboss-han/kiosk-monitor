@@ -1,34 +1,33 @@
 @echo off
-chcp 65001 >nul
 echo ========================================
-echo   BS-EYE Agent 설치
+echo   BS-EYE Agent Install
 echo ========================================
 echo.
 
-:: 관리자 권한 확인
+:: Check administrator privileges
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [오류] 관리자 권한으로 실행해주세요.
-    echo 마우스 오른쪽 클릭 → 관리자 권한으로 실행
+    echo [ERROR] Run as Administrator.
+    echo Right-click and select Run as Administrator.
     pause
     exit /b 1
 )
 
-:: 폴더 생성
+:: Create directory
 if not exist "C:\bseye-agent" mkdir "C:\bseye-agent"
 cd /d "C:\bseye-agent"
 
-echo [1/3] 설치 파일 다운로드 중...
+echo [1/3] Downloading installer...
 powershell -Command "Invoke-WebRequest -Uri 'https://monitor.blueswell.co.kr/api/agent/download/bseye-installer.bat' -OutFile 'C:\bseye-agent\bseye-installer.bat'"
 
 if not exist "C:\bseye-agent\bseye-installer.bat" (
-    echo [오류] 다운로드 실패. 인터넷 연결을 확인하세요.
+    echo [ERROR] Download failed. Check internet connection.
     pause
     exit /b 1
 )
 
-echo [2/3] 설치 시작...
+echo [2/3] Starting installation...
 call "C:\bseye-agent\bseye-installer.bat"
 
-echo [3/3] 설치 완료
+echo [3/3] Installation complete
 pause
