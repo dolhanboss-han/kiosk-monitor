@@ -303,3 +303,45 @@ hosp_cd, kiosk_id, agent_version, cpu_usage, memory_usage, disk_usage, os_versio
 
 ### 관련 테이블 (향후 추가)
 - print_job_log: job_id, kiosk_id, job_type, expected_pages, actual_pages, result(ok/shortage/jammed), timestamp
+
+### 2026-03-15 오전 작업
+
+### 완료
+1. [Sender] events 404 해결 - config.ini usage_url을 /api/agent/events로 수정
+2. Thermal 프린터 DLL 완전 해결
+   - thermal_checker_32.exe (32비트 별도 EXE) 빌드
+   - 32비트 Python 3.12.9 설치 (C:\Python312-32)
+   - DLL 로드 성공, 프린터 상태: ok, paper: normal, cover: closed
+3. A4 프린터 SNMP 에러 파싱 수정 (bytes 타입 처리)
+   - printer_a4: idle, errors: [], jammed: false
+4. 프린터 모델 수정: HMK-825 -> HMK-072 (실제 장비 확인)
+5. 64비트 thermal_checker.exe 제거, 32비트만 사용
+6. config.ini 동기화 (usage_url, model)
+7. 로컬 대시보드 색상 수정 (thermal paper normal -> 초록색)
+8. /api/agent/events, /api/agent/sessions 엔드포인트 추가 (어제)
+9. EMR 로그 경로 확인: C:\MsystechHIS_Ver.2\KIOSK_NSS\LOG   - 성공 키워드: OCS/EMR[msys] 사용가능
+   - 향후 로그 파일 모니터링 방식으로 EMR 체크 구현 예정
+
+### 키오스크 최종 상태 (192.168.0.11)
+- HDMI: connected
+- 터치스크린: ok (HID-compliant touch screen)
+- A4 프린터: idle, 토너44%, 상단30%, 하단70%, errors:[], jammed:false
+- 영수증 프린터: ok, paper:normal, cover:closed
+- 바코드: ok (POS HID Barcode scanner)
+- VAN Agent: KocesICPos.exe running
+- 이벤트 전송: OK
+- EMR: disconnected (개발 키오스크, 정상)
+
+### deploy 폴더 구성
+- bseye-agent.exe (22.7MB)
+- thermal_checker_32.exe (6.5MB)
+- config.ini
+- templates/bseye-agent-viewer.html
+
+### 미완료
+- [ ] 프린터 jammed 시 키오스크 화면 차단 구현
+- [ ] Vercel 대시보드 배포
+- [ ] EMR 로그 모니터링 구현 (실제 병원 배포 시)
+- [ ] Windows Server PC Agent 모드 (device_type=server)
+- [ ] 카카오 알림톡 연동
+- [ ] 전체 병원 450대 순차 배포
