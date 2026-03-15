@@ -3,214 +3,184 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BSEYE Agent 설치 가이드</title>
+<title>BS-EYE Agent 설치 가이드 v3.0.2</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Malgun Gothic', '맑은 고딕', 'Segoe UI', sans-serif; background: #fff; color: #222; line-height: 1.7; padding: 40px; max-width: 900px; margin: 0 auto; }
-  h1 { font-size: 26px; border-bottom: 3px solid #333; padding-bottom: 10px; margin-bottom: 24px; }
-  h2 { font-size: 20px; margin-top: 36px; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 6px; }
-  h3 { font-size: 16px; margin-top: 20px; margin-bottom: 8px; color: #333; }
+  body { font-family: 'Malgun Gothic', '맑은 고딕', 'Segoe UI', sans-serif; background: #fff; color: #222; line-height: 1.8; padding: 40px; max-width: 900px; margin: 0 auto; font-size: 14px; }
+  h1 { font-size: 24px; border-bottom: 3px solid #333; padding-bottom: 10px; margin-bottom: 24px; }
+  h2 { font-size: 19px; margin-top: 36px; margin-bottom: 12px; border-left: 4px solid #0066cc; padding-left: 10px; }
+  h3 { font-size: 15px; margin-top: 20px; margin-bottom: 8px; color: #333; }
   p { margin-bottom: 10px; }
   ul, ol { margin: 8px 0 12px 24px; }
   li { margin-bottom: 4px; }
   strong { color: #000; }
   code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
   pre { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 14px 16px; margin: 10px 0 16px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.5; }
-  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 14px; }
-  th { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 10px; text-align: left; font-weight: 600; }
-  td { border: 1px solid #ccc; padding: 8px 10px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 13px; }
+  th { background: #f0f0f0; border: 1px solid #ccc; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #ccc; padding: 7px 10px; }
   tr:nth-child(even) { background: #fafafa; }
   hr { border: none; border-top: 1px solid #ddd; margin: 28px 0; }
-  .section-tag { display: inline-block; background: #e8e8e8; padding: 1px 8px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 14px; font-weight: 600; }
+  .step { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px 20px; margin: 16px 0; }
+  .step h2 { margin-top: 0; }
+  .warn { color: #cc6600; font-weight: 600; }
+  .ok { color: #008800; }
+  .err { color: #cc0000; }
   @media print {
     body { padding: 20px; font-size: 12px; }
     pre { border: 1px solid #999; page-break-inside: avoid; }
     table { page-break-inside: avoid; }
     h2 { page-break-after: avoid; }
+    .step { border: 1px solid #999; }
   }
 </style>
 </head>
 <body>
 
-<h1>BSEYE Agent 설치 가이드</h1>
-
-<h2>1. 개요</h2>
-<p>BSEYE Agent는 키오스크 및 서버PC의 하드웨어 상태를 모니터링하여 중앙 서버로 heartbeat 데이터를 전송하는 Windows 에이전트입니다.</p>
-
-<h3>지원 장치 타입</h3>
-<ul>
-  <li><strong>kiosk</strong> : 키오스크 PC (프린터, 바코드, 카드리더, 모니터 등 체크)</li>
-  <li><strong>server</strong> : 서버 PC (프로세스 실행 여부, DB 연결 체크)</li>
-</ul>
+<h1>BS-EYE Agent 설치 가이드 v3.0.2</h1>
 
 <hr>
 
-<h2>2. 배포 파일 구성</h2>
-<pre>deploy/
-  bseye-agent.exe          # 메인 에이전트 EXE
-  thermal_checker_32.exe   # 감열 프린터 체크 (32비트)
-  config.ini               # 설정 파일
-  templates/               # 웹 템플릿
-  config_kiosk_sample.ini  # 키오스크 설정 예시
-  config_server_sample.ini # 서버PC 설정 예시</pre>
-
-<hr>
-
-<h2>3. 설치 방법</h2>
-
-<h3>3.1 키오스크 설치</h3>
+<div class="step">
+<h2>Step 1: install.bat 실행</h2>
 <ol>
-  <li>deploy 폴더를 USB에 복사</li>
-  <li>키오스크 PC의 원하는 경로에 복사 (예: <code>C:\BSEYE\</code>)</li>
-  <li><code>config.ini</code>를 <code>config_kiosk_sample.ini</code> 참고하여 편집</li>
-  <li>필수 설정:
-<pre>[KIOSK_INFO]
-device_type = kiosk
-
-[SERVER]
-hosp_cd = H001          ; 병원코드
-kiosk_id = KIOSK01      ; 키오스크 고유 ID
-kiosk_name = 1층 접수    ; 표시명</pre>
-  </li>
-  <li>장치별 on/off:
-<pre>[DEVICE_CHECK]
-pc = true
-monitor = true
-printer_a4 = true       ; A4 프린터 (SNMP)
-printer_thermal = true  ; 감열 프린터 (DLL)
-card_reader = false
-barcode_scanner = true</pre>
-  </li>
-  <li><code>bseye-agent.exe</code> 실행</li>
+  <li><code>install.bat</code> 파일을 <strong>관리자 권한</strong>으로 실행<br>
+    (파일 우클릭 → <strong>관리자 권한으로 실행</strong>)</li>
+  <li>서버에서 필요한 파일이 자동으로 다운로드됩니다</li>
+  <li>20개 설정 항목을 입력합니다 (기본값은 <strong>Enter만 누르면</strong> 자동 적용)</li>
+  <li>입력 완료 후 설정값 요약이 표시됩니다 → <strong>Y</strong>로 확인</li>
+  <li><code>config.ini</code>가 자동 생성됩니다</li>
+  <li>시작프로그램이 자동 등록됩니다 (PC 재부팅 시 자동 시작)</li>
 </ol>
+<pre>install.bat  ← 우클릭 → 관리자 권한으로 실행</pre>
+</div>
 
-<h3>3.2 서버PC 설치</h3>
+<div class="step">
+<h2>Step 2: config.ini 확인/수정</h2>
+<p><code>C:\bseye-agent\config.ini</code>를 메모장으로 열어 아래 항목을 확인합니다.</p>
+<table>
+  <tr><th>섹션</th><th>키</th><th>설명</th><th>예시</th></tr>
+  <tr><td>[KIOSK_INFO]</td><td>device_type</td><td>장비유형</td><td>kiosk 또는 server</td></tr>
+  <tr><td>[SERVER]</td><td>hosp_cd</td><td>병원코드 (본사 발급)</td><td>H088</td></tr>
+  <tr><td>[SERVER]</td><td>kiosk_id</td><td>키오스크 고유번호</td><td>KIOSK_BS_01</td></tr>
+  <tr><td>[SERVER]</td><td>kiosk_name</td><td>키오스크 이름</td><td>1층로비</td></tr>
+  <tr><td>[PRINTER_A4]</td><td>ip</td><td>A4 프린터 IP 주소</td><td>192.168.0.25</td></tr>
+  <tr><td>[PRINTER_THERMAL]</td><td>model</td><td>영수증 프린터 모델</td><td>HMK-072</td></tr>
+  <tr><td>[VAN_AGENT]</td><td>process</td><td>VAN 프로세스명</td><td>KocesICPos.exe</td></tr>
+  <tr><td>[NETWORK]</td><td>emr_host</td><td>EMR 서버 IP</td><td>192.168.0.100</td></tr>
+  <tr><td>[NETWORK]</td><td>emr_port</td><td>EMR 포트</td><td>7000</td></tr>
+</table>
+<p>수정 후 저장합니다.</p>
+</div>
+
+<div class="step">
+<h2>Step 3: 사전 점검 (선택사항)</h2>
+<table>
+  <tr><th>점검 항목</th><th>명령어</th></tr>
+  <tr><td>A4 프린터 연결</td><td><code>ping 192.168.0.25</code> (프린터 IP)</td></tr>
+  <tr><td>영수증 프린터</td><td>장치관리자에서 USB 프린터 확인</td></tr>
+  <tr><td>VAN Agent</td><td><code>tasklist | findstr koces</code></td></tr>
+  <tr><td>터치스크린</td><td>장치관리자에서 HID touch screen 확인</td></tr>
+</table>
+</div>
+
+<div class="step">
+<h2>Step 4: Agent 테스트 실행</h2>
+<p>CMD 또는 PowerShell에서 아래 명령을 실행합니다:</p>
+<pre>cd C:\bseye-agent
+bseye-agent.exe debug</pre>
 <ol>
-  <li>deploy 폴더를 서버PC에 복사</li>
-  <li><code>config.ini</code>를 <code>config_server_sample.ini</code> 참고하여 편집</li>
-  <li>필수 설정:
-<pre>[KIOSK_INFO]
-device_type = server
+  <li>브라우저에서 <code>http://localhost:8080</code> 접속</li>
+  <li>우측 상단 <span class="ok"><strong>Online</strong></span> (초록색) → 정상</li>
+  <li>모든 항목이 <span class="ok">초록색</span> → 정상</li>
+  <li><span class="err">빨간색</span> 또는 회색 항목 → 해당 장비 점검 필요</li>
+</ol>
+</div>
 
-[SERVER]
-hosp_cd = H001
-kiosk_id = SVR01
-kiosk_name = 번호발급서버</pre>
+<div class="step">
+<h2>Step 5: 대시보드 항목 설명</h2>
+<table>
+  <tr><th>섹션</th><th>항목</th><th>초록색 (정상)</th><th>빨간색/회색 (이상)</th></tr>
+  <tr><td>PC</td><td>CPU, Memory, Disk</td><td>정상 범위</td><td>과부하</td></tr>
+  <tr><td>Monitor</td><td>HDMI, Touch</td><td>connected, ok</td><td>disconnected</td></tr>
+  <tr><td>A4 Printer</td><td>Status, Toner, Cassette</td><td>idle, 잔량 표시</td><td>error, jammed</td></tr>
+  <tr><td>Thermal</td><td>Status, Paper, Cover</td><td>ok, normal, closed</td><td>error, empty, open</td></tr>
+  <tr><td>Devices</td><td>Barcode, Card Reader</td><td>ok, Normal</td><td>not found</td></tr>
+  <tr><td>VAN Agent</td><td>프로세스명</td><td>running</td><td>stopped</td></tr>
+  <tr><td>Network</td><td>EMR</td><td>connected</td><td>disconnected, unknown</td></tr>
+</table>
+</div>
+
+<div class="step">
+<h2>Step 6: 확인 완료 후</h2>
+<ol>
+  <li>테스트 실행 중인 Agent 종료: <code>Ctrl+C</code></li>
+  <li>PC 재부팅</li>
+  <li>재부팅 후 자동 시작 확인:
+<pre>tasklist | findstr bseye</pre>
   </li>
-  <li>서버 모니터링 설정:
+  <li><code>http://localhost:8080</code> 다시 접속하여 정상 동작 확인</li>
+</ol>
+</div>
+
+<hr>
+
+<h2>서버PC 설치</h2>
+<ol>
+  <li><code>install.bat</code>을 동일하게 관리자 권한으로 실행</li>
+  <li>device_type 입력 시 <code>server</code> 입력</li>
+  <li>프린터/바코드 체크가 자동으로 비활성화됩니다</li>
+  <li>감시 프로세스: <code>bs_number.exe</code> (번호표시시스템)</li>
+  <li>DB 체크: MSSQL TCP 1433</li>
+  <li><code>config.ini</code>에서 <code>[SERVER_MONITOR]</code> 섹션 확인</li>
+</ol>
 <pre>[SERVER_MONITOR]
-; 감시할 프로세스 (쉼표 구분, 여러 개 가능)
 process_list = bs_number.exe
-; DB 연결 체크
 db_type = mssql
 db_host = localhost
 db_port = 1433
 db_check = true</pre>
-  </li>
-  <li><code>bseye-agent.exe</code> 실행</li>
-</ol>
 
 <hr>
 
-<h2>4. config.ini 섹션별 설명</h2>
-
-<h3><span class="section-tag">[KIOSK_INFO]</span></h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>예시</th></tr>
-  <tr><td>device_type</td><td>장치 타입 (kiosk/server)</td><td>kiosk</td></tr>
-  <tr><td>category</td><td>카테고리</td><td>standard</td></tr>
-  <tr><td>monitor_size</td><td>모니터 크기 (인치)</td><td>27</td></tr>
-  <tr><td>usage_type</td><td>용도 (receipt/payment/certificate/server)</td><td>receipt</td></tr>
-</table>
-
-<h3><span class="section-tag">[SERVER]</span></h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>예시</th></tr>
-  <tr><td>server_url</td><td>heartbeat API URL</td><td>https://monitor.blueswell.co.kr/api/agent/heartbeat</td></tr>
-  <tr><td>usage_url</td><td>이벤트 API URL</td><td>https://monitor.blueswell.co.kr/api/agent/events</td></tr>
-  <tr><td>agent_token</td><td>인증 토큰</td><td>bseye-agent-2026</td></tr>
-  <tr><td>hosp_cd</td><td>병원코드</td><td>H001</td></tr>
-  <tr><td>kiosk_id</td><td>장치 ID</td><td>KIOSK01</td></tr>
-  <tr><td>heartbeat_interval</td><td>전송 간격 (초)</td><td>30</td></tr>
-</table>
-
-<h3><span class="section-tag">[DEVICE_CHECK]</span> (키오스크 전용)</h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>기본값</th></tr>
-  <tr><td>pc</td><td>CPU/메모리/디스크/네트워크</td><td>true</td></tr>
-  <tr><td>monitor</td><td>HDMI/터치스크린</td><td>true</td></tr>
-  <tr><td>printer_a4</td><td>A4 프린터 (SNMP)</td><td>false</td></tr>
-  <tr><td>printer_thermal</td><td>감열 프린터 (DLL)</td><td>false</td></tr>
-  <tr><td>card_reader</td><td>카드리더기</td><td>false</td></tr>
-  <tr><td>barcode_scanner</td><td>바코드 스캐너</td><td>false</td></tr>
-</table>
-
-<h3><span class="section-tag">[PRINTER_A4]</span></h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>예시</th></tr>
-  <tr><td>ip</td><td>프린터 IP</td><td>192.168.0.25</td></tr>
-  <tr><td>snmp_community</td><td>SNMP community</td><td>public</td></tr>
-</table>
-
-<h3><span class="section-tag">[PRINTER_THERMAL]</span></h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>예시</th></tr>
-  <tr><td>dll_path</td><td>HwaUSB.DLL 경로</td><td>C:\Windows\SysWOW64\HwaUSB.DLL</td></tr>
-  <tr><td>model</td><td>프린터 모델</td><td>HMK-072</td></tr>
-</table>
-
-<h3><span class="section-tag">[SERVER_MONITOR]</span> (서버PC 전용)</h3>
-<table>
-  <tr><th>키</th><th>설명</th><th>예시</th></tr>
-  <tr><td>process_list</td><td>감시 프로세스 (쉼표 구분)</td><td>bs_number.exe</td></tr>
-  <tr><td>db_type</td><td>DB 종류 (참고용)</td><td>mssql</td></tr>
-  <tr><td>db_host</td><td>DB 호스트</td><td>localhost</td></tr>
-  <tr><td>db_port</td><td>DB 포트</td><td>1433</td></tr>
-  <tr><td>db_check</td><td>DB 포트 체크 on/off</td><td>true</td></tr>
-</table>
-
-<hr>
-
-<h2>5. heartbeat 데이터 필드</h2>
-
-<h3>공통 필드</h3>
+<h2>자동 업데이트</h2>
 <ul>
-  <li><code>hosp_cd</code>, <code>kiosk_id</code>, <code>agent_version</code>, <code>device_type</code></li>
-  <li><code>cpu_usage</code>, <code>memory_usage</code>, <code>disk_usage</code>, <code>os_version</code>, <code>local_ip</code></li>
-  <li><code>network_latency</code>, <code>emr_status</code></li>
-</ul>
-
-<h3>키오스크 전용 필드</h3>
-<ul>
-  <li><code>monitor_model</code>, <code>monitor_hdmi</code>, <code>monitor_touch</code></li>
-  <li><code>printer_a4</code>, <code>printer_a4_toner</code>, <code>printer_a4_errors</code></li>
-  <li><code>printer_thermal</code>, <code>thermal_cover</code>, <code>thermal_paper</code></li>
-  <li><code>card_reader</code>, <code>barcode_scanner</code></li>
-  <li><code>van_agent_status</code></li>
-</ul>
-
-<h3>서버PC 전용 필드</h3>
-<ul>
-  <li><code>server_processes</code> : <code>{"bs_number.exe": "running"}</code> 형태</li>
-  <li><code>server_db_status</code> : <code>"connected"</code> 또는 <code>"disconnected"</code></li>
+  <li>Agent가 60초마다 서버에서 최신 버전을 확인합니다</li>
+  <li>새 버전이 있으면 자동 다운로드 → 교체 → 재시작</li>
+  <li>이전 버전은 <code>bseye-agent_old.exe</code>로 백업됩니다</li>
 </ul>
 
 <hr>
 
-<h2>6. 자동 시작 설정</h2>
-<p>Windows 작업 스케줄러에 등록하여 부팅 시 자동 실행:</p>
-<pre>schtasks /create /tn "BSEYE Agent" /tr "C:\BSEYE\bseye-agent.exe" /sc onlogon /rl highest</pre>
+<h2>문제 해결</h2>
+<table>
+  <tr><th>증상</th><th>조치</th></tr>
+  <tr><td>Agent 시작 안됨</td><td><code>bseye-agent.exe debug</code>로 에러 메시지 확인</td></tr>
+  <tr><td>포트 8080 충돌</td><td><code>netstat -ano | findstr 8080</code> → <code>taskkill /F /PID [PID]</code></td></tr>
+  <tr><td>프린터 감지 안됨</td><td><code>ping [프린터IP]</code> 확인, config.ini ip 값 확인</td></tr>
+  <tr><td>thermal disconnected</td><td>config.ini model 확인, USB 케이블 재연결</td></tr>
+  <tr><td>EMR unknown</td><td>개발환경은 정상. 운영환경은 키오스크 프로그램 실행 후 확인</td></tr>
+  <tr><td>자동 업데이트 실패</td><td><code>bseye-agent_old.exe</code>를 <code>bseye-agent.exe</code>로 이름 변경하여 복구</td></tr>
+  <tr>
+    <td>자동 시작 안됨</td>
+    <td>CMD에서 수동 등록:
+<pre>schtasks /create /tn "BSEYE Agent" /tr "\"C:\bseye-agent\bseye-agent.exe\" debug" /sc onlogon /rl highest /f</pre>
+    </td>
+  </tr>
+</table>
 
 <hr>
 
-<h2>7. 문제 해결</h2>
+<h2>파일 구성</h2>
 <table>
-  <tr><th>증상</th><th>원인</th><th>해결</th></tr>
-  <tr><td>thermal: checker_not_found</td><td>thermal_checker_32.exe 없음</td><td>deploy 폴더에서 복사</td></tr>
-  <tr><td>thermal: dll_load_failed</td><td>HwaUSB.DLL 로드 실패</td><td>dll_path 확인, 32비트 DLL 설치</td></tr>
-  <tr><td>printer_a4: offline</td><td>SNMP 통신 실패</td><td>프린터 IP, 네트워크 확인</td></tr>
-  <tr><td>server_db_status: disconnected</td><td>DB 포트 연결 실패</td><td>MSSQL 서비스 상태, 포트 확인</td></tr>
-  <tr><td>server_processes: stopped</td><td>프로세스 미실행</td><td>해당 프로그램 시작</td></tr>
+  <tr><th>파일명</th><th>설명</th><th>크기</th></tr>
+  <tr><td>bseye-agent.exe</td><td>Agent 메인 프로그램</td><td>22.7 MB</td></tr>
+  <tr><td>thermal_checker_32.exe</td><td>영수증 프린터 체크</td><td>6.5 MB</td></tr>
+  <tr><td>config.ini</td><td>설정 파일</td><td>1 KB</td></tr>
+  <tr><td>config_kiosk_sample.ini</td><td>키오스크 설정 예시</td><td>2 KB</td></tr>
+  <tr><td>config_server_sample.ini</td><td>서버PC 설정 예시</td><td>1.6 KB</td></tr>
+  <tr><td>INSTALL_GUIDE.html</td><td>이 설치 가이드</td><td>9 KB</td></tr>
+  <tr><td>templates/bseye-agent-viewer.html</td><td>로컬 대시보드</td><td>14 KB</td></tr>
 </table>
 
 </body>

@@ -3505,6 +3505,11 @@ def agent_download(filename):
     safe_name = _os.path.basename(filename)
     fpath = _os.path.join(AGENT_DEPLOY_DIR, safe_name)
     if not _os.path.isfile(fpath):
+        for root, dirs, files in _os.walk(AGENT_DEPLOY_DIR):
+            if safe_name in files:
+                fpath = _os.path.join(root, safe_name)
+                break
+    if not _os.path.isfile(fpath):
         return jsonify({'error': 'file not found'}), 404
     return send_file(fpath, as_attachment=True, download_name=safe_name)
 
